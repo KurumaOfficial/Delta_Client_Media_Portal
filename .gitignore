@@ -1,0 +1,22 @@
+﻿# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Local SQLite Database (Switched to Supabase)
+*.db
+*.db-shm
+*.db-wal
+delta.db*
+
+# Logs
+*.log
+app.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
