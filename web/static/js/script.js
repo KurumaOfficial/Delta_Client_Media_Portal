@@ -694,6 +694,31 @@ function setupEventListeners() {
   document.getElementById("adminAuthForm")?.addEventListener("submit", handleAdminAuth);
   document.getElementById("createKeyForm")?.addEventListener("submit", handleCreateKeySubmit);
   document.getElementById("banIpForm")?.addEventListener("submit", (e) => { e.preventDefault(); submitBanIp(); });
+
+  // Mobile Staff Triggers & Tab Switching
+  document.getElementById("openStaffAuthBtn")?.addEventListener("click", () => openStaffModal('mod'));
+  document.getElementById("footerStaffAuthLink")?.addEventListener("click", () => openStaffModal('mod'));
+  document.getElementById("staffTabModBtn")?.addEventListener("click", () => switchStaffAuthTab('mod'));
+  document.getElementById("staffTabAdminBtn")?.addEventListener("click", () => switchStaffAuthTab('admin'));
+
+  // Triple-tap / click on Brand Logo for quick staff entry
+  let logoClickCount = 0;
+  let logoClickTimer = null;
+  const brandLink = document.querySelector(".brand-link");
+  if (brandLink) {
+    brandLink.addEventListener("click", (e) => {
+      logoClickCount++;
+      if (logoClickCount >= 3) {
+        e.preventDefault();
+        logoClickCount = 0;
+        if (logoClickTimer) clearTimeout(logoClickTimer);
+        openStaffModal('mod');
+      } else {
+        if (logoClickTimer) clearTimeout(logoClickTimer);
+        logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 1200);
+      }
+    });
+  }
 }
 
 function setupAdminDropdowns() {
@@ -868,14 +893,62 @@ function openCriteriaModal() {
   document.getElementById("criteriaModal")?.classList.add("open");
 }
 
-function openModModal() {
+function openStaffModal(type = 'mod') {
   closeAllModals();
-  document.getElementById("modModal")?.classList.add("open");
+  const modal = document.getElementById("staffModal");
+  if (!modal) return;
+  modal.classList.add("open");
+  switchStaffAuthTab(type);
+}
+
+function switchStaffAuthTab(type) {
+  const modBtn = document.getElementById("staffTabModBtn");
+  const adminBtn = document.getElementById("staffTabAdminBtn");
+  const modSection = document.getElementById("staffModSection");
+  const adminSection = document.getElementById("staffAdminSection");
+  const heading = document.getElementById("staffModalHeading");
+
+  if (type === 'admin') {
+    if (modBtn) {
+      modBtn.classList.remove("active");
+      modBtn.style.background = "transparent";
+      modBtn.style.color = "rgba(255,255,255,0.6)";
+    }
+    if (adminBtn) {
+      adminBtn.classList.add("active");
+      adminBtn.style.background = "rgba(133,155,255,0.25)";
+      adminBtn.style.color = "#fff";
+    }
+    if (modSection) modSection.style.display = "none";
+    if (adminSection) adminSection.style.display = "block";
+    if (heading) heading.textContent = i18n[currentLang]?.adminLoginTitle || "Панель администратора";
+    const adminInput = document.getElementById("adminCodeInput");
+    if (adminInput) setTimeout(() => adminInput.focus(), 100);
+  } else {
+    if (adminBtn) {
+      adminBtn.classList.remove("active");
+      adminBtn.style.background = "transparent";
+      adminBtn.style.color = "rgba(255,255,255,0.6)";
+    }
+    if (modBtn) {
+      modBtn.classList.add("active");
+      modBtn.style.background = "rgba(133,155,255,0.25)";
+      modBtn.style.color = "#fff";
+    }
+    if (adminSection) adminSection.style.display = "none";
+    if (modSection) modSection.style.display = "block";
+    if (heading) heading.textContent = i18n[currentLang]?.modLoginTitle || "Вход для модератора";
+    const modInput = document.getElementById("modKeyInput");
+    if (modInput) setTimeout(() => modInput.focus(), 100);
+  }
+}
+
+function openModModal() {
+  openStaffModal('mod');
 }
 
 function openAdminModal() {
-  closeAllModals();
-  document.getElementById("adminModal")?.classList.add("open");
+  openStaffModal('admin');
 }
 
 function openCreateKeyModal() {
@@ -907,6 +980,7 @@ async function handleModAuth(e) {
       unlockModTabs();
       closeAllModals();
       document.getElementById("modKeyInput").value = "";
+      switchTab("hwid");
     } else {
       errEl.textContent = data.error || i18n[currentLang].invalidCode;
       errEl.style.display = "block";
@@ -1029,12 +1103,15 @@ async function handleMediaSubmit(e) {
     return;
   }
 
-  // Require Turnstile CAPTCHA ONLY for non-admin users
+  // Require Turnstile CAPTCHA ONLY for non-admin users if widget is present and visible
   if (!adminToken && window.turnstile) {
-    const turnstileResp = document.querySelector('[name="cf-turnstile-response"]')?.value;
-    if (!turnstileResp) {
-      triggerButtonState(submitBtn, "error", "submitBtn", "Пройдите капчу!");
-      return;
+    const turnstileWidget = document.querySelector(".cf-turnstile");
+    if (turnstileWidget && turnstileWidget.style.display !== "none" && turnstileWidget.offsetParent !== null) {
+      const turnstileResp = document.querySelector('[name="cf-turnstile-response"]')?.value;
+      if (!turnstileResp) {
+        triggerButtonState(submitBtn, "error", "submitBtn", "Пройдите капчу!");
+        return;
+      }
     }
   }
 
@@ -1697,19 +1774,30 @@ async function handleCreateKeySubmit(e) {
   const tg = document.getElementById("newModTgInput").value.trim();
   const customKey = document.getElementById("newModCustomKeyInput").value.trim();
 
-  if (!nick || !tg) return;
+  if (!nick || !tg) {
+    alert("Никнейм и Telegram обязательны для заполнения!");
+    return;
+  }
 
-  await fetch("/api/admin/mod-keys", {
-    method: "POST",
-    headers: { "X-Admin-Secret": adminToken, "Content-Type": "application/json" },
-    body: JSON.stringify({ nickname: nick, telegram: tg, key: customKey })
-  });
-
-  closeAllModals();
-  document.getElementById("newModNickInput").value = "";
-  document.getElementById("newModTgInput").value = "";
-  document.getElementById("newModCustomKeyInput").value = "";
-  loadAdminDashboard();
+  try {
+    const res = await fetch("/api/admin/mod-keys", {
+      method: "POST",
+      headers: { "X-Admin-Secret": adminToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ nickname: nick, telegram: tg, key: customKey })
+    });
+    const data = await res.json();
+    if (data.success) {
+      closeAllModals();
+      document.getElementById("newModNickInput").value = "";
+      document.getElementById("newModTgInput").value = "";
+      document.getElementById("newModCustomKeyInput").value = "";
+      loadAdminDashboard();
+    } else {
+      alert(data.error || "Не удалось создать ключ");
+    }
+  } catch (err) {
+    alert("Ошибка сети при создании ключа");
+  }
 }
 
 async function toggleModKey(id, action) {

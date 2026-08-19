@@ -7,6 +7,7 @@ import (
 
 	"delta-free-media/config"
 	"delta-free-media/internal/database"
+	"delta-free-media/internal/middleware"
 	"delta-free-media/internal/models"
 	"delta-free-media/internal/services"
 	"github.com/gofiber/fiber/v2"
@@ -137,7 +138,7 @@ func (h *AdminHandler) UpdateMediaStatus(c *fiber.Ctx) error {
 	}
 
 	h.TG.SendVerdict(tg, "media", appID, req.Status, req.AdminComment, "")
-	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Media App #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Media App #%s status changed to %s", id, req.Status), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true, "message": "Status updated successfully"})
 }
@@ -193,7 +194,7 @@ func (h *AdminHandler) UpdateHWIDStatus(c *fiber.Ctx) error {
 	}
 
 	h.TG.SendVerdict("@Kuruma31", "hwid", reqID, req.Status, req.AdminComment, targetUUID)
-	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("HWID Request #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("HWID Request #%s status changed to %s", id, req.Status), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true, "message": "HWID request updated"})
 }
@@ -249,7 +250,7 @@ func (h *AdminHandler) UpdateDiscordBanStatus(c *fiber.Ctx) error {
 	}
 
 	h.TG.SendVerdict("@Kuruma31", "discord", reqID, req.Status, req.AdminComment, offenderID)
-	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Discord Ban #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Discord Ban #%s status changed to %s", id, req.Status), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true, "message": "Discord ban request updated"})
 }
@@ -307,7 +308,7 @@ func (h *AdminHandler) CreateModKey(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": "Failed to save key: " + err.Error()})
 	}
 
-	h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Created key %s for mod %s (%s)", finalKey, cleanNick, cleanTg), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Created key %s for mod %s (%s)", finalKey, cleanNick, cleanTg), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{
 		"success":  true,
@@ -330,7 +331,7 @@ func (h *AdminHandler) ToggleModKey(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"success": false, "error": "Delete failed"})
 		}
-		h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Deleted key #%s (%s)", id, modKey), c.IP(), c.Get("User-Agent"))
+		h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Deleted key #%s (%s)", id, modKey), middleware.GetRealIP(c), c.Get("User-Agent"))
 		return c.JSON(fiber.Map{"success": true, "message": "Key deleted"})
 	}
 
@@ -339,7 +340,7 @@ func (h *AdminHandler) ToggleModKey(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"success": false, "error": "Freeze failed"})
 		}
-		h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Frozen key #%s (%s)", id, modKey), c.IP(), c.Get("User-Agent"))
+		h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Frozen key #%s (%s)", id, modKey), middleware.GetRealIP(c), c.Get("User-Agent"))
 		return c.JSON(fiber.Map{"success": true, "message": "Key frozen"})
 	}
 
@@ -348,7 +349,7 @@ func (h *AdminHandler) ToggleModKey(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"success": false, "error": "Unfreeze failed"})
 		}
-		h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Unfrozen key #%s (%s)", id, modKey), c.IP(), c.Get("User-Agent"))
+		h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Unfrozen key #%s (%s)", id, modKey), middleware.GetRealIP(c), c.Get("User-Agent"))
 		return c.JSON(fiber.Map{"success": true, "message": "Key unfrozen"})
 	}
 
@@ -357,7 +358,7 @@ func (h *AdminHandler) ToggleModKey(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": "Toggle failed"})
 	}
-	h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Toggled status for key #%s (%s)", id, modKey), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("KEY_MANAGEMENT", "success", fmt.Sprintf("Toggled status for key #%s (%s)", id, modKey), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true, "message": "Key status toggled"})
 }
@@ -411,7 +412,7 @@ func (h *AdminHandler) AddBannedIP(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
 
-	h.DB.RecordAuditLog("IP_BAN", "success", fmt.Sprintf("Banned IP %s (Reason: %s)", cleanIP, reason), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("IP_BAN", "success", fmt.Sprintf("Banned IP %s (Reason: %s)", cleanIP, reason), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -430,7 +431,7 @@ func (h *AdminHandler) RemoveBannedIP(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
 
-	h.DB.RecordAuditLog("IP_UNBAN", "success", fmt.Sprintf("Unbanned IP record #%d", id), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("IP_UNBAN", "success", fmt.Sprintf("Unbanned IP record #%d", id), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{
 		"success": true,

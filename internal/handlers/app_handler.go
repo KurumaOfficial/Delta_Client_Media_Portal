@@ -12,6 +12,7 @@ import (
 
 	"delta-free-media/config"
 	"delta-free-media/internal/database"
+	"delta-free-media/internal/middleware"
 	"delta-free-media/internal/models"
 	"delta-free-media/internal/services"
 	"github.com/gofiber/fiber/v2"
@@ -76,7 +77,7 @@ func (h *AppHandler) VerifyModKey(c *fiber.Ctx) error {
 		Key string `json:"key"`
 	}
 	var body reqStruct
-	ip := c.IP()
+	ip := middleware.GetRealIP(c)
 	ua := c.Get("User-Agent")
 
 	if err := c.BodyParser(&body); err != nil || strings.TrimSpace(body.Key) == "" {
@@ -90,7 +91,13 @@ func (h *AppHandler) VerifyModKey(c *fiber.Ctx) error {
 	trimmedKey := strings.TrimSpace(body.Key)
 	var nickname string
 	var isActive int
-	err := h.DB.SQL.QueryRow(h.DB.Rebind("SELECT nickname, is_active FROM moderator_keys WHERE key = ?"), trimmedKey).Scan(&nickname, &isActive)
+	query := h.DB.Rebind(`
+		SELECT nickname, is_active FROM moderator_keys 
+		WHERE LOWER(TRIM(key)) = LOWER(TRIM(?))
+		   OR LOWER(TRIM(REPLACE(key, 'DELTA-', ''))) = LOWER(TRIM(REPLACE(?, 'DELTA-', '')))
+		LIMIT 1
+	`)
+	err := h.DB.SQL.QueryRow(query, trimmedKey, trimmedKey).Scan(&nickname, &isActive)
 	if err != nil {
 		if regexp.MustCompile(`[a-zA-Z]`).MatchString(trimmedKey) && len(trimmedKey) >= 4 {
 			h.DB.RecordAuditLog("MOD_LOGIN", "failed", fmt.Sprintf("Invalid key attempt: %s", trimmedKey), ip, ua)
@@ -131,7 +138,7 @@ func (h *AppHandler) VerifyAdminCode(c *fiber.Ctx) error {
 		Code string `json:"code"`
 	}
 	var body reqStruct
-	ip := c.IP()
+	ip := middleware.GetRealIP(c)
 	ua := c.Get("User-Agent")
 
 	if err := c.BodyParser(&body); err != nil {
@@ -241,7 +248,7 @@ func (h *AppHandler) SubmitMediaApplication(c *fiber.Ctx) error {
 	}
 
 	h.TG.NotifyNewMediaApplication(id, app.Platform, app.ChannelURL, app.Telegram)
-	h.DB.RecordAuditLog("APP_SUBMIT", "success", fmt.Sprintf("Media Application #%d submitted (%s)", id, app.Platform), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("APP_SUBMIT", "success", fmt.Sprintf("Media Application #%d submitted (%s)", id, app.Platform), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -314,7 +321,7 @@ func (h *AppHandler) SubmitHWIDReset(c *fiber.Ctx) error {
 	}
 
 	h.TG.NotifyNewHWIDReset(id, modNick, targetUUID)
-	h.DB.RecordAuditLog("HWID_SUBMIT", "success", fmt.Sprintf("HWID Reset #%d by Mod %s for UUID %s", id, modNick, targetUUID), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("HWID_SUBMIT", "success", fmt.Sprintf("HWID Reset #%d by Mod %s for UUID %s", id, modNick, targetUUID), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -387,7 +394,7 @@ func (h *AppHandler) SubmitDiscordBan(c *fiber.Ctx) error {
 	}
 
 	h.TG.NotifyNewDiscordBan(id, modNick, offenderID)
-	h.DB.RecordAuditLog("BAN_SUBMIT", "success", fmt.Sprintf("Discord Ban #%d by Mod %s against %s", id, modNick, offenderID), c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("BAN_SUBMIT", "success", fmt.Sprintf("Discord Ban #%d by Mod %s against %s", id, modNick, offenderID), middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -420,7 +427,7 @@ func (h *AppHandler) LogClientError(c *fiber.Ctx) error {
 	}
 
 	log.Printf("[Client Log] %s", details)
-	h.DB.RecordAuditLog("CLIENT_ERROR", "error", details, c.IP(), c.Get("User-Agent"))
+	h.DB.RecordAuditLog("CLIENT_ERROR", "error", details, middleware.GetRealIP(c), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true})
 }

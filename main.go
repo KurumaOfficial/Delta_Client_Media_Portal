@@ -12,6 +12,7 @@ import (
 	"delta-free-media/config"
 	"delta-free-media/internal/database"
 	"delta-free-media/internal/handlers"
+	"delta-free-media/internal/middleware"
 	"delta-free-media/internal/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -72,7 +73,8 @@ func main() {
 
 	// IP Ban Check Middleware
 	app.Use(func(c *fiber.Ctx) error {
-		if ipBanService.IsBanned(c.IP()) {
+		realIP := middleware.GetRealIP(c)
+		if ipBanService.IsBanned(realIP) {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"success": false,
 				"error":   "Ваш IP-адрес заблокирован на сайте.",
@@ -113,7 +115,7 @@ func main() {
 			details += fmt.Sprintf(" | Error: %v", err)
 		}
 
-		db.RecordAuditLog("HTTP_"+c.Method(), statusType, details, c.IP(), c.Get("User-Agent"))
+		db.RecordAuditLog("HTTP_"+c.Method(), statusType, details, middleware.GetRealIP(c), c.Get("User-Agent"))
 		return err
 	})
 

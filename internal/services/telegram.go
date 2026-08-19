@@ -723,8 +723,8 @@ func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64,
 		timer.Stop()
 	}
 
-	// Short 1-second sequence debounce, then respond instantly
-	s.debounceTimers[cleanUser] = time.AfterFunc(1*time.Second, func() {
+	// Fast 300ms sequence debounce, then respond instantly
+	s.debounceTimers[cleanUser] = time.AfterFunc(300*time.Millisecond, func() {
 		s.mu.Lock()
 		s.RespondedUsers[cleanUser] = true
 		delete(s.debounceTimers, cleanUser)
@@ -796,7 +796,7 @@ func (s *TelegramService) SendChatAction(bizID, chatID, action string) {
 func (s *TelegramService) SendRandomSecretaryResponse(bizID, chatID string) {
 	// Step 1: Send typing / sticker action to mark message read & show activity
 	s.SendChatAction(bizID, chatID, "choose_sticker")
-	time.Sleep(time.Duration(1500+rand.Intn(1000)) * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
 	// Step 2: Discover GIF / sticker files in tgGIF folder
 	gifDir := "./tgGIF"
