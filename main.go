@@ -171,11 +171,12 @@ func main() {
 		var body struct {
 			Code string `json:"code"`
 		}
+		clientIP := middleware.GetRealIP(c)
 		if err := c.BodyParser(&body); err != nil || body.Code != adminCode {
-			db.RecordAuditLog("ADMIN_LOGIN", "failed", "Invalid admin code attempted", c.IP(), c.Get("User-Agent"))
+			db.RecordAuditLog("ADMIN_LOGIN", "failed", "Invalid admin code attempted", clientIP, c.Get("User-Agent"))
 			return c.Status(401).JSON(fiber.Map{"error": "Неверный пароль администратора"})
 		}
-		db.RecordAuditLog("ADMIN_LOGIN", "success", "Admin logged in successfully", c.IP(), c.Get("User-Agent"))
+		db.RecordAuditLog("ADMIN_LOGIN", "success", "Admin logged in successfully", clientIP, c.Get("User-Agent"))
 		return c.JSON(fiber.Map{"success": true, "token": adminCode})
 	})
 
@@ -247,7 +248,7 @@ func rateLimitMiddleware(db *database.DB, maxReqs int, window time.Duration) fib
 	var clients sync.Map
 
 	return func(c *fiber.Ctx) error {
-		ip := c.IP()
+		ip := middleware.GetRealIP(c)
 		now := time.Now()
 
 		v, _ := clients.Load(ip)
