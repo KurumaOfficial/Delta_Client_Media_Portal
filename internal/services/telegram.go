@@ -375,12 +375,9 @@ func (s *TelegramService) handleUpdate(upd tgUpdate) {
 			s.recordAudit("TG_USER_MAPPED", "success", fmt.Sprintf("User @%s mapped to ChatID %s via Business Secretary message", senderUsername, chatIDStr))
 		}
 
-		// Mark incoming message as read in Telegram Business
-		go s.ReadBusinessMessage(activeBizID, bm.Chat.ID, bm.MessageID)
-
-		// Instant Secretary Response: process message from user
+		// Process message from user with human-like delay (read ~10s before replying, reply in 15-180s)
 		if senderUsername != "notyxx" && senderUsername != "notyxs" && senderUsername != "" {
-			s.handleDebouncedUserMessage(activeBizID, bm.Chat.ID, senderUsername)
+			s.handleDebouncedUserMessage(activeBizID, bm.Chat.ID, senderUsername, bm.MessageID)
 		}
 	}
 
@@ -698,7 +695,7 @@ type tgSetReactionPayload struct {
 	Reaction             []tgReactionType `json:"reaction"`
 }
 
-func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64, username string) {
+func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64, username string, messageID int64) {
 	cleanUser := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(username), "@"))
 	if cleanUser == "" || cleanUser == "notyxx" || cleanUser == "notyxs" {
 		return
@@ -712,7 +709,7 @@ func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64,
 		s.debounceTimers = make(map[string]*time.Timer)
 	}
 
-	// If this user already got their thumbs-up auto response, skip
+	// If this user already got their auto response, skip
 	if s.RespondedUsers[cleanUser] {
 		s.mu.Unlock()
 		return
@@ -723,8 +720,17 @@ func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64,
 		timer.Stop()
 	}
 
-	// Fast 300ms sequence debounce, then respond instantly
-	s.debounceTimers[cleanUser] = time.AfterFunc(300*time.Millisecond, func() {
+	// Response delay between 15 and 180 seconds
+	totalDelaySeconds := 15 + rand.Intn(180-15+1) // [15, 180]
+	readDelaySeconds := totalDelaySeconds - 10
+	if readDelaySeconds < 0 {
+		readDelaySeconds = 0
+	}
+
+	log.Printf("[Telegram Secretary] User @%s sent message %d (chatID %d). Scheduled: read in %ds, reply in %ds total",
+		cleanUser, messageID, chatID, readDelaySeconds, totalDelaySeconds)
+
+	s.debounceTimers[cleanUser] = time.AfterFunc(time.Duration(readDelaySeconds)*time.Second, func() {
 		s.mu.Lock()
 		s.RespondedUsers[cleanUser] = true
 		delete(s.debounceTimers, cleanUser)
@@ -736,8 +742,20 @@ func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64,
 		}
 
 		chatIDStr := fmt.Sprintf("%d", chatID)
-		log.Printf("[Telegram Secretary] Sending instant response to @%s (chatID %s, bizID %s)...", cleanUser, chatIDStr, activeBizID)
-		
+
+		// Step 1: Mark message as read ~10 seconds before sending reply
+		log.Printf("[Telegram Secretary] Marking message %d from @%s as read (chat %s)...", messageID, cleanUser, chatIDStr)
+		s.ReadBusinessMessage(activeBizID, chatID, messageID)
+
+		// Step 2: Send typing / choose_sticker status
+		s.SendChatAction(activeBizID, chatIDStr, "choose_sticker")
+
+		// Step 3: Wait remaining ~10 seconds before actual message/sticker delivery
+		typingDuration := time.Duration(totalDelaySeconds-readDelaySeconds) * time.Second
+		time.Sleep(typingDuration)
+
+		// Step 4: Send the random secretary response (GIF/sticker or 👍)
+		log.Printf("[Telegram Secretary] Sending response to @%s after %ds total delay...", cleanUser, totalDelaySeconds)
 		go s.SendRandomSecretaryResponse(activeBizID, chatIDStr)
 	})
 

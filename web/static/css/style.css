@@ -1050,26 +1050,6 @@ select, option {
   100% { transform: rotate(360deg); }
 }
 
-/* Staff Button & Footer Styling */
-.staff-trigger-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 8px;
-  border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.staff-trigger-btn:hover {
-  color: #ffffff;
-  background: rgba(133, 155, 255, 0.2);
-  border-color: rgba(133, 155, 255, 0.4);
-}
-
 .site-footer {
   display: flex;
   align-items: center;
@@ -1082,19 +1062,6 @@ select, option {
 
 .footer-dot {
   opacity: 0.4;
-}
-
-.footer-staff-link {
-  color: rgba(255, 255, 255, 0.4);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  transition: color 0.2s ease;
-  cursor: pointer;
-}
-
-.footer-staff-link:hover {
-  color: var(--color-primary-400);
 }
 
 /* Header Mobile Responsive Overrides */
@@ -1169,10 +1136,6 @@ select, option {
 
   .nav-link-btn span {
     font-size: 0.68rem;
-  }
-
-  .staff-trigger-btn {
-    padding: 4px 6px;
   }
 }
 

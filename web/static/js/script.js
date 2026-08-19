@@ -694,31 +694,6 @@ function setupEventListeners() {
   document.getElementById("adminAuthForm")?.addEventListener("submit", handleAdminAuth);
   document.getElementById("createKeyForm")?.addEventListener("submit", handleCreateKeySubmit);
   document.getElementById("banIpForm")?.addEventListener("submit", (e) => { e.preventDefault(); submitBanIp(); });
-
-  // Mobile Staff Triggers & Tab Switching
-  document.getElementById("openStaffAuthBtn")?.addEventListener("click", () => openStaffModal('mod'));
-  document.getElementById("footerStaffAuthLink")?.addEventListener("click", () => openStaffModal('mod'));
-  document.getElementById("staffTabModBtn")?.addEventListener("click", () => switchStaffAuthTab('mod'));
-  document.getElementById("staffTabAdminBtn")?.addEventListener("click", () => switchStaffAuthTab('admin'));
-
-  // Triple-tap / click on Brand Logo for quick staff entry
-  let logoClickCount = 0;
-  let logoClickTimer = null;
-  const brandLink = document.querySelector(".brand-link");
-  if (brandLink) {
-    brandLink.addEventListener("click", (e) => {
-      logoClickCount++;
-      if (logoClickCount >= 3) {
-        e.preventDefault();
-        logoClickCount = 0;
-        if (logoClickTimer) clearTimeout(logoClickTimer);
-        openStaffModal('mod');
-      } else {
-        if (logoClickTimer) clearTimeout(logoClickTimer);
-        logoClickTimer = setTimeout(() => { logoClickCount = 0; }, 1200);
-      }
-    });
-  }
 }
 
 function setupAdminDropdowns() {
