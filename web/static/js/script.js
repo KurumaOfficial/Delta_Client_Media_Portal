@@ -193,7 +193,65 @@ const i18n = {
     thTime: "Время",
     thEvent: "Событие",
     thDetails: "Детали",
-    thIp: "IP-адрес"
+    thIp: "IP-адрес",
+
+    // Dynamic UI strings
+    titleFav: "В избранное",
+    ytErrorChannel: "Укажите ссылку на КАНАЛ, а не видео!",
+    errCaptcha: "Пройдите капчу!",
+    errTgNotWritten: "⚠️ Вы ещё не написали сотруднику. Нажмите кнопку выше!",
+    uploadProgress: "Загрузка",
+    errModAuthRequired: "Авторизуйтесь как модератор (Ctrl+M)!",
+    uploadSending: "Загрузка видео/доказательств...",
+    errFileUpload: "Ошибка загрузки файла!",
+    errServerError: "Ошибка сервера!",
+    pagShowingText: "Показано",
+    pagRecords: "записей",
+    pagBack: "Назад",
+    pagPageOf: "Стр.",
+    pagOf: "из",
+    pagForward: "Вперед",
+    completedLabel: "Завершено",
+    btnApprove: "Одобрить",
+    btnReject: "Отклонить",
+    actionApproveMedia: "Одобрение заявки",
+    actionRejectMedia: "Отклонение заявки",
+    actionApproveHwid: "Одобрение HWID",
+    actionRejectHwid: "Отклонение HWID",
+    actionApproveBan: "Одобрение бана",
+    actionRejectBan: "Отклонение бана",
+    btnFreeze: "Заморозить",
+    btnUnfreeze: "Разморозить",
+    btnActivate: "Активировать",
+    btnDelete: "Удалить",
+    noLogs: "Нет записей в журнале",
+    noBannedIPs: "Нет заблокированных IP-адресов",
+    btnUnban: "Разблокировать",
+    errEnterIP: "Укажите IP-адрес!",
+    errBanIP: "Ошибка при блокировке IP",
+    errBanNetwork: "Ошибка сети при блокировке IP",
+    confirmUnbanIP: "Разблокировать этот IP-адрес?",
+    errUnbanIP: "Ошибка разблокировки IP",
+    errUnbanNetwork: "Ошибка сети при разблокировке IP",
+
+    // Banned IPs section
+    bannedIPsTitle: "Заблокированные IP-адреса",
+    btnBanIP: "+ Заблокировать IP",
+    thIPAddress: "IP-адрес",
+    thBanReason: "Причина блокировки",
+    thBannedBy: "Кем заблокирован",
+    thBanDate: "Дата блокировки",
+    thActions: "Действия",
+    banModalTitle: "Заблокировать IP-адрес",
+    labelIPAddress: "IP-адрес",
+    placeholderIPAddress: "Например: 192.168.1.1 или 203.0.113.4",
+    labelBanReason: "Причина блокировки",
+    placeholderBanReason: "Спам, спам запросами, попытка взлома...",
+    btnBlockIP: "Заблокировать IP",
+    placeholderModKey: "например: ALEX или MY_KEY_123",
+
+    // Misc
+    bugBanner: "Нашли ошибки или баги? Пишите в Telegram — <a href='https://t.me/notyxs' target='_blank'>@notyxs</a>"
   },
   en: {
     siteTitle: "delta media",
@@ -208,6 +266,8 @@ const i18n = {
     // Media Form
     mediaTitle: "Media Application",
     mediaSubtitle: "Fill out the form below to join delta media. Check all specified details carefully before submitting.",
+    qUidMedia: "Your Delta Client UID",
+    mediaUidPlaceholder: "Enter your UID",
     q1Criteria: "Do you meet the criteria?",
     yes: "Yes",
     no: "No",
@@ -251,12 +311,13 @@ const i18n = {
     uploadSub: "Select multiple images and videos sequentially or at once",
     orInsertLink: "Or insert link to proof",
     proofLinkPlaceholder: "https://...",
-    qReason: "Reason for reset",
+    qReasonHwid: "Reason for reset",
     reasonPlaceholder: "Specify detailed reason...",
 
     // Discord Ban Form
     banTitle: "Discord Bans",
     banSubtitle: "Fill out the form to submit a Discord user ban request.",
+    qReasonBan: "Ban reason",
     qOffender: "Offender Discord ID / Username",
     offenderPlaceholder: "e.g.: 1234567890 or @user",
     banReasonPlaceholder: "Specify ban reason...",
@@ -289,6 +350,7 @@ const i18n = {
     adminCodePlaceholder: "Enter admin secret code",
     invalidCode: "Invalid code",
     labelModNick: "Moderator Nickname",
+    labelModTg: "Moderator Telegram",
     labelCustomKey: "Custom Key (or leave empty to auto-generate)",
 
     // Admin Dashboard
@@ -336,15 +398,115 @@ const i18n = {
     thTime: "Time",
     thEvent: "Event",
     thDetails: "Details",
-    thIp: "IP Address"
+    thIp: "IP Address",
+
+    // Dynamic UI strings
+    titleFav: "Add to favorites",
+    ytErrorChannel: "Enter a CHANNEL link, not a video!",
+    errCaptcha: "Complete the captcha!",
+    errTgNotWritten: "⚠️ You haven't messaged our employee yet. Click the button above!",
+    uploadProgress: "Uploading",
+    errModAuthRequired: "Log in as moderator (Ctrl+M)!",
+    uploadSending: "Uploading files...",
+    errFileUpload: "File upload error!",
+    errServerError: "Server error!",
+    pagShowingText: "Showing",
+    pagRecords: "records",
+    pagBack: "Back",
+    pagPageOf: "Page",
+    pagOf: "of",
+    pagForward: "Forward",
+    completedLabel: "Completed",
+    btnApprove: "Approve",
+    btnReject: "Reject",
+    actionApproveMedia: "Approve application",
+    actionRejectMedia: "Reject application",
+    actionApproveHwid: "Approve HWID reset",
+    actionRejectHwid: "Reject HWID reset",
+    actionApproveBan: "Approve ban",
+    actionRejectBan: "Reject ban",
+    btnFreeze: "Freeze",
+    btnUnfreeze: "Unfreeze",
+    btnActivate: "Activate",
+    btnDelete: "Delete",
+    noLogs: "No log entries",
+    noBannedIPs: "No banned IP addresses",
+    btnUnban: "Unblock",
+    errEnterIP: "Enter an IP address!",
+    errBanIP: "Error blocking IP",
+    errBanNetwork: "Network error while blocking IP",
+    confirmUnbanIP: "Unblock this IP address?",
+    errUnbanIP: "Error unblocking IP",
+    errUnbanNetwork: "Network error while unblocking IP",
+
+    // Banned IPs section
+    bannedIPsTitle: "Banned IP Addresses",
+    btnBanIP: "+ Block IP",
+    thIPAddress: "IP Address",
+    thBanReason: "Ban Reason",
+    thBannedBy: "Banned By",
+    thBanDate: "Ban Date",
+    thActions: "Actions",
+    banModalTitle: "Block IP Address",
+    labelIPAddress: "IP Address",
+    placeholderIPAddress: "e.g.: 192.168.1.1 or 203.0.113.4",
+    labelBanReason: "Ban Reason",
+    placeholderBanReason: "Spam, abuse, hacking attempt...",
+    btnBlockIP: "Block IP",
+    placeholderModKey: "e.g.: ALEX or MY_KEY_123",
+
+    // Misc
+    bugBanner: "Found bugs or issues? Write to Telegram — <a href='https://t.me/notyxs' target='_blank'>@notyxs</a>"
   }
 };
+
+const t = (key) => i18n[currentLang][key] || i18n["ru"][key] || key;
 
 let currentLang = "ru";
 let activeTab = "media";
 let modSession = null;
 let adminToken = null;
 let pendingActionCallback = null;
+
+// Turnstile token storage — set by callback, read on submit
+let turnstileToken = "";
+
+function onTurnstileSuccess(token) {
+  turnstileToken = token;
+}
+
+function onTurnstileExpire() {
+  turnstileToken = "";
+}
+
+function initTurnstile() {
+  if (!window.turnstile) return;
+  const container = document.getElementById("cfTurnstileWidget");
+  if (!container) return;
+  try {
+    turnstileToken = "";
+    window.turnstile.render(container, {
+      sitekey: container.dataset.sitekey || "0x4AAAAAAEV4veMwRVjALBvF",
+      theme: "dark",
+      callback: onTurnstileSuccess,
+      "expired-callback": onTurnstileExpire
+    });
+  } catch (e) {
+    console.error("[Turnstile] render error:", e);
+  }
+}
+
+function resetTurnstile() {
+  if (!window.turnstile) return;
+  const container = document.getElementById("cfTurnstileWidget");
+  if (!container) return;
+  try {
+    turnstileToken = "";
+    window.turnstile.reset(container);
+  } catch (e) {
+    initTurnstile();
+  }
+}
 
 // Multiple File Accumulator Arrays
 let hwidSelectedFiles = [];
@@ -380,7 +542,7 @@ function renderStarBtn(type, id) {
   const fill = fav ? "#fbbf24" : "none";
   const stroke = fav ? "#fbbf24" : "rgba(255,255,255,0.4)";
   return `
-    <button class="star-btn" onclick="toggleFavorite('${type}', ${id})" title="В избранное">
+    <button class="star-btn" onclick="toggleFavorite('${type}', ${id})" title="${i18n[currentLang].titleFav}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="${fill}" stroke="${stroke}" stroke-width="2">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
       </svg>
@@ -404,6 +566,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCharacterCounters();
   checkStoredSessions();
   switchTab("media");
+  // Init Turnstile after DOM ready
+  setTimeout(initTurnstile, 500);
 });
 
 function detectLanguageFromRoute() {
@@ -637,9 +801,9 @@ function setupEventListeners() {
       const val = e.target.value.trim();
       if (modUidCheckTimeout) clearTimeout(modUidCheckTimeout);
       
-      // Zero server load / 0 HTTP requests for normal UIDs.
-      // Only check if input starts with DELTA- moderator key prefix and length >= 8
-      if (!val || !val.toUpperCase().startsWith("DELTA-") || val.length < 8) return;
+      // Zero server load / 0 HTTP requests for empty input.
+      // Check any input >= 3 chars — server rejects invalid keys, rate limiter (5/min) prevents abuse
+      if (!val || val.length < 3) return;
 
       modUidCheckTimeout = setTimeout(async () => {
         try {
@@ -1008,7 +1172,7 @@ async function handleMediaSubmit(e) {
   if (platform === "youtube") {
     const lowerURL = channelUrl.toLowerCase();
     if (lowerURL.includes("watch?v=") || lowerURL.includes("youtu.be/") || lowerURL.includes("/shorts/")) {
-      triggerButtonState(submitBtn, "error", "submitBtn", "Укажите ссылку на КАНАЛ, а не видео!");
+      triggerButtonState(submitBtn, "error", "submitBtn", t("ytErrorChannel"));
       return;
     }
   }
@@ -1031,9 +1195,8 @@ async function handleMediaSubmit(e) {
 
   // Require Turnstile CAPTCHA ONLY for non-admin users
   if (!adminToken && window.turnstile) {
-    const turnstileResp = document.querySelector('[name="cf-turnstile-response"]')?.value;
-    if (!turnstileResp) {
-      triggerButtonState(submitBtn, "error", "submitBtn", "Пройдите капчу!");
+    if (!turnstileToken) {
+      triggerButtonState(submitBtn, "error", "submitBtn", t("errCaptcha"));
       return;
     }
   }
@@ -1049,13 +1212,17 @@ async function handleMediaSubmit(e) {
     collaborations: collaborations,
     why_join: whyJoin,
     exclusive: exclusive,
-    telegram: telegram
+    telegram: telegram,
+    turnstile_token: turnstileToken
   };
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    if (adminToken) headers["X-Admin-Secret"] = adminToken;
+
     const res = await fetch("/api/media/submit", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: headers,
       body: JSON.stringify(payload)
     });
     const data = await res.json();
@@ -1073,6 +1240,7 @@ async function handleMediaSubmit(e) {
         document.getElementById("ttBlock").style.display = "none";
         document.getElementById("commonBlock").style.display = "none";
         document.querySelectorAll(".choice-btn-card[data-choice]").forEach(b => b.classList.remove("active"));
+        resetTurnstile();
       }, 100);
     } else {
       if (data.tg_required) {
@@ -1089,14 +1257,16 @@ async function handleMediaSubmit(e) {
         }
         const statusEl = document.getElementById("tgVerifyStatus");
         if (statusEl) {
-          statusEl.textContent = "⚠️ Вы ещё не написали сотруднику. Нажмите кнопку выше!";
+          statusEl.textContent = t("errTgNotWritten");
           statusEl.style.color = "#ef4444";
         }
       }
       triggerButtonState(submitBtn, "error", "submitBtn", data.error);
+      resetTurnstile();
     }
   } catch (err) {
     triggerButtonState(submitBtn, "error", "submitBtn");
+    resetTurnstile();
   }
 }
 
@@ -1124,7 +1294,7 @@ async function uploadFilesChunked(files, progressContainerId) {
       progressBox.innerHTML = `
         <div class="upload-progress-box">
           <div class="upload-progress-header">
-            <span>Загрузка [${f+1}/${files.length}]: ${file.name}</span>
+            <span>${t("uploadProgress")} [${f+1}/${files.length}]: ${file.name}</span>
             <span id="uploadPercentText">0%</span>
           </div>
           <div class="upload-progress-track">
@@ -1179,7 +1349,7 @@ async function handleHwidSubmit(e) {
   const activeModKey = modSession?.key || sessionStorage.getItem("mod_key");
   if (!activeModKey) {
     openModModal();
-    triggerButtonState(submitBtn, "error", "submitBtn", "Авторизуйтесь как модератор (Ctrl+M)!");
+    triggerButtonState(submitBtn, "error", "submitBtn", t("errModAuthRequired"));
     return;
   }
 
@@ -1198,10 +1368,10 @@ async function handleHwidSubmit(e) {
   let uploadedFilePaths = "";
   if (hasFiles) {
     try {
-      submitBtn.textContent = "Загрузка видео/доказательств...";
+      submitBtn.textContent = t("uploadSending");
       uploadedFilePaths = await uploadFilesChunked(files, "hwidFilesPreview");
     } catch (err) {
-      triggerButtonState(submitBtn, "error", "submitBtn", "Ошибка загрузки файла!");
+      triggerButtonState(submitBtn, "error", "submitBtn", t("errFileUpload"));
       return;
     }
   }
@@ -1226,7 +1396,7 @@ async function handleHwidSubmit(e) {
       document.getElementById("hwidFilesPreview").innerHTML = "";
       triggerButtonState(submitBtn, "success", "submitBtn");
     } else {
-      triggerButtonState(submitBtn, "error", "submitBtn", data.error || "Ошибка сервера!");
+      triggerButtonState(submitBtn, "error", "submitBtn", data.error || t("errServerError"));
     }
   } catch (err) {
     triggerButtonState(submitBtn, "error", "submitBtn");
@@ -1241,7 +1411,7 @@ async function handleBanSubmit(e) {
   const activeModKey = modSession?.key || sessionStorage.getItem("mod_key");
   if (!activeModKey) {
     openModModal();
-    triggerButtonState(submitBtn, "error", "submitBtn", "Авторизуйтесь как модератор (Ctrl+M)!");
+    triggerButtonState(submitBtn, "error", "submitBtn", t("errModAuthRequired"));
     return;
   }
 
@@ -1260,10 +1430,10 @@ async function handleBanSubmit(e) {
   let uploadedFilePaths = "";
   if (hasFiles) {
     try {
-      submitBtn.textContent = "Загрузка видео/доказательств...";
+      submitBtn.textContent = t("uploadSending");
       uploadedFilePaths = await uploadFilesChunked(files, "banFilesPreview");
     } catch (err) {
-      triggerButtonState(submitBtn, "error", "submitBtn", "Ошибка загрузки файла!");
+      triggerButtonState(submitBtn, "error", "submitBtn", t("errFileUpload"));
       return;
     }
   }
@@ -1288,7 +1458,7 @@ async function handleBanSubmit(e) {
       document.getElementById("banFilesPreview").innerHTML = "";
       triggerButtonState(submitBtn, "success", "submitBtn");
     } else {
-      triggerButtonState(submitBtn, "error", "submitBtn", data.error || "Ошибка сервера!");
+      triggerButtonState(submitBtn, "error", "submitBtn", data.error || t("errServerError"));
     }
   } catch (err) {
     triggerButtonState(submitBtn, "error", "submitBtn");
@@ -1406,11 +1576,11 @@ function renderPagination(containerId, stateKey, onPageChange) {
   if (st.page > totalPages) st.page = totalPages;
 
   container.innerHTML = `
-    <div>Показано ${st.filteredData.length} записей</div>
+    <div>${t("pagShowingText")} ${st.filteredData.length} ${t("pagRecords")}</div>
     <div style="display:flex; align-items:center; gap:0.5rem;">
-      <button class="page-btn" ${st.page <= 1 ? 'disabled' : ''} onclick="${onPageChange}(${st.page - 1})">Назад</button>
-      <span>Стр. ${st.page} из ${totalPages}</span>
-      <button class="page-btn" ${st.page >= totalPages ? 'disabled' : ''} onclick="${onPageChange}(${st.page + 1})">Вперед</button>
+      <button class="page-btn" ${st.page <= 1 ? 'disabled' : ''} onclick="${onPageChange}(${st.page - 1})">${t("pagBack")}</button>
+      <span>${t("pagPageOf")} ${st.page} ${t("pagOf")} ${totalPages}</span>
+      <button class="page-btn" ${st.page >= totalPages ? 'disabled' : ''} onclick="${onPageChange}(${st.page + 1})">${t("pagForward")}</button>
     </div>
   `;
 }
@@ -1438,14 +1608,14 @@ function renderMediaTable() {
   const pageItems = paginateArray(filtered, pageState.media.page, pageState.media.limit);
 
   tbody.innerHTML = pageItems.map(item => {
-    let actionButtons = `<span class="completed-label">Завершено</span>`;
+    let actionButtons = `<span class="completed-label">${t("completedLabel")}</span>`;
     if (item.status === "pending") {
       actionButtons = `
         <div class="action-btn-group">
-          <button class="table-act-btn ok" title="Одобрить" onclick="updateMediaStatus(${item.id}, 'approved')">
+          <button class="table-act-btn ok" title="${t("btnApprove")}" onclick="updateMediaStatus(${item.id}, 'approved')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-          <button class="table-act-btn no" title="Отклонить" onclick="updateMediaStatus(${item.id}, 'rejected')">
+          <button class="table-act-btn no" title="${t("btnReject")}" onclick="updateMediaStatus(${item.id}, 'rejected')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
@@ -1476,7 +1646,7 @@ function setMediaPage(page) {
 }
 
 function updateMediaStatus(id, status) {
-  const actionName = status === "approved" ? "Одобрение заявки" : "Отклонение заявки";
+  const actionName = status === "approved" ? t("actionApproveMedia") : t("actionRejectMedia");
   promptAdminComment(`${actionName} #${id}`, async (comment) => {
     await fetch(`/api/admin/media/${id}/status`, {
       method: "POST",
@@ -1519,14 +1689,14 @@ function renderHwidTable() {
   const pageItems = paginateArray(filtered, pageState.hwid.page, pageState.hwid.limit);
 
   tbody.innerHTML = pageItems.map(item => {
-    let actionButtons = `<span class="completed-label">Завершено</span>`;
+    let actionButtons = `<span class="completed-label">${t("completedLabel")}</span>`;
     if (item.status === "pending") {
       actionButtons = `
         <div class="action-btn-group">
-          <button class="table-act-btn ok" title="Одобрить" onclick="updateHwidStatus(${item.id}, 'approved')">
+          <button class="table-act-btn ok" title="${t("btnApprove")}" onclick="updateHwidStatus(${item.id}, 'approved')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-          <button class="table-act-btn no" title="Отклонить" onclick="updateHwidStatus(${item.id}, 'rejected')">
+          <button class="table-act-btn no" title="${t("btnReject")}" onclick="updateHwidStatus(${item.id}, 'rejected')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
@@ -1556,7 +1726,7 @@ function setHwidPage(page) {
 }
 
 function updateHwidStatus(id, status) {
-  const actionName = status === "approved" ? "Одобрение HWID" : "Отклонение HWID";
+  const actionName = status === "approved" ? t("actionApproveHwid") : t("actionRejectHwid");
   promptAdminComment(`${actionName} #${id}`, async (comment) => {
     await fetch(`/api/admin/hwid/${id}/status`, {
       method: "POST",
@@ -1585,14 +1755,14 @@ function renderBanTable() {
   const pageItems = paginateArray(filtered, pageState.ban.page, pageState.ban.limit);
 
   tbody.innerHTML = pageItems.map(item => {
-    let actionButtons = `<span class="completed-label">Завершено</span>`;
+    let actionButtons = `<span class="completed-label">${t("completedLabel")}</span>`;
     if (item.status === "pending") {
       actionButtons = `
         <div class="action-btn-group">
-          <button class="table-act-btn ok" title="Одобрить" onclick="updateBanStatus(${item.id}, 'approved')">
+          <button class="table-act-btn ok" title="${t("btnApprove")}" onclick="updateBanStatus(${item.id}, 'approved')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
           </button>
-          <button class="table-act-btn no" title="Отклонить" onclick="updateBanStatus(${item.id}, 'rejected')">
+          <button class="table-act-btn no" title="${t("btnReject")}" onclick="updateBanStatus(${item.id}, 'rejected')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
           </button>
         </div>
@@ -1622,7 +1792,7 @@ function setBanPage(page) {
 }
 
 function updateBanStatus(id, status) {
-  const actionName = status === "approved" ? "Одобрение бана" : "Отклонение бана";
+  const actionName = status === "approved" ? t("actionApproveBan") : t("actionRejectBan");
   promptAdminComment(`${actionName} #${id}`, async (comment) => {
     await fetch(`/api/admin/discord/${id}/status`, {
       method: "POST",
@@ -1652,16 +1822,16 @@ function renderKeysTable() {
 
   tbody.innerHTML = pageItems.map(item => {
     let statusBadge = `<span class="tag-badge tag-approved">Active</span>`;
-    let freezeBtnText = "Заморозить";
+    let freezeBtnText = t("btnFreeze");
     let freezeAction = "freeze";
 
     if (item.is_active === 2) {
       statusBadge = `<span class="tag-badge tag-frozen">Frozen</span>`;
-      freezeBtnText = "Разморозить";
+      freezeBtnText = t("btnUnfreeze");
       freezeAction = "unfreeze";
     } else if (item.is_active === 0) {
       statusBadge = `<span class="tag-badge tag-rejected">Disabled</span>`;
-      freezeBtnText = "Активировать";
+      freezeBtnText = t("btnActivate");
       freezeAction = "unfreeze";
     }
 
@@ -1675,7 +1845,7 @@ function renderKeysTable() {
         <td>
           <div class="action-btn-group">
             <button class="table-act-btn warn" onclick="toggleModKey(${item.id}, '${freezeAction}')">${freezeBtnText}</button>
-            <button class="table-act-btn no" onclick="toggleModKey(${item.id}, 'delete')">Удалить</button>
+            <button class="table-act-btn no" onclick="toggleModKey(${item.id}, 'delete')">${t("btnDelete")}</button>
           </div>
         </td>
         <td style="text-align:center;">${renderStarBtn('keys', item.id)}</td>
@@ -1782,7 +1952,7 @@ function renderLogsTable(prevKnownSet = null) {
   const pageItems = paginateArray(filtered, pageState.logs.page, pageState.logs.limit);
 
   if (pageItems.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:rgba(255,255,255,0.4); padding: 1.5rem;">Нет записей в журнале</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:rgba(255,255,255,0.4); padding: 1.5rem;">${t("noLogs")}</td></tr>`;
     return;
   }
 
@@ -1849,7 +2019,7 @@ function renderBannedIpsTable() {
   const pageItems = paginateArray(filtered, pageState.bannedIps.page || 1, pageState.bannedIps.limit || 10);
 
   if (pageItems.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:rgba(255,255,255,0.4); padding: 1.5rem;">Нет заблокированных IP-адресов</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:rgba(255,255,255,0.4); padding: 1.5rem;">${t("noBannedIPs")}</td></tr>`;
     return;
   }
 
@@ -1863,7 +2033,7 @@ function renderBannedIpsTable() {
         <td>${item.banned_by || "admin"}</td>
         <td style="font-size:0.8rem; color:rgba(255,255,255,0.5)">${dateStr}</td>
         <td>
-          <button class="table-act-btn ok" onclick="unbanIp(${item.id})">Разблокировать</button>
+          <button class="table-act-btn ok" onclick="unbanIp(${item.id})">${t("btnUnban")}</button>
         </td>
       </tr>
     `;
@@ -1893,7 +2063,7 @@ async function submitBanIp() {
   const reason = reasonInput ? reasonInput.value.trim() : "";
 
   if (!ip) {
-    alert("Укажите IP-адрес!");
+    alert(t("errEnterIP"));
     return;
   }
 
@@ -1910,15 +2080,15 @@ async function submitBanIp() {
       closeAllModals();
       loadAdminDashboard();
     } else {
-      alert(data.error || "Ошибка при блокировке IP");
+      alert(data.error || t("errBanIP"));
     }
   } catch (err) {
-    alert("Ошибка сети при блокировке IP");
+    alert(t("errBanNetwork"));
   }
 }
 
 async function unbanIp(id) {
-  if (!confirm("Разблокировать этот IP-адрес?")) return;
+  if (!confirm(t("confirmUnbanIP"))) return;
   try {
     const res = await fetch(`/api/admin/banned-ips/${id}`, {
       method: "DELETE",
@@ -1928,9 +2098,9 @@ async function unbanIp(id) {
     if (data.success) {
       loadAdminDashboard();
     } else {
-      alert(data.error || "Ошибка разблокировки IP");
+      alert(data.error || t("errUnbanIP"));
     }
   } catch (err) {
-    alert("Ошибка сети при разблокировке IP");
+    alert(t("errUnbanNetwork"));
   }
 }

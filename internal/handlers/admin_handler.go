@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"database/sql"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,16 +34,20 @@ func NewAdminHandler(db *database.DB, cfg *config.Config, tg *services.TelegramS
 func (h *AdminHandler) GetStats(c *fiber.Ctx) error {
 	var mediaTotal, mediaPending, hwidTotal, hwidPending, banTotal, banPending, modKeysTotal int
 
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM media_applications").Scan(&mediaTotal)
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM media_applications WHERE status = 'pending'").Scan(&mediaPending)
+	err := h.DB.SQL.QueryRow(`
+		SELECT
+			(SELECT COUNT(*) FROM media_applications),
+			(SELECT COUNT(*) FROM media_applications WHERE status = 'pending'),
+			(SELECT COUNT(*) FROM hwid_reset_requests),
+			(SELECT COUNT(*) FROM hwid_reset_requests WHERE status = 'pending'),
+			(SELECT COUNT(*) FROM discord_ban_requests),
+			(SELECT COUNT(*) FROM discord_ban_requests WHERE status = 'pending'),
+			(SELECT COUNT(*) FROM moderator_keys WHERE is_active = 1)
+	`).Scan(&mediaTotal, &mediaPending, &hwidTotal, &hwidPending, &banTotal, &banPending, &modKeysTotal)
 
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM hwid_reset_requests").Scan(&hwidTotal)
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM hwid_reset_requests WHERE status = 'pending'").Scan(&hwidPending)
-
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM discord_ban_requests").Scan(&banTotal)
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM discord_ban_requests WHERE status = 'pending'").Scan(&banPending)
-
-	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM moderator_keys WHERE is_active = 1").Scan(&modKeysTotal)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
+	}
 
 	return c.JSON(fiber.Map{
 		"success": true,
@@ -59,10 +65,25 @@ func (h *AdminHandler) GetStats(c *fiber.Ctx) error {
 
 // Get Audit Logs
 func (h *AdminHandler) GetAuditLogs(c *fiber.Ctx) error {
-	rows, err := h.DB.SQL.Query(`
-		SELECT id, event_type, status, details, COALESCE(ip_address, ''), COALESCE(user_agent, ''), created_at
-		FROM audit_logs ORDER BY id DESC LIMIT 100
-	`)
+	page, limit := parsePagination(c, 50)
+	offset := (page - 1) * limit
+
+	var total int
+	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM audit_logs").Scan(&total)
+
+	var rows *sql.Rows
+	var err error
+	if page > 0 && limit > 0 {
+		rows, err = h.DB.SQL.Query(h.DB.Rebind(`
+			SELECT id, event_type, status, details, COALESCE(ip_address, ''), COALESCE(user_agent, ''), created_at
+			FROM audit_logs ORDER BY id DESC LIMIT ? OFFSET ?
+		`), limit, offset)
+	} else {
+		rows, err = h.DB.SQL.Query(`
+			SELECT id, event_type, status, details, COALESCE(ip_address, ''), COALESCE(user_agent, ''), created_at
+			FROM audit_logs ORDER BY id DESC LIMIT 500
+		`)
+	}
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
@@ -78,17 +99,38 @@ func (h *AdminHandler) GetAuditLogs(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(fiber.Map{"success": true, "data": list})
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    list,
+		"total":   total,
+	})
 }
 
 // Media Applications
 func (h *AdminHandler) GetMediaApplications(c *fiber.Ctx) error {
-	rows, err := h.DB.SQL.Query(`
-		SELECT id, lang, COALESCE(uid, ''), criteria_agreed, platform, channel_url, servers, 
-		       COALESCE(videos_per_week, ''), COALESCE(collaborations, ''), 
-		       why_join, exclusive, telegram, status, COALESCE(admin_comment, ''), created_at, updated_at
-		FROM media_applications ORDER BY id DESC
-	`)
+	page, limit := parsePagination(c, 50)
+	offset := (page - 1) * limit
+
+	var total int
+	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM media_applications").Scan(&total)
+
+	var rows *sql.Rows
+	var err error
+	if page > 0 && limit > 0 {
+		rows, err = h.DB.SQL.Query(h.DB.Rebind(`
+			SELECT id, lang, COALESCE(uid, ''), criteria_agreed, platform, channel_url, servers, 
+			       COALESCE(videos_per_week, ''), COALESCE(collaborations, ''), 
+			       why_join, exclusive, telegram, status, COALESCE(admin_comment, ''), created_at, updated_at
+			FROM media_applications ORDER BY id DESC LIMIT ? OFFSET ?
+		`), limit, offset)
+	} else {
+		rows, err = h.DB.SQL.Query(`
+			SELECT id, lang, COALESCE(uid, ''), criteria_agreed, platform, channel_url, servers, 
+			       COALESCE(videos_per_week, ''), COALESCE(collaborations, ''), 
+			       why_join, exclusive, telegram, status, COALESCE(admin_comment, ''), created_at, updated_at
+			FROM media_applications ORDER BY id DESC
+		`)
+	}
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
@@ -109,7 +151,11 @@ func (h *AdminHandler) GetMediaApplications(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(fiber.Map{"success": true, "data": list})
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    list,
+		"total":   total,
+	})
 }
 
 func (h *AdminHandler) UpdateMediaStatus(c *fiber.Ctx) error {
@@ -144,11 +190,27 @@ func (h *AdminHandler) UpdateMediaStatus(c *fiber.Ctx) error {
 
 // HWID Requests
 func (h *AdminHandler) GetHWIDRequests(c *fiber.Ctx) error {
-	rows, err := h.DB.SQL.Query(`
-		SELECT id, lang, mod_nickname, mod_key, uuid, proof_type, 
-		       COALESCE(proof_file, ''), COALESCE(proof_link, ''), reason, status, COALESCE(admin_comment, ''), created_at
-		FROM hwid_reset_requests ORDER BY id DESC
-	`)
+	page, limit := parsePagination(c, 50)
+	offset := (page - 1) * limit
+
+	var total int
+	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM hwid_reset_requests").Scan(&total)
+
+	var rows *sql.Rows
+	var err error
+	if page > 0 && limit > 0 {
+		rows, err = h.DB.SQL.Query(h.DB.Rebind(`
+			SELECT id, lang, mod_nickname, mod_key, uuid, proof_type, 
+			       COALESCE(proof_file, ''), COALESCE(proof_link, ''), reason, status, COALESCE(admin_comment, ''), created_at
+			FROM hwid_reset_requests ORDER BY id DESC LIMIT ? OFFSET ?
+		`), limit, offset)
+	} else {
+		rows, err = h.DB.SQL.Query(`
+			SELECT id, lang, mod_nickname, mod_key, uuid, proof_type, 
+			       COALESCE(proof_file, ''), COALESCE(proof_link, ''), reason, status, COALESCE(admin_comment, ''), created_at
+			FROM hwid_reset_requests ORDER BY id DESC
+		`)
+	}
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
@@ -165,7 +227,11 @@ func (h *AdminHandler) GetHWIDRequests(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(fiber.Map{"success": true, "data": list})
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    list,
+		"total":   total,
+	})
 }
 
 func (h *AdminHandler) UpdateHWIDStatus(c *fiber.Ctx) error {
@@ -177,7 +243,8 @@ func (h *AdminHandler) UpdateHWIDStatus(c *fiber.Ctx) error {
 
 	var reqID int64
 	var targetUUID string
-	err := h.DB.SQL.QueryRow(h.DB.Rebind("SELECT id, uuid FROM hwid_reset_requests WHERE id = ?"), id).Scan(&reqID, &targetUUID)
+	var modKey string
+	err := h.DB.SQL.QueryRow(h.DB.Rebind("SELECT id, uuid, mod_key FROM hwid_reset_requests WHERE id = ?"), id).Scan(&reqID, &targetUUID, &modKey)
 	if err != nil {
 		return c.Status(404).JSON(fiber.Map{"success": false, "error": "HWID request not found"})
 	}
@@ -192,7 +259,12 @@ func (h *AdminHandler) UpdateHWIDStatus(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": "Update failed"})
 	}
 
-	h.TG.SendVerdict("@Kuruma31", "hwid", reqID, req.Status, req.AdminComment, targetUUID)
+	var modTG string
+	_ = h.DB.SQL.QueryRow(h.DB.Rebind("SELECT COALESCE(telegram, '') FROM moderator_keys WHERE key = ?"), modKey).Scan(&modTG)
+	if modTG != "" {
+		h.TG.SendVerdict(modTG, "hwid", reqID, req.Status, req.AdminComment, targetUUID)
+	}
+
 	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("HWID Request #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true, "message": "HWID request updated"})
@@ -200,11 +272,27 @@ func (h *AdminHandler) UpdateHWIDStatus(c *fiber.Ctx) error {
 
 // Discord Ban Requests
 func (h *AdminHandler) GetDiscordBans(c *fiber.Ctx) error {
-	rows, err := h.DB.SQL.Query(`
-		SELECT id, lang, mod_nickname, mod_key, offender_id, proof_type, 
-		       COALESCE(proof_file, ''), COALESCE(proof_link, ''), reason, status, COALESCE(admin_comment, ''), created_at
-		FROM discord_ban_requests ORDER BY id DESC
-	`)
+	page, limit := parsePagination(c, 50)
+	offset := (page - 1) * limit
+
+	var total int
+	_ = h.DB.SQL.QueryRow("SELECT COUNT(*) FROM discord_ban_requests").Scan(&total)
+
+	var rows *sql.Rows
+	var err error
+	if page > 0 && limit > 0 {
+		rows, err = h.DB.SQL.Query(h.DB.Rebind(`
+			SELECT id, lang, mod_nickname, mod_key, offender_id, proof_type, 
+			       COALESCE(proof_file, ''), COALESCE(proof_link, ''), reason, status, COALESCE(admin_comment, ''), created_at
+			FROM discord_ban_requests ORDER BY id DESC LIMIT ? OFFSET ?
+		`), limit, offset)
+	} else {
+		rows, err = h.DB.SQL.Query(`
+			SELECT id, lang, mod_nickname, mod_key, offender_id, proof_type, 
+			       COALESCE(proof_file, ''), COALESCE(proof_link, ''), reason, status, COALESCE(admin_comment, ''), created_at
+			FROM discord_ban_requests ORDER BY id DESC
+		`)
+	}
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
 	}
@@ -221,7 +309,11 @@ func (h *AdminHandler) GetDiscordBans(c *fiber.Ctx) error {
 		}
 	}
 
-	return c.JSON(fiber.Map{"success": true, "data": list})
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    list,
+		"total":   total,
+	})
 }
 
 func (h *AdminHandler) UpdateDiscordBanStatus(c *fiber.Ctx) error {
@@ -233,7 +325,8 @@ func (h *AdminHandler) UpdateDiscordBanStatus(c *fiber.Ctx) error {
 
 	var reqID int64
 	var offenderID string
-	err := h.DB.SQL.QueryRow(h.DB.Rebind("SELECT id, offender_id FROM discord_ban_requests WHERE id = ?"), id).Scan(&reqID, &offenderID)
+	var modKey string
+	err := h.DB.SQL.QueryRow(h.DB.Rebind("SELECT id, offender_id, mod_key FROM discord_ban_requests WHERE id = ?"), id).Scan(&reqID, &offenderID, &modKey)
 	if err != nil {
 		return c.Status(404).JSON(fiber.Map{"success": false, "error": "Ban request not found"})
 	}
@@ -248,7 +341,12 @@ func (h *AdminHandler) UpdateDiscordBanStatus(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": "Update failed"})
 	}
 
-	h.TG.SendVerdict("@Kuruma31", "discord", reqID, req.Status, req.AdminComment, offenderID)
+	var modTG string
+	_ = h.DB.SQL.QueryRow(h.DB.Rebind("SELECT COALESCE(telegram, '') FROM moderator_keys WHERE key = ?"), modKey).Scan(&modTG)
+	if modTG != "" {
+		h.TG.SendVerdict(modTG, "discord", reqID, req.Status, req.AdminComment, offenderID)
+	}
+
 	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Discord Ban #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
 
 	return c.JSON(fiber.Map{"success": true, "message": "Discord ban request updated"})
@@ -436,4 +534,23 @@ func (h *AdminHandler) RemoveBannedIP(c *fiber.Ctx) error {
 		"success": true,
 		"message": "IP разблокирован",
 	})
+}
+
+func parsePagination(c *fiber.Ctx, defaultLimit int) (int, int) {
+	pageStr := c.Query("page")
+	if pageStr == "" {
+		return 0, 0
+	}
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(c.Query("limit", strconv.Itoa(defaultLimit)))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = defaultLimit
+	}
+	if limit > 500 {
+		limit = 500
+	}
+	return page, limit
 }

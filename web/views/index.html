@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css">
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <link rel="stylesheet" href="/css/style.css?v=1.0.3">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" defer></script>
 </head>
 <body>
 
@@ -209,11 +209,17 @@
 
         <!-- Cloudflare Turnstile CAPTCHA -->
         <div style="display:flex; justify-content:center; margin: 1.5rem 0;">
-          <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA" data-theme="dark"></div>
+          <div id="cfTurnstileWidget" class="cf-turnstile" data-sitekey="0x4AAAAAAEV4veMwRVjALBvF" data-theme="dark"></div>
         </div>
 
         <button type="submit" id="mediaSubmitBtn" class="btn-shimmer btn-hover btn-submit-action" data-i18n="submitBtn">Отправить заявку</button>
       </form>
+
+      <!-- Bug Report Banner -->
+      <div class="bug-report-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span data-i18n="bugBanner">Нашли ошибки или баги? Пишите в Telegram — <a href="https://t.me/notyxs" target="_blank">@notyxs</a></span>
+      </div>
     </section>
 
     <!-- 2. HWID RESET TAB (Moderator Only) -->
@@ -455,19 +461,19 @@
 
       <!-- Banned IPs Manager -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem; margin-top: 2rem;">
-        <h3 style="font-size: 1.125rem;">Заблокированные IP-адреса</h3>
-        <button class="table-act-btn err" onclick="openBanIpModal()">+ Заблокировать IP</button>
+        <h3 style="font-size: 1.125rem;" data-i18n="bannedIPsTitle">Заблокированные IP-адреса</h3>
+        <button class="table-act-btn err" onclick="openBanIpModal()" data-i18n="btnBanIP">+ Заблокировать IP</button>
       </div>
       <div class="table-box-container">
         <table class="admin-data-table">
           <thead>
             <tr>
               <th>ID</th>
-              <th>IP-адрес</th>
-              <th>Причина блокировки</th>
-              <th>Кем заблокирован</th>
-              <th>Дата блокировки</th>
-              <th>Действия</th>
+              <th data-i18n="thIPAddress">IP-адрес</th>
+              <th data-i18n="thBanReason">Причина блокировки</th>
+              <th data-i18n="thBannedBy">Кем заблокирован</th>
+              <th data-i18n="thBanDate">Дата блокировки</th>
+              <th data-i18n="thActions">Действия</th>
             </tr>
           </thead>
           <tbody id="adminBannedIpsTbody"></tbody>
@@ -618,7 +624,7 @@
           </div>
           <div style="margin-bottom: 1.25rem;">
             <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;" data-i18n="labelCustomKey">Кастомный ключ (или оставьте пустым для генерации)</label>
-            <input type="text" id="newModCustomKeyInput" class="form-input-field" placeholder="например: ALEX или MY_KEY_123">
+            <input type="text" id="newModCustomKeyInput" class="form-input-field" data-i18n="placeholderModKey" placeholder="например: ALEX или MY_KEY_123">
           </div>
           <button type="submit" class="btn-shimmer btn-hover btn-submit-action" style="margin-top:0" data-i18n="btnCreateKey">Создать ключ</button>
         </form>
@@ -630,25 +636,28 @@
   <div class="modal-overlay-bg" id="banIpModal">
     <div class="modal-dialog-box">
       <div class="modal-header-line">
-        <h3 class="modal-title-heading">Заблокировать IP-адрес</h3>
+        <h3 class="modal-title-heading" data-i18n="banModalTitle">Заблокировать IP-адрес</h3>
         <button class="modal-close-x">&times;</button>
       </div>
       <div class="modal-body-container">
         <form id="banIpForm">
           <div style="margin-bottom: 1rem;">
-            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;">IP-адрес <span style="color:var(--rose)">*</span></label>
-            <input type="text" id="banIpInput" class="form-input-field" placeholder="Например: 192.168.1.1 или 203.0.113.4" required>
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;" data-i18n="labelIPAddress">IP-адрес <span style="color:var(--rose)">*</span></label>
+            <input type="text" id="banIpInput" class="form-input-field" data-i18n="placeholderIPAddress" placeholder="Например: 192.168.1.1 или 203.0.113.4" required>
           </div>
           <div style="margin-bottom: 1.25rem;">
-            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;">Причина блокировки</label>
-            <input type="text" id="banIpReasonInput" class="form-input-field" placeholder="Спам, спам запросами, попытка взлома...">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;" data-i18n="labelBanReason">Причина блокировки</label>
+            <input type="text" id="banIpReasonInput" class="form-input-field" data-i18n="placeholderBanReason" placeholder="Спам, спам запросами, попытка взлома...">
           </div>
-          <button type="submit" class="btn-shimmer btn-hover btn-submit-action" style="margin-top:0; background: linear-gradient(135deg, #ef4444, #dc2626);">Заблокировать IP</button>
+          <button type="submit" class="btn-shimmer btn-hover btn-submit-action" style="margin-top:0; background: linear-gradient(135deg, #ef4444, #dc2626);" data-i18n="btnBlockIP">Заблокировать IP</button>
         </form>
       </div>
     </div>
   </div>
 
-  <script src="/js/script.js"></script>
+  <!-- Version Badge -->
+  <div class="site-version-badge">v1.0.0</div>
+
+  <script src="/js/script.js?v=1.0.4"></script>
 </body>
 </html>

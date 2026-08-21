@@ -17,6 +17,7 @@ type MediaApplication struct {
 	WhyJoin       string    `json:"why_join"`
 	Exclusive     string    `json:"exclusive"`
 	Telegram      string    `json:"telegram"`
+	TurnstileToken string   `json:"turnstile_token,omitempty"`
 	Status        string    `json:"status"`
 	AdminComment  string    `json:"admin_comment,omitempty"`
 	CreatedAt     time.Time `json:"created_at"`

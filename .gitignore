@@ -4,8 +4,16 @@
 *.dll
 *.so
 *.dylib
+delta-portal
+delta-portal-old
+delta-portal-new
 
-# Local SQLite Database (Switched to Supabase)
+# Environment & Secrets
+.env
+.env.local
+.env.production
+
+# Database
 *.db
 *.db-shm
 *.db-wal
@@ -15,8 +23,22 @@ delta.db*
 *.log
 app.log
 
+# Telegram session
+tg_session.json
+
+# Uploads (user files)
+uploads/
+web/uploads/
+
 # OS & Editor
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+/go/bin/
+/vendor/

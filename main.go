@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"delta-free-media/config"
@@ -46,7 +49,7 @@ func main() {
 		log.SetOutput(multiWriter)
 	}
 
-	db, err := database.InitDB(dbDriver, dbPath, supabaseURL)
+	db, err := database.InitDB(dbDriver, dbPath, supabaseURL, cfg.DBMaxOpenConns, cfg.DBMaxIdleConns)
 	if err != nil {
 		log.Fatalf("Database initialization failed: %v", err)
 	}
@@ -64,11 +67,16 @@ func main() {
 		BodyLimit:     25 * 1024 * 1024 * 1024, // 25GB Body Limit for streaming chunk uploads
 		StrictRouting: false,
 		CaseSensitive: false,
+		ProxyHeader:   "X-Forwarded-For",
 	})
 
 	app.Use(recover.New())
 	app.Use(compress.New(compress.Config{Level: compress.LevelBestSpeed}))
-	app.Use(cors.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "https://deltamedia.fun,http://localhost:3000",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin,Content-Type,Accept,X-Admin-Secret,X-Mod-Key",
+	}))
 
 	// IP Ban Check Middleware
 	app.Use(func(c *fiber.Ctx) error {
@@ -117,7 +125,15 @@ func main() {
 		return err
 	})
 
-	// Static Web Assets & Uploads
+	// Static Web Assets & Uploads (no-cache for CSS/JS to prevent CDN stale files)
+	app.Use("/css", func(c *fiber.Ctx) error {
+		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		return c.Next()
+	})
+	app.Use("/js", func(c *fiber.Ctx) error {
+		c.Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		return c.Next()
+	})
 	app.Static("/css", "./web/static/css")
 	app.Static("/js", "./web/static/js")
 	app.Static("/uploads", "./uploads")
@@ -200,9 +216,24 @@ func main() {
 	}
 
 	log.Printf("delta media portal server listening on port %s", port)
-	if err := app.Listen(":" + port); err != nil {
-		log.Fatalf("Server error: %v", err)
+	go func() {
+		if err := app.Listen(":" + port); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		log.Printf("Server forced to shutdown: %v", err)
 	}
+
+	log.Println("Server exited cleanly")
 }
 
 func modMiddleware(db *database.DB) fiber.Handler {
@@ -243,6 +274,21 @@ func rateLimitMiddleware(db *database.DB, maxReqs int, window time.Duration) fib
 		startTime time.Time
 	}
 	var clients sync.Map
+
+	go func() {
+		ticker := time.NewTicker(2 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			now := time.Now()
+			clients.Range(func(key, value interface{}) bool {
+				cl := value.(*clientLog)
+				if now.Sub(cl.startTime) > window*2 {
+					clients.Delete(key)
+				}
+				return true
+			})
+		}
+	}()
 
 	return func(c *fiber.Ctx) error {
 		ip := c.IP()

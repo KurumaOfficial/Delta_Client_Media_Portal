@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
+	"time"
 
 	_ "github.com/glebarez/go-sqlite"
 	_ "github.com/lib/pq"
@@ -13,9 +15,16 @@ import (
 type DB struct {
 	SQL    *sql.DB
 	Driver string
+
+	auditCh   chan auditEntry
+	auditOnce sync.Once
 }
 
-func InitDB(driver, dbPath, supabaseURL string) (*DB, error) {
+type auditEntry struct {
+	eventType, status, details, ip, userAgent string
+}
+
+func InitDB(driver, dbPath, supabaseURL string, maxOpen, maxIdle int) (*DB, error) {
 	var sqlDB *sql.DB
 	var err error
 	activeDriver := strings.ToLower(strings.TrimSpace(driver))
@@ -36,8 +45,10 @@ func InitDB(driver, dbPath, supabaseURL string) (*DB, error) {
 		}
 	}
 
-	sqlDB.SetMaxOpenConns(5)
-	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(maxOpen)
+	sqlDB.SetMaxIdleConns(maxIdle)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetConnMaxIdleTime(1 * time.Minute)
 
 	if err := sqlDB.Ping(); err != nil {
 		log.Printf("[Database] Warning: DB Ping failed: %v", err)
@@ -46,7 +57,12 @@ func InitDB(driver, dbPath, supabaseURL string) (*DB, error) {
 	db := &DB{
 		SQL:    sqlDB,
 		Driver: activeDriver,
+		auditCh: make(chan auditEntry, 1000),
 	}
+
+	db.auditOnce.Do(func() {
+		go db.auditFlusher()
+	})
 
 	if err := db.createTables(); err != nil {
 		return nil, err
@@ -156,13 +172,26 @@ func (db *DB) createTables() error {
 	_, _ = db.SQL.Exec("ALTER TABLE media_applications ADD COLUMN uid TEXT DEFAULT ''")
 	_, _ = db.SQL.Exec("ALTER TABLE moderator_keys ADD COLUMN telegram TEXT DEFAULT ''")
 
+	// Performance indexes
+	if db.Driver == "postgres" {
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_id_desc ON audit_logs (id DESC)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_media_app_status ON media_applications (status)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_hwid_status ON hwid_reset_requests (status)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_discord_status ON discord_ban_requests (status)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_mod_keys_key ON moderator_keys (key)")
+	} else {
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_id_desc ON audit_logs (id DESC)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_media_app_status ON media_applications (status)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_mod_keys_key ON moderator_keys (key)")
+	}
+
 	return nil
 }
 
 func (db *DB) seedTestData() error {
 	var mediaCount int
 	_ = db.SQL.QueryRow("SELECT COUNT(*) FROM media_applications").Scan(&mediaCount)
-	if mediaCount > 5 {
+	if mediaCount > 0 {
 		return nil // Already seeded
 	}
 
@@ -229,7 +258,11 @@ func (db *DB) seedTestData() error {
 		} else if i%7 == 0 {
 			active = 0 // Disabled
 		}
-		_, _ = db.SQL.Exec(`INSERT OR IGNORE INTO moderator_keys (key, nickname, is_active) VALUES (?, ?, ?)`, key, nick, active)
+		if db.Driver == "postgres" {
+			_, _ = db.SQL.Exec(`INSERT INTO moderator_keys (key, nickname, is_active) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`, key, nick, active)
+		} else {
+			_, _ = db.SQL.Exec(`INSERT OR IGNORE INTO moderator_keys (key, nickname, is_active) VALUES (?, ?, ?)`, key, nick, active)
+		}
 	}
 
 	// 5. Seed Audit Logs (45 records)
@@ -258,12 +291,26 @@ func (db *DB) Rebind(query string) string {
 	}
 	var b strings.Builder
 	paramIdx := 1
+	inString := false
+	var quoteChar byte
 	for i := 0; i < len(query); i++ {
-		if query[i] == '?' {
+		ch := query[i]
+		if inString {
+			b.WriteByte(ch)
+			if ch == quoteChar && (i == 0 || query[i-1] != '\\') {
+				inString = false
+			}
+			continue
+		}
+		if ch == '\'' || ch == '"' {
+			inString = true
+			quoteChar = ch
+			b.WriteByte(ch)
+		} else if ch == '?' {
 			b.WriteString(fmt.Sprintf("$%d", paramIdx))
 			paramIdx++
 		} else {
-			b.WriteByte(query[i])
+			b.WriteByte(ch)
 		}
 	}
 	return b.String()
@@ -284,9 +331,53 @@ func (db *DB) InsertAndGetID(query string, args ...interface{}) (int64, error) {
 }
 
 func (db *DB) RecordAuditLog(eventType, status, details, ip, userAgent string) {
-	query := db.Rebind(`INSERT INTO audit_logs (event_type, status, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)`)
-	_, err := db.SQL.Exec(query, eventType, status, details, ip, userAgent)
-	if err != nil {
-		log.Printf("[Audit] Error saving log: %v", err)
+	select {
+	case db.auditCh <- auditEntry{eventType, status, details, ip, userAgent}:
+	default:
+		log.Printf("[Audit] Buffer full, dropping log: %s %s", eventType, status)
+	}
+}
+
+func (db *DB) auditFlusher() {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	batch := make([]auditEntry, 0, 50)
+
+	flush := func() {
+		if len(batch) == 0 {
+			return
+		}
+		tx, err := db.SQL.Begin()
+		if err != nil {
+			log.Printf("[Audit] Failed to begin tx: %v", err)
+			return
+		}
+		stmt, err := tx.Prepare(db.Rebind(`INSERT INTO audit_logs (event_type, status, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)`))
+		if err != nil {
+			tx.Rollback()
+			log.Printf("[Audit] Failed to prepare: %v", err)
+			return
+		}
+		for _, e := range batch {
+			stmt.Exec(e.eventType, e.status, e.details, e.ip, e.userAgent)
+		}
+		stmt.Close()
+		if err := tx.Commit(); err != nil {
+			log.Printf("[Audit] Failed to commit batch of %d: %v", len(batch), err)
+		}
+		batch = batch[:0]
+	}
+
+	for {
+		select {
+		case entry := <-db.auditCh:
+			batch = append(batch, entry)
+			if len(batch) >= 50 {
+				flush()
+			}
+		case <-ticker.C:
+			flush()
+		}
 	}
 }

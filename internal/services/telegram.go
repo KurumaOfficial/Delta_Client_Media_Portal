@@ -27,6 +27,7 @@ type TelegramService struct {
 	BusinessID        string
 	SecretaryUsername string
 	UserChatMap       map[string]string
+	ChatToUserMap     map[string]string
 	RespondedUsers    map[string]bool
 	debounceTimers    map[string]*time.Timer
 	Logger            AuditLogger
@@ -42,7 +43,7 @@ func (s *TelegramService) SetLogger(logger AuditLogger) {
 
 func (s *TelegramService) recordAudit(action, status, details string) {
 	if s.Logger != nil {
-		s.Logger.RecordAuditLog(action, status, details, "127.0.0.1", "TelegramService")
+		s.Logger.RecordAuditLog(action, status, details, "bot", "TelegramService")
 	}
 }
 
@@ -51,11 +52,15 @@ type tgSessionData struct {
 	BusinessID        string            `json:"business_id"`
 	SecretaryUsername string            `json:"secretary_username,omitempty"`
 	UserChatMap       map[string]string `json:"user_chat_map,omitempty"`
+	ChatToUserMap     map[string]string `json:"chat_to_user_map,omitempty"`
 }
 
 func (s *TelegramService) loadSession() {
 	if s.UserChatMap == nil {
 		s.UserChatMap = make(map[string]string)
+	}
+	if s.ChatToUserMap == nil {
+		s.ChatToUserMap = make(map[string]string)
 	}
 	if s.RespondedUsers == nil {
 		s.RespondedUsers = make(map[string]bool)
@@ -79,6 +84,13 @@ func (s *TelegramService) loadSession() {
 			if sess.UserChatMap != nil {
 				s.UserChatMap = sess.UserChatMap
 			}
+			if sess.ChatToUserMap != nil {
+				s.ChatToUserMap = sess.ChatToUserMap
+			} else {
+				for u, id := range s.UserChatMap {
+					s.ChatToUserMap[id] = u
+				}
+			}
 			log.Printf("[Telegram] Loaded persisted session: AdminChatID=%s, BusinessID=%s, Secretary=@%s, MappedUsers=%d", s.AdminChatID, s.BusinessID, s.SecretaryUsername, len(s.UserChatMap))
 		}
 	}
@@ -90,9 +102,10 @@ func (s *TelegramService) saveSession() {
 		BusinessID:        s.BusinessID,
 		SecretaryUsername: s.SecretaryUsername,
 		UserChatMap:       s.UserChatMap,
+		ChatToUserMap:     s.ChatToUserMap,
 	}
 	data, _ := json.Marshal(sess)
-	_ = os.WriteFile("./tg_session.json", data, 0644)
+	go os.WriteFile("./tg_session.json", data, 0644)
 }
 
 func NewTelegramService(botToken, adminChatID, businessID string) *TelegramService {
@@ -205,11 +218,6 @@ func (s *TelegramService) StartPolling() {
 		if err := json.Unmarshal(body, &updateData); err == nil && updateData.OK {
 			for _, upd := range updateData.Result {
 				offset = upd.UpdateID + 1
-
-				// DEBUG: Log raw JSON for every incoming update so we can see EXACTLY what Telegram sends
-				rawJSON, _ := json.Marshal(upd)
-				log.Printf("[Telegram Raw Update] %s", string(rawJSON))
-
 				s.handleUpdate(upd)
 			}
 		} else if !updateData.OK {
@@ -295,7 +303,12 @@ func (s *TelegramService) handleUpdate(upd tgUpdate) {
 			if s.UserChatMap == nil {
 				s.UserChatMap = make(map[string]string)
 			}
-			s.UserChatMap[cleanUser] = fmt.Sprintf("%d", checkChatID)
+			if s.ChatToUserMap == nil {
+				s.ChatToUserMap = make(map[string]string)
+			}
+			chatIDStr := fmt.Sprintf("%d", checkChatID)
+			s.UserChatMap[cleanUser] = chatIDStr
+			s.ChatToUserMap[chatIDStr] = cleanUser
 			s.saveSession()
 			s.mu.Unlock()
 		}
@@ -321,7 +334,11 @@ func (s *TelegramService) handleUpdate(upd tgUpdate) {
 					if s.UserChatMap == nil {
 						s.UserChatMap = make(map[string]string)
 					}
+					if s.ChatToUserMap == nil {
+						s.ChatToUserMap = make(map[string]string)
+					}
 					s.UserChatMap[connUsername] = s.AdminChatID
+					s.ChatToUserMap[s.AdminChatID] = connUsername
 				}
 				s.saveSession()
 				s.mu.Unlock()
@@ -369,18 +386,19 @@ func (s *TelegramService) handleUpdate(upd tgUpdate) {
 			if s.UserChatMap == nil {
 				s.UserChatMap = make(map[string]string)
 			}
+			if s.ChatToUserMap == nil {
+				s.ChatToUserMap = make(map[string]string)
+			}
 			s.UserChatMap[senderUsername] = chatIDStr
+			s.ChatToUserMap[chatIDStr] = senderUsername
 			s.saveSession()
 			s.mu.Unlock()
 			s.recordAudit("TG_USER_MAPPED", "success", fmt.Sprintf("User @%s mapped to ChatID %s via Business Secretary message", senderUsername, chatIDStr))
 		}
 
-		// Mark incoming message as read in Telegram Business
-		go s.ReadBusinessMessage(activeBizID, bm.Chat.ID, bm.MessageID)
-
-		// Instant Secretary Response: process message from user
+		// Instant Secretary Response: process message from user (read is done AFTER reply)
 		if senderUsername != "notyxx" && senderUsername != "notyxs" && senderUsername != "" {
-			s.handleDebouncedUserMessage(activeBizID, bm.Chat.ID, senderUsername)
+			s.handleDebouncedUserMessage(activeBizID, bm.Chat.ID, senderUsername, bm.MessageID)
 		}
 	}
 
@@ -399,6 +417,10 @@ func (s *TelegramService) handleUpdate(upd tgUpdate) {
 			// Admin: set AdminChatID for notifications
 			s.mu.Lock()
 			s.AdminChatID = chatID
+			if s.ChatToUserMap == nil {
+				s.ChatToUserMap = make(map[string]string)
+			}
+			s.ChatToUserMap[chatID] = senderUsername
 			s.saveSession()
 			s.mu.Unlock()
 
@@ -440,11 +462,9 @@ func (s *TelegramService) getUsernameForChatID(chatID string) string {
 	if cleanID == s.AdminChatID || cleanID == "5972044002" {
 		return "@notyxx"
 	}
-	if s.UserChatMap != nil {
-		for u, id := range s.UserChatMap {
-			if id == cleanID {
-				return "@" + u
-			}
+	if s.ChatToUserMap != nil {
+		if username, ok := s.ChatToUserMap[cleanID]; ok {
+			return "@" + username
 		}
 	}
 	return ""
@@ -628,10 +648,6 @@ func (s *TelegramService) SendVerdict(targetTG, requestType string, reqID int64,
 	targetChatID := cleanTarget
 	if found && resolvedChatID != "" {
 		targetChatID = resolvedChatID
-	} else if cleanUser == "kuruma31" {
-		targetChatID = "1833187665"
-	} else if cleanUser == "notyxx" {
-		targetChatID = "5972044002"
 	} else {
 		s.recordAudit("TG_VERDICT_WARN", "warning", fmt.Sprintf("Sending verdict for %s #%d to @%s without numeric ChatID mapping (User has not sent a message to Secretary account yet)", requestType, reqID, cleanUser))
 	}
@@ -698,7 +714,7 @@ type tgSetReactionPayload struct {
 	Reaction             []tgReactionType `json:"reaction"`
 }
 
-func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64, username string) {
+func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64, username string, messageID int64) {
 	cleanUser := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(username), "@"))
 	if cleanUser == "" || cleanUser == "notyxx" || cleanUser == "notyxs" {
 		return
@@ -723,7 +739,7 @@ func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64,
 		timer.Stop()
 	}
 
-	// Short 1-second sequence debounce, then respond instantly
+	// Short 1-second sequence debounce, then random delay 15-180s before replying
 	s.debounceTimers[cleanUser] = time.AfterFunc(1*time.Second, func() {
 		s.mu.Lock()
 		s.RespondedUsers[cleanUser] = true
@@ -736,8 +752,16 @@ func (s *TelegramService) handleDebouncedUserMessage(bizID string, chatID int64,
 		}
 
 		chatIDStr := fmt.Sprintf("%d", chatID)
-		log.Printf("[Telegram Secretary] Sending instant response to @%s (chatID %s, bizID %s)...", cleanUser, chatIDStr, activeBizID)
-		
+
+		// Random human-like delay between 15 and 180 seconds
+		delaySeconds := 15 + rand.Intn(166)
+		log.Printf("[Telegram Secretary] Waiting %ds before replying to @%s (chatID %s)...", delaySeconds, cleanUser, chatIDStr)
+		time.Sleep(time.Duration(delaySeconds) * time.Second)
+
+		// Mark message as read RIGHT BEFORE replying (not on arrival)
+		s.ReadBusinessMessage(activeBizID, chatID, messageID)
+
+		log.Printf("[Telegram Secretary] Sending response to @%s (chatID %s, bizID %s)...", cleanUser, chatIDStr, activeBizID)
 		go s.SendRandomSecretaryResponse(activeBizID, chatIDStr)
 	})
 

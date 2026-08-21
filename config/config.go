@@ -9,19 +9,22 @@ import (
 )
 
 type Config struct {
-	Port         string
-	Host         string
-	DBDriver     string
-	DBPath       string
-	SupabaseURL  string
-	AdminSecret  string
-	ModSecret    string
-	UploadDir    string
-	TGBotToken   string
-	TGAdminChat  string
-	TGBusinessID string
-	GCTuning     bool
-	GOGCVal      int
+	Port               string
+	Host               string
+	DBDriver           string
+	DBPath             string
+	SupabaseURL        string
+	AdminSecret        string
+	ModSecret          string
+	UploadDir          string
+	TGBotToken         string
+	TGAdminChat        string
+	TGBusinessID       string
+	GCTuning           bool
+	GOGCVal            int
+	TurnstileSecretKey string
+	DBMaxOpenConns     int
+	DBMaxIdleConns     int
 }
 
 func LoadConfig() *Config {
@@ -53,20 +56,34 @@ func LoadConfig() *Config {
 		gogcVal = 20
 	}
 
+	turnstileSecret := getEnv("TURNSTILE_SECRET_KEY", "")
+
+	dbMaxOpen := 25
+	if v, err := strconv.Atoi(getEnv("DB_MAX_OPEN_CONNS", "25")); err == nil && v > 0 {
+		dbMaxOpen = v
+	}
+	dbMaxIdle := 10
+	if v, err := strconv.Atoi(getEnv("DB_MAX_IDLE_CONNS", "10")); err == nil && v > 0 {
+		dbMaxIdle = v
+	}
+
 	return &Config{
-		Port:         port,
-		Host:         host,
-		DBDriver:     dbDriver,
-		DBPath:       dbPath,
-		SupabaseURL:  supabaseURL,
-		AdminSecret:  adminSecret,
-		ModSecret:    modSecret,
-		UploadDir:    uploadDir,
-		TGBotToken:   tgBotToken,
-		TGAdminChat:  tgAdminChat,
-		TGBusinessID: tgBusinessID,
-		GCTuning:     gcTuning,
-		GOGCVal:      gogcVal,
+		Port:               port,
+		Host:               host,
+		DBDriver:           dbDriver,
+		DBPath:             dbPath,
+		SupabaseURL:        supabaseURL,
+		AdminSecret:        adminSecret,
+		ModSecret:          modSecret,
+		UploadDir:          uploadDir,
+		TGBotToken:         tgBotToken,
+		TGAdminChat:        tgAdminChat,
+		TGBusinessID:       tgBusinessID,
+		GCTuning:           gcTuning,
+		GOGCVal:            gogcVal,
+		TurnstileSecretKey: turnstileSecret,
+		DBMaxOpenConns:     dbMaxOpen,
+		DBMaxIdleConns:     dbMaxIdle,
 	}
 }
 

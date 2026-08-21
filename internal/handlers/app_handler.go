@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"delta-free-media/config"
@@ -18,22 +21,65 @@ import (
 	"github.com/google/uuid"
 )
 
+type adminLoginAttempt struct {
+	Count     int
+	FirstFail time.Time
+}
+
 type AppHandler struct {
-	DB         *database.DB
-	Cfg        *config.Config
-	TG         *services.TelegramService
-	HTTPClient *http.Client
+	DB              *database.DB
+	Cfg             *config.Config
+	TG              *services.TelegramService
+	HTTPClient      *http.Client
+	adminLoginFails map[string]*adminLoginAttempt
+	adminMu         sync.Mutex
+}
+
+const maxAdminFailsPerDay = 3
+const adminFailWindow = 24 * time.Hour
+
+func (h *AppHandler) checkAdminRateLimit(ip string) bool {
+	h.adminMu.Lock()
+	defer h.adminMu.Unlock()
+	attempt, exists := h.adminLoginFails[ip]
+	if !exists || time.Since(attempt.FirstFail) > adminFailWindow {
+		h.adminLoginFails[ip] = &adminLoginAttempt{Count: 1, FirstFail: time.Now()}
+		return true
+	}
+	if attempt.Count >= maxAdminFailsPerDay {
+		return false
+	}
+	attempt.Count++
+	return true
 }
 
 func NewAppHandler(db *database.DB, cfg *config.Config, tg *services.TelegramService) *AppHandler {
-	return &AppHandler{
+	h := &AppHandler{
 		DB:  db,
 		Cfg: cfg,
 		TG:  tg,
 		HTTPClient: &http.Client{
 			Timeout: 4 * time.Second,
 		},
+		adminLoginFails: make(map[string]*adminLoginAttempt),
 	}
+
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			h.adminMu.Lock()
+			now := time.Now()
+			for ip, attempt := range h.adminLoginFails {
+				if now.Sub(attempt.FirstFail) > adminFailWindow {
+					delete(h.adminLoginFails, ip)
+				}
+			}
+			h.adminMu.Unlock()
+		}
+	}()
+
+	return h
 }
 
 func isValidYouTubeChannelURL(rawURL string) bool {
@@ -69,6 +115,49 @@ func (h *AppHandler) checkURLAlive(targetURL string) bool {
 	defer resp.Body.Close()
 
 	return resp.StatusCode == http.StatusOK
+}
+
+func (h *AppHandler) verifyTurnstile(token, ip string) bool {
+	if h.Cfg.TurnstileSecretKey == "" {
+		return true
+	}
+	if token == "" {
+		return false
+	}
+
+	form := strings.NewReader(
+		"secret=" + h.Cfg.TurnstileSecretKey +
+			"&response=" + token +
+			"&remoteip=" + ip,
+	)
+	req, err := http.NewRequest("POST", "https://challenges.cloudflare.com/turnstile/v0/siteverify", form)
+	if err != nil {
+		log.Printf("[Turnstile] request error: %v", err)
+		return false
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := h.HTTPClient.Do(req)
+	if err != nil {
+		log.Printf("[Turnstile] verify error: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var result struct {
+		Success    bool     `json:"success"`
+		ErrorCodes []string `json:"error-codes,omitempty"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Printf("[Turnstile] parse error: %v", err)
+		return false
+	}
+
+	if !result.Success {
+		log.Printf("[Turnstile] failed: %v", result.ErrorCodes)
+	}
+	return result.Success
 }
 
 func (h *AppHandler) VerifyModKey(c *fiber.Ctx) error {
@@ -142,6 +231,14 @@ func (h *AppHandler) VerifyAdminCode(c *fiber.Ctx) error {
 		})
 	}
 
+	if !h.checkAdminRateLimit(ip) {
+		h.DB.RecordAuditLog("ADMIN_LOGIN", "rate_limited", "Rate limit exceeded for admin login", ip, ua)
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+			"success": false,
+			"error":   "Too many failed attempts. Try again in 24 hours.",
+		})
+	}
+
 	if strings.TrimSpace(body.Code) == h.Cfg.AdminSecret {
 		h.DB.RecordAuditLog("ADMIN_LOGIN", "success", "Admin authentication successful", ip, ua)
 		return c.JSON(fiber.Map{
@@ -173,20 +270,25 @@ func (h *AppHandler) SubmitMediaApplication(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "error": "All required fields must be filled"})
 	}
 
+	// Skip Turnstile for admin-authenticated requests
+	adminSecret := c.Get("X-Admin-Secret")
+	isAdmin := adminSecret != "" && adminSecret == h.Cfg.AdminSecret
+
+	if !isAdmin {
+		if !h.verifyTurnstile(app.TurnstileToken, c.IP()) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"success": false,
+				"error":   "Проверка капчи не пройдена. Попробуйте ещё раз.",
+			})
+		}
+	}
+
 	// Smart YouTube Channel Validation
 	if app.Platform == "youtube" {
 		if !isValidYouTubeChannelURL(app.ChannelURL) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"success": false,
 				"error":   "Укажите прямую ссылку на YouTube КАНАЛ (например: https://youtube.com/@username), а не на видео",
-			})
-		}
-
-		// Verify channel existence over HTTP
-		if !h.checkURLAlive(app.ChannelURL) {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"success": false,
-				"error":   "Указанный YouTube канал не существует или недоступен",
 			})
 		}
 	}
