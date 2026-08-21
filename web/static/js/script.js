@@ -181,6 +181,11 @@ const i18n = {
     thChannel: "Канал",
     thServers: "Серверы",
     thTelegram: "Telegram",
+    thCriteria: "Критерии",
+    thExclusive: "Эксклюзив",
+    thVideosWeek: "Роликов/нед",
+    thCollabs: "Сотрудничества",
+    thWhyJoin: "Почему вступить",
     thStatus: "Статус",
     thActions: "Действия",
     thMod: "Модератор",
@@ -402,6 +407,11 @@ const i18n = {
     thChannel: "Channel",
     thServers: "Servers",
     thTelegram: "Telegram",
+    thCriteria: "Criteria",
+    thExclusive: "Exclusive",
+    thVideosWeek: "Videos/week",
+    thCollabs: "Collaborations",
+    thWhyJoin: "Why Join",
     thStatus: "Status",
     thActions: "Actions",
     thMod: "Moderator",
@@ -1671,6 +1681,11 @@ function renderMediaTable() {
         <td><a href="${item.channel_url}" target="_blank" style="color:var(--color-primary-400); text-decoration:underline;">${item.channel_url}</a></td>
         <td>${item.servers}</td>
         <td>${item.telegram}</td>
+        <td><span class="tag-badge" style="background:${item.criteria_agreed ? 'rgba(34,197,94,0.15); color:#4ade80' : 'rgba(239,68,68,0.15); color:#f87171'}">${item.criteria_agreed ? t("yes") : t("no")}</span></td>
+        <td><span class="tag-badge" style="background:${item.exclusive === 'yes' ? 'rgba(34,197,94,0.15); color:#4ade80' : 'rgba(239,68,68,0.15); color:#f87171'}">${item.exclusive === 'yes' ? t("yes") : t("no")}</span></td>
+        <td>${item.videos_per_week || '-'}</td>
+        <td>${item.collaborations || '-'}</td>
+        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(item.why_join || '').replace(/"/g, '&quot;')}">${item.why_join || '-'}</td>
         <td><span class="tag-badge tag-${item.status}">${item.status}</span></td>
         <td>
           ${actionButtons}
@@ -1691,12 +1706,16 @@ function setMediaPage(page) {
 function updateMediaStatus(id, status) {
   const actionName = status === "approved" ? t("actionApproveMedia") : t("actionRejectMedia");
   promptAdminComment(`${actionName} #${id}`, async (comment) => {
-    await fetch(`/api/admin/media/${id}/status`, {
+    const res = await fetch(`/api/admin/media/${id}/status`, {
       method: "POST",
       headers: { "X-Admin-Secret": adminToken, "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_comment: comment })
     });
+    const data = await res.json();
     loadAdminDashboard();
+    if (data.tg_warning) {
+      alert(data.tg_warning);
+    }
   });
 }
 
@@ -1771,12 +1790,16 @@ function setHwidPage(page) {
 function updateHwidStatus(id, status) {
   const actionName = status === "approved" ? t("actionApproveHwid") : t("actionRejectHwid");
   promptAdminComment(`${actionName} #${id}`, async (comment) => {
-    await fetch(`/api/admin/hwid/${id}/status`, {
+    const res = await fetch(`/api/admin/hwid/${id}/status`, {
       method: "POST",
       headers: { "X-Admin-Secret": adminToken, "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_comment: comment })
     });
+    const data = await res.json();
     loadAdminDashboard();
+    if (data.tg_warning) {
+      alert(data.tg_warning);
+    }
   });
 }
 
@@ -1837,12 +1860,16 @@ function setBanPage(page) {
 function updateBanStatus(id, status) {
   const actionName = status === "approved" ? t("actionApproveBan") : t("actionRejectBan");
   promptAdminComment(`${actionName} #${id}`, async (comment) => {
-    await fetch(`/api/admin/discord/${id}/status`, {
+    const res = await fetch(`/api/admin/discord/${id}/status`, {
       method: "POST",
       headers: { "X-Admin-Secret": adminToken, "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_comment: comment })
     });
+    const data = await res.json();
     loadAdminDashboard();
+    if (data.tg_warning) {
+      alert(data.tg_warning);
+    }
   });
 }
 

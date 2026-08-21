@@ -725,8 +725,89 @@ func (s *TelegramService) SendVerdict(targetTG, requestType string, reqID int64,
 		msg = fmt.Sprintf("📢 Вердикт по вашей заявке [%s #%d]: %s\n%s", requestType, reqID, statusText, comment)
 	}
 
-	log.Printf("[Telegram Secretary] Sending verdict for %s #%d to targetChatID: %s (attempting Business with fallback to Direct)", requestType, reqID, targetChatID)
-	go s.SendMessage(targetChatID, msg)
+	log.Printf("[Telegram Secretary] Sending verdict for %s #%d to targetChatID: %s using BusinessID: %s", requestType, reqID, targetChatID, s.BusinessID)
+	go s.SendBusinessMessage(s.BusinessID, targetChatID, msg)
+}
+
+func (s *TelegramService) SendVerdictSync(targetTG, requestType string, reqID int64, status, comment, itemTarget string) error {
+	cleanTarget := strings.TrimSpace(targetTG)
+	if cleanTarget == "" {
+		return fmt.Errorf("empty telegram username")
+	}
+
+	cleanUser := strings.ToLower(strings.TrimPrefix(cleanTarget, "@"))
+
+	s.mu.Lock()
+	if s.BusinessPeers == nil {
+		s.BusinessPeers = make(map[string]string)
+	}
+	resolvedChatID, found := s.BusinessPeers[cleanUser]
+	if !found {
+		if s.UserChatMap != nil {
+			if chatID, ok := s.UserChatMap[cleanUser]; ok && chatID != "" {
+				resolvedChatID = chatID
+				found = true
+				s.BusinessPeers[cleanUser] = chatID
+			}
+		}
+	}
+	s.mu.Unlock()
+
+	targetChatID := cleanTarget
+	if found && resolvedChatID != "" {
+		targetChatID = resolvedChatID
+	} else {
+		return fmt.Errorf("пользователь @%s не писал секретарю — 24ч окно истекло", cleanUser)
+	}
+
+	var msg string
+
+	switch strings.ToLower(requestType) {
+	case "media":
+		if status == "approved" {
+			msg = fmt.Sprintf("Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте <a href=\"https://deltamedia.fun\">deltamedia.fun</a>. Я рассмотрел твою заявку № %d и одобрил её!\n\n"+
+				"Ссылка на конфу медиа - %s\n"+
+				"Обязательно прочитай все каналы чтобы понять всю суть.",
+				reqID, comment)
+		} else {
+			msg = fmt.Sprintf("Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте <a href=\"https://deltamedia.fun\">deltamedia.fun</a>. Я рассмотрел твою заявку № %d и вынужден её отклонить.\n\n"+
+				"Причина: %s\n"+
+				"Попробуй больше активничать и чаще выкладывать видео — тогда у тебя всё обязательно получится. Когда улучшишь статистику аккаунта, подавай новую заявку.",
+				reqID, comment)
+		}
+
+	case "hwid":
+		if status == "approved" {
+			commentPart := ""
+			if comment != "" {
+				commentPart = fmt.Sprintf("\n\nДоп коментарий от нотикса — %s", comment)
+			}
+			msg = fmt.Sprintf("Хвид пользователя %s успешно сброшен.%s", itemTarget, commentPart)
+		} else {
+			msg = fmt.Sprintf("Заявка на сброс HWID пользователя %s была отклонена.\n\nПричина — %s", itemTarget, comment)
+		}
+
+	case "discord":
+		if status == "approved" {
+			commentPart := ""
+			if comment != "" {
+				commentPart = fmt.Sprintf("\n\nДоп коментарий от нотикса - %s", comment)
+			}
+			msg = fmt.Sprintf("Аккаунт в дискорде %s успешно заблокирован.%s", itemTarget, commentPart)
+		} else {
+			msg = fmt.Sprintf("Блокировка аккаунта %s была отклонена.\n\nПричина — %s", itemTarget, comment)
+		}
+
+	default:
+		statusText := "ОДОБРЕНО ✅"
+		if status == "rejected" {
+			statusText = "ОТКЛОНЕНО ❌"
+		}
+		msg = fmt.Sprintf("📢 Вердикт по вашей заявке [%s #%d]: %s\n%s", requestType, reqID, statusText, comment)
+	}
+
+	log.Printf("[Telegram Secretary] Sending verdict SYNC for %s #%d to targetChatID: %s using BusinessID: %s", requestType, reqID, targetChatID, s.BusinessID)
+	return s.SendBusinessMessage(s.BusinessID, targetChatID, msg)
 }
 
 type tgReactionType struct {

@@ -184,10 +184,15 @@ func (h *AdminHandler) UpdateMediaStatus(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"success": false, "error": "Update failed"})
 	}
 
-	h.TG.SendVerdict(tg, "media", appID, req.Status, req.AdminComment, "")
+	tgErr := h.TG.SendVerdictSync(tg, "media", appID, req.Status, req.AdminComment, "")
 	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Media App #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
 
-	return c.JSON(fiber.Map{"success": true, "message": "Status updated successfully"})
+	resp := fiber.Map{"success": true, "message": "Status updated successfully"}
+	if tgErr != nil {
+		resp["tg_warning"] = fmt.Sprintf("Вердикт не доставлен в Telegram: %s", tgErr.Error())
+	}
+
+	return c.JSON(resp)
 }
 
 // HWID Requests
@@ -263,13 +268,19 @@ func (h *AdminHandler) UpdateHWIDStatus(c *fiber.Ctx) error {
 
 	var modTG string
 	_ = h.DB.SQL.QueryRow(h.DB.Rebind("SELECT COALESCE(telegram, '') FROM moderator_keys WHERE key = ?"), modKey).Scan(&modTG)
+	var tgErr error
 	if modTG != "" {
-		h.TG.SendVerdict(modTG, "hwid", reqID, req.Status, req.AdminComment, targetUUID)
+		tgErr = h.TG.SendVerdictSync(modTG, "hwid", reqID, req.Status, req.AdminComment, targetUUID)
 	}
 
 	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("HWID Request #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
 
-	return c.JSON(fiber.Map{"success": true, "message": "HWID request updated"})
+	resp := fiber.Map{"success": true, "message": "HWID request updated"}
+	if tgErr != nil {
+		resp["tg_warning"] = fmt.Sprintf("Вердикт не доставлен в Telegram: %s", tgErr.Error())
+	}
+
+	return c.JSON(resp)
 }
 
 // Discord Ban Requests
@@ -345,13 +356,19 @@ func (h *AdminHandler) UpdateDiscordBanStatus(c *fiber.Ctx) error {
 
 	var modTG string
 	_ = h.DB.SQL.QueryRow(h.DB.Rebind("SELECT COALESCE(telegram, '') FROM moderator_keys WHERE key = ?"), modKey).Scan(&modTG)
+	var tgErr error
 	if modTG != "" {
-		h.TG.SendVerdict(modTG, "discord", reqID, req.Status, req.AdminComment, offenderID)
+		tgErr = h.TG.SendVerdictSync(modTG, "discord", reqID, req.Status, req.AdminComment, offenderID)
 	}
 
 	h.DB.RecordAuditLog("STATUS_CHANGE", "success", fmt.Sprintf("Discord Ban #%s status changed to %s", id, req.Status), c.IP(), c.Get("User-Agent"))
 
-	return c.JSON(fiber.Map{"success": true, "message": "Discord ban request updated"})
+	resp := fiber.Map{"success": true, "message": "Discord ban request updated"}
+	if tgErr != nil {
+		resp["tg_warning"] = fmt.Sprintf("Вердикт не доставлен в Telegram: %s", tgErr.Error())
+	}
+
+	return c.JSON(resp)
 }
 
 // Moderator Key Management
