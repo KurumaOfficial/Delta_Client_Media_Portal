@@ -280,6 +280,13 @@ select, option {
   padding: 6.5rem 2rem 6rem;
   position: relative;
   z-index: 10;
+  transition: max-width 0.2s ease;
+}
+
+.main-content.admin-wide {
+  max-width: none;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 .tab-view {

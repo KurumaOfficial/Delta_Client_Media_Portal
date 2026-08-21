@@ -87,7 +87,7 @@ const i18n = {
     qTelegram: "Укажите свой Telegram username для ответа",
     telegramPlaceholder: "@username",
     qTgBot: "Обязательно: напишите нашему сотруднику",
-    tgBotDesc: "Перед отправкой заявки вы должны написать нашему сотруднику в Telegram. Это необходимо для подтверждения вашего аккаунта и получения ответа.",
+    tgBotDesc: "Перед отправкой заявки необходимо один раз написать нашему сотруднику в Telegram для подтверждения вашего аккаунта.<br><br>После этого ожидайте ответа и не отправляйте повторные сообщения.",
     tgBotButton: "Написать сотруднику @notyxs",
 
     // TikTok
@@ -199,6 +199,7 @@ const i18n = {
     titleFav: "В избранное",
     ytErrorChannel: "Укажите ссылку на КАНАЛ, а не видео!",
     errCaptcha: "Пройдите капчу!",
+    errUidLetters: "UID не должен содержать буквы — только цифры",
     errTgNotWritten: "⚠️ Вы ещё не написали сотруднику. Нажмите кнопку выше!",
     uploadProgress: "Загрузка",
     errModAuthRequired: "Авторизуйтесь как модератор (Ctrl+M)!",
@@ -307,7 +308,7 @@ const i18n = {
     qTelegram: "Enter your Telegram username for response",
     telegramPlaceholder: "@username",
     qTgBot: "Mandatory: write to our employee",
-    tgBotDesc: "Before submitting an application, you must message our employee on Telegram. This is required to confirm your account and receive a response.",
+    tgBotDesc: "Before submitting an application, you must message our employee on Telegram once to verify your account.<br><br>After that, wait for a response and do not send repeated messages.",
     tgBotButton: "Write to employee @notyxs",
 
     // TikTok
@@ -419,6 +420,7 @@ const i18n = {
     titleFav: "Add to favorites",
     ytErrorChannel: "Enter a CHANNEL link, not a video!",
     errCaptcha: "Complete the captcha!",
+    errUidLetters: "UID must not contain letters — numbers only",
     errTgNotWritten: "⚠️ You haven't messaged our employee yet. Click the button above!",
     uploadProgress: "Uploading",
     errModAuthRequired: "Log in as moderator (Ctrl+M)!",
@@ -1052,6 +1054,8 @@ function switchTab(tabId) {
     }
   });
 
+  document.querySelector(".main-content")?.classList.toggle("admin-wide", tabId === "admin");
+
   if (tabId === "admin" && adminToken) {
     loadAdminDashboard();
   }
@@ -1185,6 +1189,12 @@ async function handleMediaSubmit(e) {
   const uid = document.getElementById("mediaUidInput").value.trim();
   const criteriaChoice = document.querySelector(".choice-btn-card[data-choice].active");
   const platform = document.getElementById("platformDropdown").dataset.value;
+
+  // UID must be numeric only (no letters allowed)
+  if (uid && /[a-zA-Z]/.test(uid)) {
+    triggerButtonState(submitBtn, "error", "submitBtn", t("errUidLetters"));
+    return;
+  }
   const channelUrl = (platform === "youtube" ? document.getElementById("ytChannelInput") : document.getElementById("ttChannelInput")).value.trim();
   
   const servers = [];
@@ -1661,15 +1671,9 @@ function renderMediaTable() {
         <td><a href="${item.channel_url}" target="_blank" style="color:var(--color-primary-400); text-decoration:underline;">${item.channel_url}</a></td>
         <td>${item.servers}</td>
         <td>${item.telegram}</td>
-        <td><code style="font-size:0.75rem; color:rgba(255,255,255,0.5)">${item.ip_address || '-'}</code></td>
         <td><span class="tag-badge tag-${item.status}">${item.status}</span></td>
         <td>
-          <div class="action-btn-group">
-            ${actionButtons}
-            <button class="table-act-btn no" title="${t('btnBanUser')}" onclick='openBanUserModal(${JSON.stringify({channel_url: item.channel_url, uid: item.uid, telegram: item.telegram, ip_address: item.ip_address}).replace(/'/g, "&#39;")})'>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
-            </button>
-          </div>
+          ${actionButtons}
         </td>
         <td style="text-align:center;">${renderStarBtn('media', item.id)}</td>
       </tr>

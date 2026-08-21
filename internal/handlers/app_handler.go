@@ -272,6 +272,11 @@ func (h *AppHandler) SubmitMediaApplication(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "error": "All required fields must be filled"})
 	}
 
+	// UID must be numeric only
+	if matched, _ := regexp.MatchString(`[a-zA-Z]`, app.UID); matched {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "error": "UID не должен содержать буквы"})
+	}
+
 	// Skip Turnstile for admin-authenticated requests
 	adminSecret := c.Get("X-Admin-Secret")
 	isAdmin := adminSecret != "" && adminSecret == h.Cfg.AdminSecret

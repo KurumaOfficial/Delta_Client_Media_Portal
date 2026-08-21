@@ -661,14 +661,22 @@ func (s *TelegramService) SendVerdict(targetTG, requestType string, reqID int64,
 		s.BusinessPeers = make(map[string]string)
 	}
 	resolvedChatID, found := s.BusinessPeers[cleanUser]
+	if !found {
+		if s.UserChatMap != nil {
+			if chatID, ok := s.UserChatMap[cleanUser]; ok && chatID != "" {
+				resolvedChatID = chatID
+				found = true
+				s.BusinessPeers[cleanUser] = chatID
+			}
+		}
+	}
 	s.mu.Unlock()
 
 	targetChatID := cleanTarget
 	if found && resolvedChatID != "" {
 		targetChatID = resolvedChatID
 	} else {
-		s.recordAudit("TG_VERDICT_WARN", "warning", fmt.Sprintf("Sending verdict for %s #%d to @%s FAILED: user has not messaged Secretary via Business (BUSINESS_PEER_USAGE_MISSING would occur)", requestType, reqID, cleanUser))
-		return
+		s.recordAudit("TG_VERDICT_WARN", "warning", fmt.Sprintf("Sending verdict for %s #%d to @%s: no chatID mapping found, trying with username", requestType, reqID, cleanUser))
 	}
 
 	var msg string
@@ -717,8 +725,8 @@ func (s *TelegramService) SendVerdict(targetTG, requestType string, reqID int64,
 		msg = fmt.Sprintf("📢 Вердикт по вашей заявке [%s #%d]: %s\n%s", requestType, reqID, statusText, comment)
 	}
 
-	log.Printf("[Telegram Secretary] Sending verdict for %s #%d to targetChatID: %s using BusinessID: %s", requestType, reqID, targetChatID, s.BusinessID)
-	go s.SendBusinessMessage(s.BusinessID, targetChatID, msg)
+	log.Printf("[Telegram Secretary] Sending verdict for %s #%d to targetChatID: %s (attempting Business with fallback to Direct)", requestType, reqID, targetChatID)
+	go s.SendMessage(targetChatID, msg)
 }
 
 type tgReactionType struct {
