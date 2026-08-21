@@ -191,6 +191,25 @@ func (db *DB) createTables() error {
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_discord_status ON discord_ban_requests (status)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_mod_keys_key ON moderator_keys (key)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_user_bans_type ON user_bans (ban_type)")
+
+		// RLS on user_bans — block anon/authenticated, allow service_role
+		db.SQL.Exec("ALTER TABLE user_bans ENABLE ROW LEVEL SECURITY")
+		db.SQL.Exec("DROP POLICY IF EXISTS user_bans_service_full_access ON user_bans")
+		db.SQL.Exec(`CREATE POLICY user_bans_service_full_access ON user_bans
+			USING (true)
+			WITH CHECK (true)`)
+		db.SQL.Exec("DROP POLICY IF EXISTS user_bans_anon_deny ON user_bans")
+		db.SQL.Exec(`CREATE POLICY user_bans_anon_deny ON user_bans
+			AS PERMISSIVE FOR ALL
+			TO anon
+			USING (false)
+			WITH CHECK (false)`)
+		db.SQL.Exec("DROP POLICY IF EXISTS user_bans_auth_deny ON user_bans")
+		db.SQL.Exec(`CREATE POLICY user_bans_auth_deny ON user_bans
+			AS PERMISSIVE FOR ALL
+			TO authenticated
+			USING (false)
+			WITH CHECK (false)`)
 	} else {
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_id_desc ON audit_logs (id DESC)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_media_app_status ON media_applications (status)")
