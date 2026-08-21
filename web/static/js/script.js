@@ -870,6 +870,21 @@ function setupEventListeners() {
     });
   }
 
+  // UID realtime: show error immediately if letters typed
+  const uidInput = document.getElementById("mediaUidInput");
+  const uidErrorEl = document.getElementById("uidError");
+  if (uidInput && uidErrorEl) {
+    uidInput.addEventListener("input", () => {
+      const v = uidInput.value.trim();
+      if (v && /[a-zA-Z]/.test(v)) {
+        uidErrorEl.textContent = t("errUidLetters");
+        uidErrorEl.style.display = "block";
+      } else {
+        uidErrorEl.style.display = "none";
+      }
+    });
+  }
+
   // Secret Admin Key Combo: 3x Left -> 3x Up -> 3x Right
   const secretAdminCombo = [
     "ArrowLeft", "ArrowLeft", "ArrowLeft",
@@ -1203,10 +1218,16 @@ async function handleMediaSubmit(e) {
   const platform = document.getElementById("platformDropdown").dataset.value;
 
   // UID must be numeric only (no letters allowed)
+  const uidError = document.getElementById("uidError");
   if (uid && /[a-zA-Z]/.test(uid)) {
+    if (uidError) {
+      uidError.textContent = t("errUidLetters");
+      uidError.style.display = "block";
+    }
     triggerButtonState(submitBtn, "error", "submitBtn", t("errUidLetters"));
     return;
   }
+  if (uidError) uidError.style.display = "none";
   const channelUrl = (platform === "youtube" ? document.getElementById("ytChannelInput") : document.getElementById("ttChannelInput")).value.trim();
   
   const servers = [];
