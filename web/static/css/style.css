@@ -922,6 +922,20 @@ select, option {
 }
 
 .admin-data-table tr:last-child td { border-bottom: 0; }
+
+.cell-expandable {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.15s;
+}
+.cell-expandable:hover {
+  color: var(--color-primary-400);
+  text-decoration: underline;
+}
 .admin-data-table tr:hover td { background: rgba(255, 255, 255, 0.08); }
 
 .tag-badge {

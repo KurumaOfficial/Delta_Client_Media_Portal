@@ -257,6 +257,7 @@ const i18n = {
     placeholderModKey: "например: ALEX или MY_KEY_123",
 
     noUserBans: "Нет заблокированных пользователей",
+    cellTextModalTitle: "Полный текст",
     userBansTitle: "Заблокированные пользователи",
     btnBanUserAdd: "+ Забанить",
     banUserModalTitle: "Заблокировать пользователя",
@@ -483,6 +484,7 @@ const i18n = {
     placeholderModKey: "e.g.: ALEX or MY_KEY_123",
 
     noUserBans: "No banned users",
+    cellTextModalTitle: "Full text",
     userBansTitle: "Banned Users",
     btnBanUserAdd: "+ Block User",
     banUserModalTitle: "Block User",
@@ -1684,8 +1686,8 @@ function renderMediaTable() {
         <td><span class="tag-badge" style="background:${item.criteria_agreed ? 'rgba(34,197,94,0.15); color:#4ade80' : 'rgba(239,68,68,0.15); color:#f87171'}">${item.criteria_agreed ? t("yes") : t("no")}</span></td>
         <td><span class="tag-badge" style="background:${item.exclusive === 'yes' ? 'rgba(34,197,94,0.15); color:#4ade80' : 'rgba(239,68,68,0.15); color:#f87171'}">${item.exclusive === 'yes' ? t("yes") : t("no")}</span></td>
         <td>${item.videos_per_week || '-'}</td>
-        <td>${item.collaborations || '-'}</td>
-        <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(item.why_join || '').replace(/"/g, '&quot;')}">${item.why_join || '-'}</td>
+        <td class="cell-expandable" onclick="openCellTextModal('${item.collaborations ? item.collaborations.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n') : ''}')">${item.collaborations ? (item.collaborations.length > 40 ? item.collaborations.substring(0, 40) + '…' : item.collaborations) : '-'}</td>
+        <td class="cell-expandable" onclick="openCellTextModal('${item.why_join ? item.why_join.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n') : ''}')">${item.why_join ? (item.why_join.length > 40 ? item.why_join.substring(0, 40) + '…' : item.why_join) : '-'}</td>
         <td><span class="tag-badge tag-${item.status}">${item.status}</span></td>
         <td>
           ${actionButtons}
@@ -2211,6 +2213,13 @@ function renderUserBansTable(bans) {
       '<td><button class="table-act-btn ok" onclick="unbanUser(' + item.id + ')">' + t("btnUnban") + '</button></td>' +
       '</tr>';
   }).join("");
+}
+
+function openCellTextModal(text) {
+  if (!text) return;
+  closeAllModals();
+  document.getElementById("cellTextContent").textContent = text;
+  document.getElementById("cellTextModal").classList.add("open");
 }
 
 function openBanUserModal(prefill) {
