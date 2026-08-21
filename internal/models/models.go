@@ -9,19 +9,20 @@ type MediaApplication struct {
 	Lang           string    `json:"lang"`
 	UID            string    `json:"uid,omitempty"`
 	CriteriaAgreed bool      `json:"criteria_agreed"`
-	Platform      string    `json:"platform"`
-	ChannelURL    string    `json:"channel_url"`
-	Servers       string    `json:"servers"`
-	VideosPerWeek string    `json:"videos_per_week,omitempty"`
-	Collaborations string   `json:"collaborations,omitempty"`
-	WhyJoin       string    `json:"why_join"`
-	Exclusive     string    `json:"exclusive"`
-	Telegram      string    `json:"telegram"`
+	Platform      string     `json:"platform"`
+	ChannelURL    string     `json:"channel_url"`
+	Servers       string     `json:"servers"`
+	VideosPerWeek string     `json:"videos_per_week,omitempty"`
+	Collaborations string    `json:"collaborations,omitempty"`
+	WhyJoin       string     `json:"why_join"`
+	Exclusive     string     `json:"exclusive"`
+	Telegram      string     `json:"telegram"`
+	IPAddress     string     `json:"ip_address,omitempty"`
 	TurnstileToken string   `json:"turnstile_token,omitempty"`
-	Status        string    `json:"status"`
-	AdminComment  string    `json:"admin_comment,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	Status        string     `json:"status"`
+	AdminComment  string     `json:"admin_comment,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 type HWIDResetRequest struct {

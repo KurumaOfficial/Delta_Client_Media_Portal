@@ -16,18 +16,20 @@ import (
 )
 
 type AdminHandler struct {
-	DB    *database.DB
-	Cfg   *config.Config
-	TG    *services.TelegramService
-	IPBan *services.IPBanManager
+	DB       *database.DB
+	Cfg      *config.Config
+	TG       *services.TelegramService
+	IPBan    *services.IPBanManager
+	UserBan  *services.UserBanManager
 }
 
-func NewAdminHandler(db *database.DB, cfg *config.Config, tg *services.TelegramService, ipBan *services.IPBanManager) *AdminHandler {
+func NewAdminHandler(db *database.DB, cfg *config.Config, tg *services.TelegramService, ipBan *services.IPBanManager, userBan *services.UserBanManager) *AdminHandler {
 	return &AdminHandler{
-		DB:    db,
-		Cfg:   cfg,
-		TG:    tg,
-		IPBan: ipBan,
+		DB:      db,
+		Cfg:     cfg,
+		TG:      tg,
+		IPBan:   ipBan,
+		UserBan: userBan,
 	}
 }
 
@@ -120,14 +122,14 @@ func (h *AdminHandler) GetMediaApplications(c *fiber.Ctx) error {
 		rows, err = h.DB.SQL.Query(h.DB.Rebind(`
 			SELECT id, lang, COALESCE(uid, ''), criteria_agreed, platform, channel_url, servers, 
 			       COALESCE(videos_per_week, ''), COALESCE(collaborations, ''), 
-			       why_join, exclusive, telegram, status, COALESCE(admin_comment, ''), created_at, updated_at
+			       why_join, exclusive, telegram, COALESCE(ip_address, ''), status, COALESCE(admin_comment, ''), created_at, updated_at
 			FROM media_applications ORDER BY id DESC LIMIT ? OFFSET ?
 		`), limit, offset)
 	} else {
 		rows, err = h.DB.SQL.Query(`
 			SELECT id, lang, COALESCE(uid, ''), criteria_agreed, platform, channel_url, servers, 
 			       COALESCE(videos_per_week, ''), COALESCE(collaborations, ''), 
-			       why_join, exclusive, telegram, status, COALESCE(admin_comment, ''), created_at, updated_at
+			       why_join, exclusive, telegram, COALESCE(ip_address, ''), status, COALESCE(admin_comment, ''), created_at, updated_at
 			FROM media_applications ORDER BY id DESC
 		`)
 	}
@@ -143,7 +145,7 @@ func (h *AdminHandler) GetMediaApplications(c *fiber.Ctx) error {
 		var created, updated time.Time
 		if err := rows.Scan(&item.ID, &item.Lang, &item.UID, &critInt, &item.Platform, &item.ChannelURL, &item.Servers,
 			&item.VideosPerWeek, &item.Collaborations, &item.WhyJoin, &item.Exclusive, &item.Telegram,
-			&item.Status, &item.AdminComment, &created, &updated); err == nil {
+			&item.IPAddress, &item.Status, &item.AdminComment, &created, &updated); err == nil {
 			item.CriteriaAgreed = critInt == 1
 			item.CreatedAt = created
 			item.UpdatedAt = updated
@@ -533,6 +535,59 @@ func (h *AdminHandler) RemoveBannedIP(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"success": true,
 		"message": "IP разблокирован",
+	})
+}
+
+func (h *AdminHandler) GetUserBans(c *fiber.Ctx) error {
+	list := h.UserBan.GetAll()
+	if list == nil {
+		list = []services.UserBan{}
+	}
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    list,
+	})
+}
+
+func (h *AdminHandler) AddUserBan(c *fiber.Ctx) error {
+	var body struct {
+		BanType  string `json:"ban_type"`
+		BanValue string `json:"ban_value"`
+		Reason   string `json:"reason"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(400).JSON(fiber.Map{"success": false, "error": "Invalid payload"})
+	}
+
+	err := h.UserBan.BanUser(body.BanType, body.BanValue, body.Reason, "admin")
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"success": false, "error": err.Error()})
+	}
+
+	h.DB.RecordAuditLog("USER_BAN", "success", fmt.Sprintf("Banned %s=%s (Reason: %s)", body.BanType, body.BanValue, body.Reason), c.IP(), c.Get("User-Agent"))
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": fmt.Sprintf("%s=%s заблокирован", body.BanType, body.BanValue),
+	})
+}
+
+func (h *AdminHandler) RemoveUserBan(c *fiber.Ctx) error {
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return c.Status(400).JSON(fiber.Map{"success": false, "error": "Invalid ID"})
+	}
+
+	err = h.UserBan.UnbanUser(int64(id))
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"success": false, "error": err.Error()})
+	}
+
+	h.DB.RecordAuditLog("USER_UNBAN", "success", fmt.Sprintf("Unbanned user ban record #%d", id), c.IP(), c.Get("User-Agent"))
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"message": "Пользователь разблокирован",
 	})
 }
 

@@ -57,8 +57,9 @@ func main() {
 	tgService := services.NewTelegramService(cfg.TGBotToken, cfg.TGAdminChat, cfg.TGBusinessID)
 	tgService.SetLogger(db)
 	ipBanService := services.NewIPBanManager(db)
-	appHandler := handlers.NewAppHandler(db, cfg, tgService)
-	adminHandler := handlers.NewAdminHandler(db, cfg, tgService, ipBanService)
+	userBanService := services.NewUserBanManager(db)
+	appHandler := handlers.NewAppHandler(db, cfg, tgService, userBanService)
+	adminHandler := handlers.NewAdminHandler(db, cfg, tgService, ipBanService, userBanService)
 
 	handlers.InitUploadDirs()
 
@@ -208,6 +209,9 @@ func main() {
 	adminGroup.Get("/banned-ips", adminHandler.GetBannedIPs)
 	adminGroup.Post("/banned-ips", adminHandler.AddBannedIP)
 	adminGroup.Delete("/banned-ips/:id", adminHandler.RemoveBannedIP)
+	adminGroup.Get("/user-bans", adminHandler.GetUserBans)
+	adminGroup.Post("/user-bans", adminHandler.AddUserBan)
+	adminGroup.Delete("/user-bans/:id", adminHandler.RemoveUserBan)
 	adminGroup.Get("/logs", adminHandler.GetAuditLogs)
 
 	port := os.Getenv("PORT")

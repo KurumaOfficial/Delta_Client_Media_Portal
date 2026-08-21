@@ -30,6 +30,7 @@ type AppHandler struct {
 	DB              *database.DB
 	Cfg             *config.Config
 	TG              *services.TelegramService
+	UserBan         *services.UserBanManager
 	HTTPClient      *http.Client
 	adminLoginFails map[string]*adminLoginAttempt
 	adminMu         sync.Mutex
@@ -53,11 +54,12 @@ func (h *AppHandler) checkAdminRateLimit(ip string) bool {
 	return true
 }
 
-func NewAppHandler(db *database.DB, cfg *config.Config, tg *services.TelegramService) *AppHandler {
+func NewAppHandler(db *database.DB, cfg *config.Config, tg *services.TelegramService, userBan *services.UserBanManager) *AppHandler {
 	h := &AppHandler{
 		DB:  db,
 		Cfg: cfg,
 		TG:  tg,
+		UserBan: userBan,
 		HTTPClient: &http.Client{
 			Timeout: 4 * time.Second,
 		},
@@ -313,18 +315,27 @@ func (h *AppHandler) SubmitMediaApplication(c *fiber.Ctx) error {
 		})
 	}
 
-	// Check for Duplicate Applications ONLY if there is an active pending (unreviewed) application
-	cleanTg := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(app.Telegram), "@"))
+	// Check if user is banned by any field
+	banResult := h.UserBan.CheckFields(app.ChannelURL, app.UID, app.Telegram, "", c.IP())
+	if banResult.IsBanned {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+			"success": false,
+			"error":   fmt.Sprintf("Ваша заявка заблокирована. Причина: %s", banResult.Reason),
+		})
+	}
+
+	// Check for Duplicate Applications — only block if there is an active pending (unreviewed) application
+	cleanTg := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(app.Telegram), "@", ""))
 	cleanChannel := strings.ToLower(strings.TrimSpace(app.ChannelURL))
 
-	var dupCount int
+	var dupPending int
 	errDup := h.DB.SQL.QueryRow(h.DB.Rebind(`
 		SELECT COUNT(*) FROM media_applications 
 		WHERE status = 'pending' 
 		  AND (LOWER(REPLACE(telegram, '@', '')) = ? OR LOWER(channel_url) = ?)
-	`), cleanTg, cleanChannel).Scan(&dupCount)
+	`), cleanTg, cleanChannel).Scan(&dupPending)
 
-	if errDup == nil && dupCount > 0 {
+	if errDup == nil && dupPending > 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"success": false,
 			"error":   "У вас уже есть нерассмотренная заявка в ожидании! Дождитесь ответа по текущей заявке.",
@@ -333,9 +344,9 @@ func (h *AppHandler) SubmitMediaApplication(c *fiber.Ctx) error {
 
 	id, err := h.DB.InsertAndGetID(`
 		INSERT INTO media_applications 
-		(lang, uid, criteria_agreed, platform, channel_url, servers, videos_per_week, collaborations, why_join, exclusive, telegram, status)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-	`, app.Lang, app.UID, 1, app.Platform, app.ChannelURL, app.Servers, app.VideosPerWeek, app.Collaborations, app.WhyJoin, app.Exclusive, app.Telegram)
+		(lang, uid, criteria_agreed, platform, channel_url, servers, videos_per_week, collaborations, why_join, exclusive, telegram, ip_address, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+	`, app.Lang, app.UID, 1, app.Platform, app.ChannelURL, app.Servers, app.VideosPerWeek, app.Collaborations, app.WhyJoin, app.Exclusive, app.Telegram, c.IP())
 
 	if err != nil {
 		log.Printf("[MediaSubmit] Error: %v", err)

@@ -250,6 +250,21 @@ const i18n = {
     btnBlockIP: "Заблокировать IP",
     placeholderModKey: "например: ALEX или MY_KEY_123",
 
+    noUserBans: "Нет заблокированных пользователей",
+    userBansTitle: "Заблокированные пользователи",
+    btnBanUserAdd: "+ Забанить",
+    banUserModalTitle: "Заблокировать пользователя",
+    labelBanUserChannel: "Telegram канал",
+    labelBanUserUid: "UID",
+    labelBanUserTg: "Telegram",
+    labelBanUserDiscord: "Discord",
+    labelBanUserIp: "IP-адрес",
+    confirmUnbanUser: "Разблокировать пользователя?",
+    errUnbanUser: "Ошибка разблокировки",
+    errUnbanUserNetwork: "Ошибка сети",
+    labelBanUserReason: "Причина",
+    banUserHint: "Заполните хотя бы одно поле. Если хотя бы одно совпадёт — заявка будет заблокирована.",
+
     // Misc
     bugBanner: "Нашли ошибки или баги? Пишите в Telegram — <a href='https://t.me/notyxs' target='_blank'>@notyxs</a>"
   },
@@ -454,6 +469,21 @@ const i18n = {
     placeholderBanReason: "Spam, abuse, hacking attempt...",
     btnBlockIP: "Block IP",
     placeholderModKey: "e.g.: ALEX or MY_KEY_123",
+
+    noUserBans: "No banned users",
+    userBansTitle: "Banned Users",
+    btnBanUserAdd: "+ Block User",
+    banUserModalTitle: "Block User",
+    labelBanUserChannel: "Telegram Channel",
+    labelBanUserUid: "UID",
+    labelBanUserTg: "Telegram",
+    labelBanUserDiscord: "Discord",
+    labelBanUserIp: "IP Address",
+    confirmUnbanUser: "Unblock this user?",
+    errUnbanUser: "Error unblocking user",
+    errUnbanUserNetwork: "Network error while unblocking user",
+    labelBanUserReason: "Reason",
+    banUserHint: "Fill at least one field. If any matches — the submission will be blocked.",
 
     // Misc
     bugBanner: "Found bugs or issues? Write to Telegram — <a href='https://t.me/notyxs' target='_blank'>@notyxs</a>"
@@ -1485,6 +1515,7 @@ async function loadAdminDashboard() {
     loadAdminBanReqs();
     loadAdminModKeys();
     loadAdminBannedIPs();
+    loadAdminUserBans();
     loadAdminLogs();
     startAdminLogsPolling();
   } catch (err) {
@@ -1630,8 +1661,16 @@ function renderMediaTable() {
         <td><a href="${item.channel_url}" target="_blank" style="color:var(--color-primary-400); text-decoration:underline;">${item.channel_url}</a></td>
         <td>${item.servers}</td>
         <td>${item.telegram}</td>
+        <td><code style="font-size:0.75rem; color:rgba(255,255,255,0.5)">${item.ip_address || '-'}</code></td>
         <td><span class="tag-badge tag-${item.status}">${item.status}</span></td>
-        <td>${actionButtons}</td>
+        <td>
+          <div class="action-btn-group">
+            ${actionButtons}
+            <button class="table-act-btn no" title="${t('btnBanUser')}" onclick='openBanUserModal(${JSON.stringify({channel_url: item.channel_url, uid: item.uid, telegram: item.telegram, ip_address: item.ip_address}).replace(/'/g, "&#39;")})'>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+            </button>
+          </div>
+        </td>
         <td style="text-align:center;">${renderStarBtn('media', item.id)}</td>
       </tr>
     `;
@@ -2102,5 +2141,107 @@ async function unbanIp(id) {
     }
   } catch (err) {
     alert(t("errUnbanNetwork"));
+  }
+}
+
+// User Bans Management
+async function loadAdminUserBans() {
+  if (!adminToken) return;
+  try {
+    const res = await fetch("/api/admin/user-bans", { headers: { "X-Admin-Secret": adminToken } });
+    const data = await res.json();
+    if (!data.success) return;
+    renderUserBansTable(data.data || []);
+  } catch (err) {
+    console.error("Failed to load user bans", err);
+  }
+}
+
+function renderUserBansTable(bans) {
+  const tbody = document.getElementById("adminUserBansTbody");
+  if (!tbody) return;
+
+  if (!bans.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:rgba(255,255,255,0.4); padding:1.5rem;">' + t("noUserBans") + '</td></tr>';
+    return;
+  }
+
+  const typeLabels = { channel: "Channel", uid: "UID", telegram: "Telegram", discord: "Discord", ip: "IP" };
+
+  tbody.innerHTML = bans.map(function(item) {
+    var dateStr = new Date(item.created_at).toLocaleString();
+    return '<tr>' +
+      '<td>#' + item.id + '</td>' +
+      '<td><span class="tag-badge" style="background:rgba(239,68,68,0.15); color:#ef4444;">' + (typeLabels[item.ban_type] || item.ban_type) + '</span></td>' +
+      '<td><code style="font-family:var(--font-mono); color:#f87171; font-weight:600">' + item.ban_value + '</code></td>' +
+      '<td>' + (item.reason || '-') + '</td>' +
+      '<td>' + (item.banned_by || 'admin') + '</td>' +
+      '<td style="font-size:0.8rem; color:rgba(255,255,255,0.5)">' + dateStr + '</td>' +
+      '<td><button class="table-act-btn ok" onclick="unbanUser(' + item.id + ')">' + t("btnUnban") + '</button></td>' +
+      '</tr>';
+  }).join("");
+}
+
+function openBanUserModal(prefill) {
+  closeAllModals();
+  document.getElementById("banUserChannelInput").value = (prefill && prefill.channel_url) ? prefill.channel_url : "";
+  document.getElementById("banUserUidInput").value = (prefill && prefill.uid) ? prefill.uid : "";
+  document.getElementById("banUserTgInput").value = (prefill && prefill.telegram) ? prefill.telegram : "";
+  document.getElementById("banUserDiscordInput").value = "";
+  document.getElementById("banUserIpInput").value = (prefill && prefill.ip_address) ? prefill.ip_address : "";
+  document.getElementById("banUserReasonInput").value = "";
+  var modal = document.getElementById("banUserModal");
+  if (modal) modal.classList.add("open");
+}
+
+document.getElementById("banUserForm") && document.getElementById("banUserForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  var fields = [
+    { type: "channel", el: "banUserChannelInput" },
+    { type: "uid", el: "banUserUidInput" },
+    { type: "telegram", el: "banUserTgInput" },
+    { type: "discord", el: "banUserDiscordInput" },
+    { type: "ip", el: "banUserIpInput" }
+  ];
+  var reason = document.getElementById("banUserReasonInput").value.trim();
+
+  var banned = 0;
+  for (var i = 0; i < fields.length; i++) {
+    var val = document.getElementById(fields[i].el).value.trim();
+    if (!val) continue;
+    try {
+      var res = await fetch("/api/admin/user-bans", {
+        method: "POST",
+        headers: { "X-Admin-Secret": adminToken, "Content-Type": "application/json" },
+        body: JSON.stringify({ ban_type: fields[i].type, ban_value: val, reason: reason })
+      });
+      var data = await res.json();
+      if (data.success) banned++;
+    } catch (_) {}
+  }
+
+  closeAllModals();
+  if (banned > 0) {
+    loadAdminUserBans();
+  } else {
+    alert(t("errEnterIP"));
+  }
+});
+
+async function unbanUser(id) {
+  if (!confirm(t("confirmUnbanUser"))) return;
+  try {
+    var res = await fetch("/api/admin/user-bans/" + id, {
+      method: "DELETE",
+      headers: { "X-Admin-Secret": adminToken }
+    });
+    var data = await res.json();
+    if (data.success) {
+      loadAdminUserBans();
+    } else {
+      alert(data.error || t("errUnbanUser"));
+    }
+  } catch (_) {
+    alert(t("errUnbanUserNetwork"));
   }
 }

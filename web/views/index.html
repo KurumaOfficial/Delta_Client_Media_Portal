@@ -384,6 +384,7 @@
               <th data-i18n="thChannel">Канал</th>
               <th data-i18n="thServers">Серверы</th>
               <th data-i18n="thTelegram">Telegram</th>
+              <th data-i18n="thIPAddress">IP</th>
               <th data-i18n="thStatus">Статус</th>
               <th data-i18n="thActions">Действия</th>
               <th style="width: 44px; text-align: center;">★</th>
@@ -479,6 +480,28 @@
           <tbody id="adminBannedIpsTbody"></tbody>
         </table>
         <div class="pagination-bar" id="bannedIpsPagination"></div>
+      </div>
+
+      <!-- User Bans Manager -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem; margin-top: 2rem;">
+        <h3 style="font-size: 1.125rem;" data-i18n="userBansTitle">Блокировки пользователей</h3>
+        <button class="table-act-btn err" onclick="openBanUserModal()" data-i18n="btnBanUserAdd">+ Забанить</button>
+      </div>
+      <div class="table-box-container">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th data-i18n="thBanType">Тип</th>
+              <th data-i18n="thBanValue">Значение</th>
+              <th data-i18n="thBanReason">Причина</th>
+              <th data-i18n="thBannedBy">Кем</th>
+              <th data-i18n="thBanDate">Дата</th>
+              <th data-i18n="thActions">Действия</th>
+            </tr>
+          </thead>
+          <tbody id="adminUserBansTbody"></tbody>
+        </table>
       </div>
 
       <!-- Audit & Security Logs Section -->
@@ -655,9 +678,49 @@
     </div>
   </div>
 
-  <!-- Version Badge -->
-  <div class="site-version-badge">v1.0.0</div>
+  <!-- Ban User Modal -->
+  <div class="modal-overlay-bg" id="banUserModal">
+    <div class="modal-dialog-box">
+      <div class="modal-header-line">
+        <h3 class="modal-title-heading" data-i18n="banUserModalTitle">Заблокировать пользователя</h3>
+        <button class="modal-close-x">&times;</button>
+      </div>
+      <div class="modal-body-container">
+        <form id="banUserForm">
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;" data-i18n="labelBanUserChannel">Канал (YouTube/TikTok)</label>
+            <input type="text" id="banUserChannelInput" class="form-input-field" placeholder="https://youtube.com/@username">
+          </div>
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;">UID</label>
+            <input type="text" id="banUserUidInput" class="form-input-field" placeholder="UID пользователя">
+          </div>
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;">Telegram</label>
+            <input type="text" id="banUserTgInput" class="form-input-field" placeholder="@username">
+          </div>
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;">Discord</label>
+            <input type="text" id="banUserDiscordInput" class="form-input-field" placeholder="username#0000">
+          </div>
+          <div style="margin-bottom: 0.85rem;">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;" data-i18n="labelBanUserIp">IP-адрес</label>
+            <input type="text" id="banUserIpInput" class="form-input-field" placeholder="192.168.1.1">
+          </div>
+          <div style="margin-bottom: 1.25rem;">
+            <label style="display:block; font-size:0.85rem; color:rgba(255,255,255,0.6); margin-bottom:0.35rem;" data-i18n="labelBanUserReason">Причина</label>
+            <input type="text" id="banUserReasonInput" class="form-input-field" placeholder="Спам, нарушение правил...">
+          </div>
+          <p style="font-size:0.78rem; color:rgba(255,255,255,0.4); margin-bottom:1rem;" data-i18n="banUserHint">Заполните хотя бы одно поле. Если хотя бы одно совпадёт — заявка будет заблокирована.</p>
+          <button type="submit" class="btn-shimmer btn-hover btn-submit-action" style="margin-top:0; background: linear-gradient(135deg, #ef4444, #dc2626);" data-i18n="btnBlockUser">Заблокировать</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
-  <script src="/js/script.js?v=1.0.4"></script>
+  <!-- Version Badge -->
+  <div class="site-version-badge">v1.1.1</div>
+
+  <script src="/js/script.js?v=1.1.1"></script>
 </body>
 </html>

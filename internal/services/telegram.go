@@ -28,6 +28,7 @@ type TelegramService struct {
 	SecretaryUsername string
 	UserChatMap       map[string]string
 	ChatToUserMap     map[string]string
+	BusinessPeers     map[string]string
 	RespondedUsers    map[string]bool
 	debounceTimers    map[string]*time.Timer
 	Logger            AuditLogger
@@ -53,6 +54,7 @@ type tgSessionData struct {
 	SecretaryUsername string            `json:"secretary_username,omitempty"`
 	UserChatMap       map[string]string `json:"user_chat_map,omitempty"`
 	ChatToUserMap     map[string]string `json:"chat_to_user_map,omitempty"`
+	BusinessPeers     map[string]string `json:"business_peers,omitempty"`
 }
 
 func (s *TelegramService) loadSession() {
@@ -61,6 +63,9 @@ func (s *TelegramService) loadSession() {
 	}
 	if s.ChatToUserMap == nil {
 		s.ChatToUserMap = make(map[string]string)
+	}
+	if s.BusinessPeers == nil {
+		s.BusinessPeers = make(map[string]string)
 	}
 	if s.RespondedUsers == nil {
 		s.RespondedUsers = make(map[string]bool)
@@ -91,7 +96,15 @@ func (s *TelegramService) loadSession() {
 					s.ChatToUserMap[id] = u
 				}
 			}
-			log.Printf("[Telegram] Loaded persisted session: AdminChatID=%s, BusinessID=%s, Secretary=@%s, MappedUsers=%d", s.AdminChatID, s.BusinessID, s.SecretaryUsername, len(s.UserChatMap))
+			if sess.BusinessPeers != nil && len(sess.BusinessPeers) > 0 {
+				s.BusinessPeers = sess.BusinessPeers
+			} else {
+				for u, id := range s.UserChatMap {
+					s.BusinessPeers[u] = id
+				}
+				log.Printf("[Telegram] Migrated %d users from UserChatMap to BusinessPeers (first run)", len(s.BusinessPeers))
+			}
+			log.Printf("[Telegram] Loaded persisted session: AdminChatID=%s, BusinessID=%s, Secretary=@%s, MappedUsers=%d, BusinessPeers=%d", s.AdminChatID, s.BusinessID, s.SecretaryUsername, len(s.UserChatMap), len(s.BusinessPeers))
 		}
 	}
 }
@@ -103,6 +116,7 @@ func (s *TelegramService) saveSession() {
 		SecretaryUsername: s.SecretaryUsername,
 		UserChatMap:       s.UserChatMap,
 		ChatToUserMap:     s.ChatToUserMap,
+		BusinessPeers:     s.BusinessPeers,
 	}
 	data, _ := json.Marshal(sess)
 	go os.WriteFile("./tg_session.json", data, 0644)
@@ -389,8 +403,12 @@ func (s *TelegramService) handleUpdate(upd tgUpdate) {
 			if s.ChatToUserMap == nil {
 				s.ChatToUserMap = make(map[string]string)
 			}
+			if s.BusinessPeers == nil {
+				s.BusinessPeers = make(map[string]string)
+			}
 			s.UserChatMap[senderUsername] = chatIDStr
 			s.ChatToUserMap[chatIDStr] = senderUsername
+			s.BusinessPeers[senderUsername] = chatIDStr
 			s.saveSession()
 			s.mu.Unlock()
 			s.recordAudit("TG_USER_MAPPED", "success", fmt.Sprintf("User @%s mapped to ChatID %s via Business Secretary message", senderUsername, chatIDStr))
@@ -639,17 +657,18 @@ func (s *TelegramService) SendVerdict(targetTG, requestType string, reqID int64,
 	cleanUser := strings.ToLower(strings.TrimPrefix(cleanTarget, "@"))
 
 	s.mu.Lock()
-	if s.UserChatMap == nil {
-		s.UserChatMap = make(map[string]string)
+	if s.BusinessPeers == nil {
+		s.BusinessPeers = make(map[string]string)
 	}
-	resolvedChatID, found := s.UserChatMap[cleanUser]
+	resolvedChatID, found := s.BusinessPeers[cleanUser]
 	s.mu.Unlock()
 
 	targetChatID := cleanTarget
 	if found && resolvedChatID != "" {
 		targetChatID = resolvedChatID
 	} else {
-		s.recordAudit("TG_VERDICT_WARN", "warning", fmt.Sprintf("Sending verdict for %s #%d to @%s without numeric ChatID mapping (User has not sent a message to Secretary account yet)", requestType, reqID, cleanUser))
+		s.recordAudit("TG_VERDICT_WARN", "warning", fmt.Sprintf("Sending verdict for %s #%d to @%s FAILED: user has not messaged Secretary via Business (BUSINESS_PEER_USAGE_MISSING would occur)", requestType, reqID, cleanUser))
+		return
 	}
 
 	var msg string

@@ -160,7 +160,16 @@ func (db *DB) createTables() error {
 		banned_by TEXT DEFAULT 'admin',
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
-	`, pkType, pkType, pkType, pkType, pkType, pkType)
+
+	CREATE TABLE IF NOT EXISTS user_bans (
+		id %s,
+		ban_type TEXT NOT NULL,
+		ban_value TEXT NOT NULL,
+		reason TEXT DEFAULT '',
+		banned_by TEXT DEFAULT 'admin',
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
+	`, pkType, pkType, pkType, pkType, pkType, pkType, pkType)
 
 	_, err := db.SQL.Exec(schema)
 	if err != nil {
@@ -171,6 +180,8 @@ func (db *DB) createTables() error {
 	// Safe migration for existing SQLite DBs
 	_, _ = db.SQL.Exec("ALTER TABLE media_applications ADD COLUMN uid TEXT DEFAULT ''")
 	_, _ = db.SQL.Exec("ALTER TABLE moderator_keys ADD COLUMN telegram TEXT DEFAULT ''")
+	_, _ = db.SQL.Exec("ALTER TABLE media_applications ADD COLUMN ip_address TEXT DEFAULT ''")
+	_, _ = db.SQL.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_user_bans_type_value ON user_bans (ban_type, ban_value)")
 
 	// Performance indexes
 	if db.Driver == "postgres" {
@@ -179,10 +190,12 @@ func (db *DB) createTables() error {
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_hwid_status ON hwid_reset_requests (status)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_discord_status ON discord_ban_requests (status)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_mod_keys_key ON moderator_keys (key)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_user_bans_type ON user_bans (ban_type)")
 	} else {
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_audit_logs_id_desc ON audit_logs (id DESC)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_media_app_status ON media_applications (status)")
 		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_mod_keys_key ON moderator_keys (key)")
+		db.SQL.Exec("CREATE INDEX IF NOT EXISTS idx_user_bans_type ON user_bans (ban_type)")
 	}
 
 	return nil
