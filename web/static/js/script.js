@@ -870,17 +870,33 @@ function setupEventListeners() {
     });
   }
 
-  // UID realtime: show error immediately if letters typed
+  // UID realtime: block letters, show error immediately
   const uidInput = document.getElementById("mediaUidInput");
   const uidErrorEl = document.getElementById("uidError");
-  if (uidInput && uidErrorEl) {
-    uidInput.addEventListener("input", () => {
-      const v = uidInput.value.trim();
-      if (v && /[a-zA-Z]/.test(v)) {
-        uidErrorEl.textContent = t("errUidLetters");
-        uidErrorEl.style.display = "block";
-      } else {
-        uidErrorEl.style.display = "none";
+  if (uidInput) {
+    uidInput.addEventListener("input", (e) => {
+      const raw = uidInput.value;
+      const cleaned = raw.replace(/[^0-9]/g, "");
+      if (raw !== cleaned) {
+        uidInput.value = cleaned;
+      }
+      if (uidErrorEl) {
+        if (cleaned.length > 0 && raw !== cleaned) {
+          uidErrorEl.textContent = t("errUidLetters");
+          uidErrorEl.style.display = "block";
+        } else {
+          uidErrorEl.style.display = "none";
+        }
+      }
+    });
+    uidInput.addEventListener("keypress", (e) => {
+      if (/[^0-9]/.test(e.key) && e.key.length === 1) {
+        e.preventDefault();
+        if (uidErrorEl) {
+          uidErrorEl.textContent = t("errUidLetters");
+          uidErrorEl.style.display = "block";
+          setTimeout(() => { uidErrorEl.style.display = "none"; }, 2000);
+        }
       }
     });
   }
