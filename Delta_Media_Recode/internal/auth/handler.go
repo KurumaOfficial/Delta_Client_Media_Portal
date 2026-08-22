@@ -16,14 +16,15 @@ type Notifier interface {
 }
 
 type Handler struct {
-	svc         *Service
-	db          *database.DB
-	notifier    Notifier
-	gpsRequired bool
+	svc            *Service
+	db             *database.DB
+	notifier       Notifier
+	gpsRequired    bool
+	devAutoApprove bool
 }
 
-func NewHandler(svc *Service, db *database.DB, gpsRequired bool) *Handler {
-	return &Handler{svc: svc, db: db, gpsRequired: gpsRequired}
+func NewHandler(svc *Service, db *database.DB, gpsRequired, devAutoApprove bool) *Handler {
+	return &Handler{svc: svc, db: db, gpsRequired: gpsRequired, devAutoApprove: devAutoApprove}
 }
 
 func (h *Handler) SetNotifier(n Notifier) { h.notifier = n }
@@ -56,6 +57,19 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		h.db.RecordAudit("LOGIN", "failed", fmt.Sprintf("Отключённый аккаунт #%d (%s)", account.ID, account.Nickname), ip, ua)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "error": "Аккаунт отключён. Обратитесь к администратору."})
 	}
+
+	// DEV-режим (локальная отладка без Telegram): подтверждаем попытку сразу.
+	if h.devAutoApprove {
+		attempt, err := h.svc.StartAttempt(account, ip, body.GPS, ua)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "Не удалось создать попытку входа"})
+		}
+		_ = h.svc.DecideAttempt(attempt.ID, true)
+		h.db.RecordAudit("LOGIN_2FA", "success",
+			fmt.Sprintf("DEV MODE: попытка #%d аккаунта #%d (%s) авто-подтверждена без Telegram", attempt.ID, account.ID, account.Nickname), ip, ua)
+		return c.JSON(fiber.Map{"success": true, "attempt_token": attempt.Token, "expires_in": 300})
+	}
+
 	if h.notifier == nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "Telegram недоступен"})
 	}

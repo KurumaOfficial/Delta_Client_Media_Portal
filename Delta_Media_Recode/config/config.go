@@ -23,6 +23,7 @@ type Config struct {
 	AdminBootstrapCode string
 	SessionTTL         time.Duration
 	GPSRequired        bool
+	DevAutoApprove2FA  bool // ТОЛЬКО локальная разработка: 2FA подтверждается без Telegram
 
 	TGBotToken     string
 	TGAdminContact string  // @username администратора для 2FA-сообщений
@@ -70,6 +71,7 @@ func Load() *Config {
 		AdminBootstrapCode: getEnv("ADMIN_BOOTSTRAP_CODE", "DELTA-ROOT-0001"),
 		SessionTTL:         time.Duration(ttlHours) * time.Hour,
 		GPSRequired:        getEnv("GPS_REQUIRED", "true") == "true",
+		DevAutoApprove2FA:  getEnv("DEV_AUTO_APPROVE_2FA", "false") == "true",
 		TGBotToken:         getEnv("TELEGRAM_BOT_TOKEN", ""),
 		TGAdminContact:     stripAt(getEnv("TELEGRAM_ADMIN_CONTACT", "notyxx")),
 		TGSecretary:        stripAt(getEnv("TELEGRAM_SECRETARY_CONTACT", "notyxs")),

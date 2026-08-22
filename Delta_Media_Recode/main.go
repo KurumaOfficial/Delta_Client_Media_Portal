@@ -45,7 +45,13 @@ func main() {
 	// Сервисы
 	banSvc := bans.NewService(db)
 	authSvc := auth.NewService(db, cfg.SessionTTL)
-	authHandler := auth.NewHandler(authSvc, db, cfg.GPSRequired)
+	if cfg.DevAutoApprove2FA && db.IsPostgres() {
+		log.Fatal("DEV_AUTO_APPROVE_2FA=true запрещён с postgres (прод-БД). Используй только с локальным sqlite.")
+	}
+	if cfg.DevAutoApprove2FA {
+		log.Println("⚠️  DEV MODE: 2FA подтверждается автоматически без Telegram (только для локальной разработки)")
+	}
+	authHandler := auth.NewHandler(authSvc, db, cfg.GPSRequired, cfg.DevAutoApprove2FA)
 
 	tgSvc := telegram.NewService(cfg, db, authSvc)
 	crypto := telegram.NewCryptoBot(cfg.CryptoBotToken, cfg.CryptoBotTestnet)

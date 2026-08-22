@@ -24,12 +24,16 @@ async function startLogin() {
   const btn = document.getElementById("loginSubmit");
   buttonState(btn, "", "Запрос геолокации…");
   let gps;
-  try {
-    gps = await getGPS();
-  } catch (e) {
-    buttonState(btn, "err", e.message, 3500);
-    errEl.textContent = e.message;
-    return;
+  if (SITE_CONFIG && SITE_CONFIG.gps_required === false) {
+    gps = ""; // сервер не требует GPS (локальный режим)
+  } else {
+    try {
+      gps = await getGPS();
+    } catch (e) {
+      buttonState(btn, "err", e.message, 3500);
+      errEl.textContent = e.message;
+      return;
+    }
   }
 
   buttonState(btn, "", "Отправляем запрос…");
