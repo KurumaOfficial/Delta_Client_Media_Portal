@@ -4,8 +4,9 @@
 const I18N = {
   ru: {
     navApply: "Медиа заявка", navCabinet: "Кабинет",
-    heroSub: "Заявка на вступление в медиа",
-    heroDesc: "Заполни заявку — куратор рассмотрит её и ответит в Telegram.",
+    heroPill: "delta media · приём заявок открыт",
+    heroTitle: ["Стань частью", "delta media"],
+    heroDesc: "Заполни заявку — куратор рассмотрит её и ответит в Telegram. Контроль, скорость и поддержка — всё уже внутри.",
     login: "Войти", logout: "Выйти",
     qUid: "UID *", qCriteria: "Соответствуете критериям? *",
     yes: "Да", no: "Нет", here: "здесь",
@@ -33,8 +34,9 @@ const I18N = {
   },
   en: {
     navApply: "Media application", navCabinet: "Dashboard",
-    heroSub: "Application to join media",
-    heroDesc: "Fill the form — the curator will review it and reply on Telegram.",
+    heroPill: "delta media · applications open",
+    heroTitle: ["Become part of", "delta media"],
+    heroDesc: "Fill the form — the curator will review it and reply on Telegram. Control, speed and support — all inside.",
     login: "Sign in", logout: "Sign out",
     qUid: "UID *", qCriteria: "Do you meet the criteria? *",
     yes: "Yes", no: "No", here: "here",

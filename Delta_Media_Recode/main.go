@@ -90,6 +90,7 @@ func main() {
 	// Статика и SPA
 	app.Static("/css", "./web/static/css")
 	app.Static("/js", "./web/static/js")
+	app.Static("/static", "./web/static")
 	app.Static("/uploads", cfg.UploadDir)
 	renderIndex := func(c *fiber.Ctx) error { return c.SendFile("./web/views/index.html") }
 	app.Get("/", renderIndex)

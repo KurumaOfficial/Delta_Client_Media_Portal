@@ -4,8 +4,9 @@
 (function bootstrap() {
   // язык из маршрута
   setLanguage(location.pathname.startsWith("/en") ? "en" : "ru");
+  applyHeroTitle();
   document.querySelectorAll(".lang-switch button").forEach((b) =>
-    b.addEventListener("click", () => setLanguage(b.dataset.lang)));
+    b.addEventListener("click", () => { setLanguage(b.dataset.lang); applyHeroTitle(); }));
 
   // вкладки
   document.querySelectorAll("#navTabs .nav-btn").forEach((btn) =>
@@ -47,3 +48,19 @@
     }
   });
 })();
+
+// Побуквенное появление hero-заголовка (в стиле deltaclient.xyz)
+function applyHeroTitle() {
+  const el = document.getElementById("heroTitle");
+  if (!el) return;
+  const [plain, highlight] = I18N[LANG].heroTitle;
+  let delay = 0;
+  const split = (text, wrap) => text.split("").map((ch) => {
+    const span = document.createElement("span");
+    span.className = "ltr";
+    span.style.animationDelay = (delay++ * 0.03) + "s";
+    span.innerHTML = ch === " " ? "&nbsp;" : ch;
+    return wrap ? `<span class="text-highlight">${span.outerHTML}</span>` : span.outerHTML;
+  }).join("");
+  el.innerHTML = split(plain + " ", false) + split(highlight, true);
+}
