@@ -134,8 +134,6 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
 }
 .nav-btn svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; transition: color 0.2s; }
 .nav-btn:hover { color: rgba(255, 255, 255, 0.65); background: rgba(255, 255, 255, 0.04); }
-.nav-btn.active { color: #fff; background: rgba(255, 255, 255, 0.04); }
-.nav-btn.active svg { color: var(--color-primary-400); }
 
 .header-right { display: flex; align-items: center; gap: 0.25rem; }
 
