@@ -4,6 +4,7 @@
 const I18N = {
   ru: {
     navApply: "Медиа заявка", navCabinet: "Кабинет",
+    navDocs: "Документация", navSupport: "Поддержка",
     heroPill: "delta media · приём заявок открыт",
     heroTitle: ["Стань частью", "delta media"],
     heroDesc: "Заполни заявку — куратор рассмотрит её и ответит в Telegram. Контроль, скорость и поддержка — всё уже внутри.",
@@ -34,6 +35,7 @@ const I18N = {
   },
   en: {
     navApply: "Media application", navCabinet: "Dashboard",
+    navDocs: "Documentation", navSupport: "Support",
     heroPill: "delta media · applications open",
     heroTitle: ["Become part of", "delta media"],
     heroDesc: "Fill the form — the curator will review it and reply on Telegram. Control, speed and support — all inside.",

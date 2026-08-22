@@ -10,7 +10,7 @@
 
   // переключение вкладок (общая функция — используется и кнопкой «Кабинет»)
   window.showView = async (name) => {
-    document.querySelectorAll("#navTabs .nav-btn").forEach((b) =>
+    document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((b) =>
       b.classList.toggle("active", b.dataset.view === name));
     document.querySelectorAll("main.view").forEach((v) => v.classList.remove("active"));
     const view = document.getElementById("view-" + name);
@@ -24,7 +24,7 @@
     if (name === "admin") await renderAdminCategory();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  document.querySelectorAll("#navTabs .nav-btn").forEach((btn) =>
+  document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => showView(btn.dataset.view)));
 
   // из админ-панели — обратно в кабинет

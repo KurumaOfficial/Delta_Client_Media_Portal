@@ -24,9 +24,8 @@ function cabinetTabsForRole(role) {
   if (role === "moderator") return [["hwid", "🔄 Сброс HWID"], ["discord", "🔨 Discord бан"]];
   if (role === "media") return [["payout", "💸 Заявка на выплату"], ["lot", "🏷️ Заявка на лот"], ["my", "📋 Мои заявки"]];
   if (role === "freemedia") return [["sub", "📺 Запрос подписки"], ["my", "📋 Мои заявки"]];
-  if (role === "admin") return [["adminpanel", "🛡️ Админ-панель"], ["hwid", "🔄 Сброс HWID"],
-    ["discord", "🔨 Discord бан"], ["payout", "💸 Выплата"], ["lot", "🏷️ Лот"],
-    ["sub", "📺 Подписка"], ["my", "📋 Мои заявки"]];
+  // у админа кабинет = сразу админ-панель, без чужих вкладок
+  if (role === "admin") return [["adminpanel", "🛡️ Админ-панель"]];
   return [];
 }
 
