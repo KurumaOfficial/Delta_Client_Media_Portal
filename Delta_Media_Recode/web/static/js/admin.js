@@ -5,6 +5,16 @@ let adminCat = "overview";
 let adminCache = {};     // данные таблиц для клиентских фильтров
 let logsPollTimer = null;
 
+// lucide-иконки (та же библиотека, что на deltaclient.xyz)
+const ICONS = {
+  payouts: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
+  accounts: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>',
+  bans: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>',
+  windows: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>',
+  logs: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>',
+  edit: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
+};
+
 function initAdminNav() {
   document.querySelectorAll(".side-btn").forEach((b) =>
     b.addEventListener("click", () => {
@@ -219,7 +229,7 @@ async function renderPayouts(keepWeek) {
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(true)}
     <div class="table-box">
-      <h3>💸 Медиа выплаты
+      <h3>${ICONS.payouts} Медиа выплаты
         <span class="badge ${week.is_current ? "approved" : "frozen"}">${week.is_current ? "приём открыт" : "архив"}</span>
         <div class="week-bar">
           <select id="weekSelect">${weeks}</select>
@@ -232,7 +242,7 @@ async function renderPayouts(keepWeek) {
       </table></div>
     </div>
     <div class="card summary-editor">
-      <h3>📝 Итоговый текст недели <span class="hint">(редактируется как черновик; сохраняется в БД по неделям)</span></h3>
+      <h3>${ICONS.edit} Итоговый текст недели <span class="hint">(редактируется как черновик; сохраняется в БД по неделям)</span></h3>
       <textarea id="weekSummary">${esc(week.summary_text || "")}</textarea>
       <div class="row-actions">
         <button class="btn-primary" id="saveSummary">Сохранить</button>
@@ -310,7 +320,7 @@ async function renderAccounts() {
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(false)}
     <div class="table-box">
-      <h3>🔑 Аккаунты и коды входа</h3>
+      <h3>${ICONS.accounts} Аккаунты и коды входа</h3>
       <div class="card" style="border:none;background:transparent;padding:0 0 14px">
         <form class="filter-bar" id="accForm">
           <input type="text" name="nickname" placeholder="Никнейм *" required minlength="2">
@@ -386,7 +396,7 @@ async function renderBans() {
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(false)}
     <div class="table-box">
-      <h3>⛔ Банлист — IP, ссылки YouTube/TikTok/Telegram, UID</h3>
+      <h3>${ICONS.bans} Банлист — IP, ссылки YouTube/TikTok/Telegram, UID</h3>
       <form class="filter-bar" id="banForm">
         <select name="btype">
           <option value="ip">IP (или CIDR, напр. 185.22.0.0/16)</option>
@@ -436,7 +446,7 @@ async function renderWindows() {
       <td>${new Date(w.last_incoming_at).toLocaleString("ru-RU")}</td><td>${state}</td></tr>`;
   }).join("");
   document.getElementById("adminBody").innerHTML = `
-    <div class="table-box"><h3>⏱ Telegram-окна ответов (24 ч после сообщения пользователя)
+    <div class="table-box"><h3>${ICONS.windows} Telegram-окна ответов (24 ч после сообщения пользователя)
       <span class="badge success">Live</span></h3>
       <p class="hint" style="padding:0 18px">Бот напоминает продлить окно за 5 минут до истечения. Список обновляется автоматически каждые 30 секунд.</p>
       <div class="table-scroll"><table>
@@ -488,7 +498,7 @@ function drawLogs(list) {
   if (box) { box.innerHTML = rows; return; }
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(false)}
-    <div class="table-box"><h3>🧾 Журнал событий <span class="badge success">Live · 3с</span></h3>
+    <div class="table-box"><h3>${ICONS.logs} Журнал событий <span class="badge success">Live · 3с</span></h3>
       <div class="table-scroll"><table>
         <thead><tr><th>ID</th><th>Время</th><th>Событие</th><th>Статус</th><th>Детали</th><th>IP</th></tr></thead>
         <tbody id="logsBox">${rows}</tbody>
@@ -500,11 +510,11 @@ function drawLogs(list) {
 // ═══ Категория «Тексты» (пасты и шаблоны) ═══
 
 const SETTING_META = [
-  ["payout_paste_template", "📋 Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер сопоставляет строки «Префикс: значение»."],
-  ["payout_usdt_text", "💸 Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} {amount} {nickname} {tx}"],
-  ["payout_funpay_text", "🛒 Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} {lot_url} {nickname}"],
-  ["payout_reject_text", "❌ Текст при отклонении выплаты", "Плейсхолдеры: {reason} {id} {nickname}"],
-  ["week_summary_template", "📊 Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}"],
+  ["payout_paste_template", "Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер сопоставляет строки «Префикс: значение»."],
+  ["payout_usdt_text", "Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} {amount} {nickname} {tx}"],
+  ["payout_funpay_text", "Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} {lot_url} {nickname}"],
+  ["payout_reject_text", "Текст при отклонении выплаты", "Плейсхолдеры: {reason} {id} {nickname}"],
+  ["week_summary_template", "Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}"],
 ];
 
 async function renderSettings() {

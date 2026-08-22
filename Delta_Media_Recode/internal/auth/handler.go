@@ -128,13 +128,13 @@ func (h *Handler) AttemptStatus(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"success": false, "error": "Не удалось создать сессию"})
 	}
+	// Сессионная cookie (без MaxAge/Expires): закрыл браузер — вышел из аккаунта.
 	c.Cookie(&fiber.Cookie{
 		Name:     CookieName,
 		Value:    raw,
 		HTTPOnly: true,
 		SameSite: "Lax",
 		Path:     "/",
-		MaxAge:   int(h.svc.session.Seconds()),
 	})
 	h.db.RecordAudit("LOGIN", "success",
 		fmt.Sprintf("Аккаунт #%d (%s, %s) вошёл; IP %s GPS %s", account.ID, account.Nickname, account.Role, attempt.IP, attempt.GPS),

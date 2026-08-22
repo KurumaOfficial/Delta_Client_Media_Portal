@@ -55,12 +55,13 @@ function applyHeroTitle() {
   if (!el) return;
   const [plain, highlight] = I18N[LANG].heroTitle;
   let delay = 0;
-  const split = (text, wrap) => text.split("").map((ch) => {
+  const split = (text) => text.split("").map((ch) => {
     const span = document.createElement("span");
     span.className = "ltr";
     span.style.animationDelay = (delay++ * 0.03) + "s";
     span.innerHTML = ch === " " ? "&nbsp;" : ch;
-    return wrap ? `<span class="text-highlight">${span.outerHTML}</span>` : span.outerHTML;
+    return span.outerHTML;
   }).join("");
-  el.innerHTML = split(plain + " ", false) + split(highlight, true);
+  // подсвеченное слово — один спан-обёртка со всеми буквами
+  el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
 }

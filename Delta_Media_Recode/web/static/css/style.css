@@ -98,7 +98,7 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   align-items: center;
   gap: 0.25rem;
   border-radius: 9999px;
-  border: 1px solid var(--glass-border);
+  border: none;
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(60px) saturate(150%);
   -webkit-backdrop-filter: blur(60px) saturate(150%);
@@ -122,7 +122,7 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
 
 .nav { display: flex; align-items: center; gap: 0.125rem; }
 .nav-btn {
-  display: inline-flex; align-items: center; gap: 0.375rem;
+  display: inline-flex; align-items: center; gap: 0.45rem;
   padding: 0.375rem 1rem;
   border-radius: 9999px;
   font-family: var(--font-display);
@@ -131,8 +131,10 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   white-space: nowrap;
   transition: all 0.2s;
 }
+.nav-btn svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; transition: color 0.2s; }
 .nav-btn:hover { color: rgba(255, 255, 255, 0.65); background: rgba(255, 255, 255, 0.04); }
 .nav-btn.active { color: #fff; background: rgba(255, 255, 255, 0.04); }
+.nav-btn.active svg { color: var(--color-primary-400); }
 
 .header-right { display: flex; align-items: center; gap: 0.25rem; }
 
@@ -236,17 +238,6 @@ main.view.active { display: block; }
 }
 @media (min-width: 640px) { .hero h1 { font-size: 3.5rem; line-height: 1.1; } }
 .hero h1 .ltr { display: inline-block; animation: appearanceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
-/* градиентный блеск — на каждой букве отдельно (clip на анимированном
-   контейнере в Chrome теряет глифы детей → текст становится невидимым) */
-.hero h1 .text-highlight .ltr {
-  background: linear-gradient(90deg, var(--color-primary-500), #c7d2ff 50%, var(--color-primary-500));
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: appearanceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both,
-    gradientShift 3s ease 1s infinite;
-}
 .hero-sub { font-family: var(--font-display); color: var(--color-primary-400); font-weight: 600; margin-top: 6px; }
 #view-cabinet .hero h1, #view-admin .hero h1 { font-size: 2.25rem; line-height: 1.25; }
 @keyframes appearanceIn {
@@ -658,6 +649,7 @@ textarea { min-height: 110px; resize: vertical; }
   backdrop-filter: blur(24px) saturate(160%);
 }
 .side-btn {
+  display: flex; align-items: center; gap: 0.6rem;
   border: none; background: transparent;
   color: rgba(255, 255, 255, 0.5);
   text-align: left;
@@ -669,8 +661,14 @@ textarea { min-height: 110px; resize: vertical; }
   transition: all 0.2s;
   white-space: nowrap;
 }
+.side-btn svg { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.75; }
 .side-btn:hover { background: rgba(255, 255, 255, 0.05); color: #fff; }
 .side-btn.active { background: rgba(var(--primary-rgb), 0.15); color: var(--color-primary-300); font-weight: 600; }
+.side-btn.active svg { color: var(--color-primary-400); opacity: 1; }
+
+/* иконки в заголовках админки */
+.h-ico { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.8; }
+h3 .h-ico { color: var(--color-primary-400); }
 
 .admin-content { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
 

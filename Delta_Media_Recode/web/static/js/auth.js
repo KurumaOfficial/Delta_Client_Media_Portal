@@ -139,6 +139,10 @@ function initAuthUI() {
     await POST("/api/logout");
     location.reload();
   });
+  document.getElementById("cabinetLogout").addEventListener("click", async () => {
+    await POST("/api/logout");
+    location.reload();
+  });
   // «Нет аккаунта? Подача заявки» → закрыть модалку и открыть публичную форму
   document.getElementById("toApplyLink").addEventListener("click", () => {
     closeModal("loginModal");

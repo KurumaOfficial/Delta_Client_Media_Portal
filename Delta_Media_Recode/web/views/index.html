@@ -35,12 +35,21 @@
       <path class="logo-stroke ls-2" pathLength="1" d="M14.89 26.3H19.33C24.09 26.08 29.89 22.95 31.54 16.67C31.84 15.54 32 14.31 32 12.98C32 12.84 32 12.7 31.99 12.57C31.83 8.7 29.37 4.92 26.27 2.67C24.46 1.37 22.43 0.57 20.51 0.57H0L14.89 26.3ZM13.71 17.03L18.94 7.89H14.76L11.62 13.24L6.14 4.1H19.72C22.8 4.1 27.37 6.88 28.21 11.67C28.3 12.17 28.34 12.7 28.34 13.24C28.34 17.94 24.29 22.64 19.72 22.64H16.85L13.71 17.03Z" stroke="url(#logo-grad-h)" stroke-linejoin="round" stroke-width="0.8"/>
       <path class="logo-fill lf-2" pathLength="1" fill-rule="evenodd" d="M14.89 26.3H19.33C24.09 26.08 29.89 22.95 31.54 16.67C31.84 15.54 32 14.31 32 12.98C32 12.84 32 12.7 31.99 12.57C31.83 8.7 29.37 4.92 26.27 2.67C24.46 1.37 22.43 0.57 20.51 0.57H0L14.89 26.3ZM13.71 17.03L18.94 7.89H14.76L11.62 13.24L6.14 4.1H19.72C22.8 4.1 27.37 6.88 28.21 11.67C28.3 12.17 28.34 12.7 28.34 13.24C28.34 17.94 24.29 22.64 19.72 22.64H16.85L13.71 17.03Z" fill="url(#logo-grad-h)"/>
     </svg>
-    <span class="brand-title">delta</span>
+    <span class="brand-title">delta media</span>
   </div>
   <nav class="nav" id="navTabs">
-    <button class="nav-btn active" data-view="public" data-i18n="navApply">Медиа заявка</button>
-    <button class="nav-btn hidden" data-view="cabinet" data-i18n="navCabinet">Кабинет</button>
-    <button class="nav-btn hidden" data-view="admin">Админ-панель</button>
+    <button class="nav-btn active" data-view="public">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>
+      <span data-i18n="navApply">Медиа заявка</span>
+    </button>
+    <button class="nav-btn hidden" data-view="cabinet">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+      <span data-i18n="navCabinet">Кабинет</span>
+    </button>
+    <button class="nav-btn hidden" data-view="admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      <span>Админ-панель</span>
+    </button>
   </nav>
   <div class="header-right">
     <div class="lang-switch"><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>
@@ -167,7 +176,14 @@
 
 <!-- ═══ Кабинет ═══ -->
 <main class="view" id="view-cabinet">
-  <section class="hero"><h1 id="cabinetTitle">Кабинет</h1><p class="hero-sub" id="cabinetSub"></p></section>
+  <section class="hero">
+    <h1 id="cabinetTitle">Кабинет</h1>
+    <p class="hero-sub" id="cabinetSub"></p>
+    <button class="btn-ghost" id="cabinetLogout" style="margin-top:1rem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+      Выйти из аккаунта
+    </button>
+  </section>
   <div class="cabinet-tabs" id="cabinetTabs"></div>
   <div id="cabinetBody"></div>
 </main>
@@ -177,16 +193,16 @@
   <section class="hero"><h1>Админ-панель</h1><p class="hero-sub">Управление порталом delta media</p></section>
   <div class="admin-layout">
     <aside class="admin-side" id="adminSide">
-      <button class="side-btn active" data-cat="overview">📊 Обзор</button>
-      <button class="side-btn" data-cat="media">📥 Медиа заявки</button>
-      <button class="side-btn" data-cat="hwid">🔄 HWID запросы</button>
-      <button class="side-btn" data-cat="discord">🔨 Discord баны</button>
-      <button class="side-btn" data-cat="payouts">💸 Медиа выплаты</button>
-      <button class="side-btn" data-cat="accounts">🔑 Аккаунты</button>
-      <button class="side-btn" data-cat="bans">⛔ Банлист</button>
-      <button class="side-btn" data-cat="windows">⏱ TG-окна</button>
-      <button class="side-btn" data-cat="logs">🧾 Журнал</button>
-      <button class="side-btn" data-cat="settings">⚙️ Тексты</button>
+      <button class="side-btn active" data-cat="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>Обзор</button>
+      <button class="side-btn" data-cat="media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>Медиа заявки</button>
+      <button class="side-btn" data-cat="hwid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>HWID запросы</button>
+      <button class="side-btn" data-cat="discord"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/></svg>Discord баны</button>
+      <button class="side-btn" data-cat="payouts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>Медиа выплаты</button>
+      <button class="side-btn" data-cat="accounts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>Аккаунты</button>
+      <button class="side-btn" data-cat="bans"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>Банлист</button>
+      <button class="side-btn" data-cat="windows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>TG-окна</button>
+      <button class="side-btn" data-cat="logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>Журнал</button>
+      <button class="side-btn" data-cat="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Тексты</button>
     </aside>
     <section class="admin-content" id="adminBody"></section>
   </div>
