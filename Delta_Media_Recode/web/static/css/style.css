@@ -103,7 +103,7 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(60px) saturate(150%);
   -webkit-backdrop-filter: blur(60px) saturate(150%);
-  padding: 0.4rem 0.5rem;
+  padding: 0.5rem 0.5rem; /* py-2 px-2.5 как в оригинале: высота пилюли 48px */
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   max-width: calc(100vw - 1rem);
   animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
