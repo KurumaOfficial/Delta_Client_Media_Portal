@@ -165,6 +165,14 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
+// Ping — heartbeat от открытой страницы (поддерживает сессию живой).
+func (h *Handler) Ping(c *fiber.Ctx) error {
+	if _, ok := AccountOf(c); !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false})
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
 func maskCode(code string) string {
 	runes := []rune(code)
 	if len(runes) <= 4 {

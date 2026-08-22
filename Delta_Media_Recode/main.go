@@ -104,6 +104,7 @@ func main() {
 	api.Get("/auth/attempt/:token", authHandler.AttemptStatus)
 	api.Get("/me", authHandler.Me)
 	api.Post("/logout", authHandler.Logout)
+	api.Post("/session/ping", authHandler.Ping)
 
 	// ── Публичное ──
 	api.Get("/health", publicH.Health)

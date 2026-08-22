@@ -54,28 +54,43 @@ body {
   position: relative;
 }
 
-/* ═══ Фон: фото + kenBurns + светлые слои (как визуально на deltaclient) ═══ */
+/* ═══ Фон 1:1 с deltaclient.xyz (значения сняты с живого сайта) ═══
+   hero: landing_1.jpg (kenBurns, center 40%) + 6-стоповый градиент
+   + верхний фейд; ниже: landing_3.jpg с opacity 0.15 + нижний фейд */
 .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .bg-kenburns {
   position: absolute; inset: 0;
   background: url("/static/landing.jpg") center 40% / cover no-repeat;
-  filter: brightness(1.06) contrast(1.03);
   transform-origin: center;
   animation: kenBurns 25s ease-out both;
 }
 @keyframes kenBurns { from { transform: scale(1); } to { transform: scale(1.05); } }
 .bg-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(rgba(17, 18, 22, 0.45) 0%, rgba(17, 18, 22, 0.5) 35%,
-    rgba(17, 18, 22, 0.78) 75%, rgba(17, 18, 22, 0.94) 100%);
+  background: linear-gradient(rgba(17, 18, 22, 0.56) 0%, rgba(17, 18, 22, 0.68) 15%,
+    rgba(17, 18, 22, 0.8) 35%, rgba(17, 18, 22, 0.88) 55%, rgba(17, 18, 22, 0.95) 80%,
+    rgb(17, 18, 22) 100%);
+}
+.bg-lower {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 65vh;
+  background: url("/static/landing3.jpg") center / cover no-repeat;
+  opacity: 0.15;
+}
+.bg-fade-top {
+  position: absolute; top: 0; left: 0; right: 0; height: 12rem;
+  background: linear-gradient(rgb(17, 18, 22) 0%, rgba(17, 18, 22, 0.64) 45%, rgba(17, 18, 22, 0) 100%);
 }
 .bg-fade-bottom {
-  position: absolute; right: 0; bottom: 0; left: 0; height: 12rem;
-  background: linear-gradient(to top, rgba(17, 18, 22, 0.85) 0%, rgba(17, 18, 22, 0.4) 45%, rgba(17, 18, 22, 0) 100%);
+  position: absolute; right: 0; bottom: 0; left: 0; height: 10rem;
+  background: linear-gradient(to top, rgb(17, 18, 22) 0%, rgba(17, 18, 22, 0.76) 42%, rgba(17, 18, 22, 0) 100%);
+}
+@media (min-width: 640px) {
+  .bg-fade-top { height: 16rem; }
+  .bg-fade-bottom { height: 14rem; }
 }
 
 a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: transparent; cursor: pointer; }
+button { font: inherit; color: inherit; background: transparent; border: none; cursor: pointer; }
 input, textarea, select { font: inherit; color: inherit; }
 button, a { outline: none; }
 select, option { background-color: var(--glass-bg-solid) !important; color: #fff !important; }

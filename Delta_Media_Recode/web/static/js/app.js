@@ -8,23 +8,24 @@
   document.querySelectorAll(".lang-switch button").forEach((b) =>
     b.addEventListener("click", () => { setLanguage(b.dataset.lang); applyHeroTitle(); }));
 
-  // вкладки
+  // переключение вкладок (общая функция — используется и кнопкой «Кабинет»)
+  window.showView = async (name) => {
+    document.querySelectorAll("#navTabs .nav-btn").forEach((b) =>
+      b.classList.toggle("active", b.dataset.view === name));
+    document.querySelectorAll("main.view").forEach((v) => v.classList.remove("active"));
+    const view = document.getElementById("view-" + name);
+    view.classList.add("active");
+    // перезапуск анимации
+    view.style.animation = "none";
+    void view.offsetWidth;
+    view.style.animation = "";
+    redrawHeaderLogo();
+    if (name === "cabinet") await loadCabinet();
+    if (name === "admin") await renderAdminCategory();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   document.querySelectorAll("#navTabs .nav-btn").forEach((btn) =>
-    btn.addEventListener("click", async () => {
-      document.querySelectorAll("#navTabs .nav-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll("main.view").forEach((v) => v.classList.remove("active"));
-      const view = document.getElementById("view-" + btn.dataset.view);
-      view.classList.add("active");
-      // перезапуск анимации
-      view.style.animation = "none";
-      void view.offsetWidth;
-      view.style.animation = "";
-      redrawHeaderLogo();
-      if (btn.dataset.view === "cabinet") await loadCabinet();
-      if (btn.dataset.view === "admin") await renderAdminCategory();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }));
+    btn.addEventListener("click", () => showView(btn.dataset.view)));
 
   initAuthUI();
   initPublicForm();
@@ -41,11 +42,12 @@
     }
   });
 
-  // сессия: показываем кабинет/админку тем, у кого есть права
+  // сессия: после входа сразу открываем кабинет (админа — админку)
   loadSession().then(() => {
-    if (CURRENT_ACCOUNT && CURRENT_ACCOUNT.role !== "admin") {
-      // сразу открываем кабинет после входа
-      document.querySelector('[data-view="cabinet"]').click();
+    if (CURRENT_ACCOUNT) showView(CURRENT_ACCOUNT.role === "admin" ? "admin" : "cabinet");
+    // heartbeat: пока страница открыта — сессия жива, закрыл — истечёт
+    if (CURRENT_ACCOUNT) {
+      setInterval(() => { POST("/api/session/ping").catch(() => {}); }, 25000);
     }
   });
 })();

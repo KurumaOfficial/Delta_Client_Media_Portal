@@ -107,16 +107,12 @@ async function loadSession() {
 const ROLE_TITLES = { admin: "Администратор", moderator: "Модератор", media: "Медиа", freemedia: "Фримедиа" };
 
 function applySessionUI() {
-  const cabinetTab = document.querySelector('[data-view="cabinet"]');
   const adminTab = document.querySelector('[data-view="admin"]');
   if (CURRENT_ACCOUNT) {
-    // кнопка «Кабинет» справа остаётся всегда — она ведёт в кабинет/админку
-    cabinetTab.classList.remove("hidden");
     adminTab.classList.toggle("hidden", CURRENT_ACCOUNT.role !== "admin");
     document.getElementById("cabinetSub").textContent =
       CURRENT_ACCOUNT.nickname + " · " + (ROLE_TITLES[CURRENT_ACCOUNT.role] || CURRENT_ACCOUNT.role);
   } else {
-    cabinetTab.classList.add("hidden");
     adminTab.classList.add("hidden");
   }
 }
@@ -125,8 +121,7 @@ function initAuthUI() {
   // «Кабинет» как на deltaclient: без сессии — окно входа, с сессией — в кабинет/админку
   document.getElementById("cabinetBtn").addEventListener("click", () => {
     if (CURRENT_ACCOUNT) {
-      const target = CURRENT_ACCOUNT.role === "admin" ? "admin" : "cabinet";
-      document.querySelector('[data-view="' + target + '"]').click();
+      showView(CURRENT_ACCOUNT.role === "admin" ? "admin" : "cabinet");
     } else {
       resetLoginModal();
       openModal("loginModal");

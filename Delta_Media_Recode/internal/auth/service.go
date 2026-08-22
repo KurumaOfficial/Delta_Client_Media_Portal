@@ -229,23 +229,45 @@ func (s *Service) CreateSession(a models.Account, ip, gps, ua string) (string, e
 	return raw, nil
 }
 
-// Session возвращает валидную сессию по сырому токену.
+// idleTTL — сессия живёт, пока страница открыта (фронт шлёт heartbeat
+// каждые 25 с). Закрыл вкладку/браузер — через 90 с сессия истекает.
+const idleTTL = 90 * time.Second
+
+// Session возвращает валидную сессию по сырому токену; попутно
+// обновляет last_seen (не чаще раза в 15 с, чтобы не писать на каждый запрос).
 func (s *Service) Session(raw string) (models.Session, bool) {
 	if strings.TrimSpace(raw) == "" {
 		return models.Session{}, false
 	}
 	h := hashToken(raw)
+	now := time.Now()
 	var (
-		sess  models.Session
-		exp   time.Time
-		accID int64
+		sess     models.Session
+		exp      time.Time
+		created  time.Time
+		lastSeen sql.NullTime
+		accID    int64
 	)
 	err := s.db.QueryRow(
-		`SELECT s.token_hash, s.account_id, s.ip, s.gps, s.expires_at
+		`SELECT s.token_hash, s.account_id, s.ip, s.gps, s.expires_at, s.created_at, s.last_seen
 		 FROM v2_sessions s WHERE s.token_hash = ?`, h,
-	).Scan(&sess.TokenHash, &accID, &sess.IP, &sess.GPS, &exp)
-	if err != nil || time.Now().After(exp) {
+	).Scan(&sess.TokenHash, &accID, &sess.IP, &sess.GPS, &exp, &created, &lastSeen)
+	if err != nil || now.After(exp) {
+		if err == nil {
+			_, _ = s.db.Exec(`DELETE FROM v2_sessions WHERE token_hash = ?`, h)
+		}
 		return models.Session{}, false
+	}
+	seen := created
+	if lastSeen.Valid {
+		seen = lastSeen.Time
+	}
+	if now.Sub(seen) > idleTTL {
+		_, _ = s.db.Exec(`DELETE FROM v2_sessions WHERE token_hash = ?`, h)
+		return models.Session{}, false
+	}
+	if now.Sub(seen) > 15*time.Second {
+		_, _ = s.db.Exec(`UPDATE v2_sessions SET last_seen = ? WHERE token_hash = ?`, now, h)
 	}
 	acc, err := s.AccountByID(accID)
 	if err != nil || acc.IsActive != 1 {

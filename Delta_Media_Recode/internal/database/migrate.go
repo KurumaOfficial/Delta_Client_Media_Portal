@@ -34,6 +34,7 @@ func (db *DB) Migrate() error {
 			user_agent TEXT NOT NULL DEFAULT '',
 			gps TEXT NOT NULL DEFAULT '',
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			expires_at TIMESTAMP NOT NULL
 		)`, pk),
 
@@ -174,6 +175,12 @@ func (db *DB) Migrate() error {
 			return fmt.Errorf("create table: %w\nQuery: %s", err, s)
 		}
 	}
+
+	// мягкая миграция существующих баз (колонка могла отсутствовать).
+	// SQLite не разрешает ADD COLUMN с DEFAULT CURRENT_TIMESTAMP — добавляем
+	// без дефолта и заполняем значения отдельным UPDATE.
+	_, _ = db.SQL.Exec(`ALTER TABLE v2_sessions ADD COLUMN last_seen TIMESTAMP`)
+	_, _ = db.SQL.Exec(`UPDATE v2_sessions SET last_seen = COALESCE(last_seen, CURRENT_TIMESTAMP)`)
 
 	if err := db.seedDefaults(); err != nil {
 		return err
