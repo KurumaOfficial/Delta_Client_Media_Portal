@@ -54,33 +54,34 @@ body {
   position: relative;
 }
 
-/* ═══ Фон 1:1 с deltaclient: фото + kenBurns + слои градиентов ═══ */
+/* ═══ Фон: фото + kenBurns + светлые слои (как визуально на deltaclient) ═══ */
 .bg-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
 .bg-kenburns {
   position: absolute; inset: 0;
   background: url("/static/landing.jpg") center 40% / cover no-repeat;
+  filter: brightness(1.06) contrast(1.03);
   transform-origin: center;
   animation: kenBurns 25s ease-out both;
 }
 @keyframes kenBurns { from { transform: scale(1); } to { transform: scale(1.05); } }
 .bg-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(rgba(17, 18, 22, 0.56) 0%, rgba(17, 18, 22, 0.68) 15%,
-    rgba(17, 18, 22, 0.8) 35%, rgba(17, 18, 22, 0.88) 55%, rgba(17, 18, 22, 0.95) 80%,
-    rgb(17, 18, 22) 100%);
+  background: linear-gradient(rgba(17, 18, 22, 0.45) 0%, rgba(17, 18, 22, 0.5) 35%,
+    rgba(17, 18, 22, 0.78) 75%, rgba(17, 18, 22, 0.94) 100%);
 }
 .bg-fade-top {
-  position: absolute; top: 0; left: 0; right: 0; height: 16rem;
-  background: linear-gradient(rgb(17, 18, 22) 0%, rgba(17, 18, 22, 0.64) 45%, rgba(17, 18, 22, 0) 100%);
+  position: absolute; top: 0; left: 0; right: 0; height: 13rem;
+  background: linear-gradient(rgba(17, 18, 22, 0.72) 0%, rgba(17, 18, 22, 0.35) 45%, rgba(17, 18, 22, 0) 100%);
 }
 .bg-fade-bottom {
-  position: absolute; right: 0; bottom: 0; left: 0; height: 14rem;
-  background: linear-gradient(to top, rgb(17, 18, 22) 0%, rgba(17, 18, 22, 0.76) 42%, rgba(17, 18, 22, 0) 100%);
+  position: absolute; right: 0; bottom: 0; left: 0; height: 12rem;
+  background: linear-gradient(to top, rgba(17, 18, 22, 0.85) 0%, rgba(17, 18, 22, 0.4) 45%, rgba(17, 18, 22, 0) 100%);
 }
 
 a { color: inherit; text-decoration: none; }
 button { font: inherit; color: inherit; background: transparent; cursor: pointer; }
 input, textarea, select { font: inherit; color: inherit; }
+button, a { outline: none; }
 select, option { background-color: var(--glass-bg-solid) !important; color: #fff !important; }
 
 .hidden { display: none !important; }
@@ -95,24 +96,25 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   z-index: 50;
   display: flex;
   align-items: center;
+  gap: 0.25rem;
   border-radius: 9999px;
   border: 1px solid var(--glass-border);
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(60px) saturate(150%);
   -webkit-backdrop-filter: blur(60px) saturate(150%);
-  padding: 0.5rem 0.625rem;
+  padding: 0.4rem 0.5rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
   max-width: calc(100vw - 1rem);
   animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @keyframes fadeInDown { from { opacity: 0; transform: translate(-50%, -16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-.brand { display: flex; align-items: center; gap: 0.625rem; padding: 0 1rem 0 0.75rem; white-space: nowrap; }
+.brand { display: flex; align-items: center; gap: 0.5rem; padding: 0 0.75rem 0 0.5rem; white-space: nowrap; }
 .brand:hover .brand-logo { transform: scale(1.05); }
-.brand-logo { width: 26px; height: 22px; display: block; transition: transform 0.2s ease; }
+.brand-logo { width: 24px; height: 20px; display: block; transition: transform 0.2s ease; }
 .brand-title {
   font-family: var(--font-display);
-  font-weight: 700; font-size: 0.95rem;
+  font-weight: 700; font-size: 0.9rem;
   letter-spacing: -0.025em;
   color: rgba(255, 255, 255, 0.9);
   white-space: nowrap; text-transform: lowercase;
@@ -167,21 +169,23 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
 }
 
 .user-chip {
-  display: flex; align-items: center; gap: 0.5rem;
+  display: inline-flex; align-items: center; gap: 0.4rem;
   margin-left: 0.25rem;
-  padding: 0.3rem 0.85rem;
+  padding: 0.375rem 0.9rem;
   border-radius: 0.75rem;
   background: var(--color-primary-500);
   color: #fff;
+  transition: all 0.2s;
 }
+.user-chip:hover { background: var(--color-primary-400); box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.25); }
 .user-name { font-family: var(--font-display); font-weight: 600; font-size: 13px; }
 .user-role {
   font-family: var(--font-mono);
-  font-size: 0.62rem; font-weight: 500;
-  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.6rem; font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase; letter-spacing: 0.04em;
 }
-.user-logout { border: none; background: transparent; color: rgba(255, 255, 255, 0.6); font-size: 1rem; line-height: 1; cursor: pointer; }
+.user-logout { border: none; background: transparent; color: rgba(255, 255, 255, 0.55); font-size: 0.95rem; line-height: 1; cursor: pointer; }
 .user-logout:hover { color: #fff; }
 
 /* ═══ Каркас контента ═══ */
@@ -232,6 +236,17 @@ main.view.active { display: block; }
 }
 @media (min-width: 640px) { .hero h1 { font-size: 3.5rem; line-height: 1.1; } }
 .hero h1 .ltr { display: inline-block; animation: appearanceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* градиентный блеск — на каждой букве отдельно (clip на анимированном
+   контейнере в Chrome теряет глифы детей → текст становится невидимым) */
+.hero h1 .text-highlight .ltr {
+  background: linear-gradient(90deg, var(--color-primary-500), #c7d2ff 50%, var(--color-primary-500));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: appearanceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both,
+    gradientShift 3s ease 1s infinite;
+}
 .hero-sub { font-family: var(--font-display); color: var(--color-primary-400); font-weight: 600; margin-top: 6px; }
 #view-cabinet .hero h1, #view-admin .hero h1 { font-size: 2.25rem; line-height: 1.25; }
 @keyframes appearanceIn {
@@ -840,14 +855,6 @@ td a { color: var(--color-primary-400); }
 }
 
 @keyframes gradientShift { 0% { background-position: 0; } 50% { background-position: 100%; } to { background-position: 0; } }
-.text-shine {
-  background: linear-gradient(90deg, var(--color-primary-500), #c7d2ff 50%, var(--color-primary-500));
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: gradientShift 3s ease infinite;
-}
 
 @keyframes playPulse { 0% { opacity: 0.4; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
 .play-pulse { position: relative; }
