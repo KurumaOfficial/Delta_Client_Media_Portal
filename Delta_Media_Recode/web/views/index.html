@@ -13,12 +13,10 @@
 </head>
 <body>
 
-<!-- Фоновая сцена 1:1 с deltaclient: рендер + kenBurns + слои градиентов -->
+<!-- Фоновая сцена: рендер + kenBurns + градиенты (без затемнения сверху) -->
 <div class="bg-scene" aria-hidden="true">
   <div class="bg-kenburns"></div>
   <div class="bg-overlay"></div>
-  <div class="bg-lower"></div>
-  <div class="bg-fade-top"></div>
   <div class="bg-fade-bottom"></div>
 </div>
 
@@ -206,7 +204,7 @@
 <!-- ═══ Модалка входа (анимации deltaclient: authBackdropIn + authFadeUp) ═══ -->
 <div class="modal-overlay auth-backdrop" id="loginModal">
   <div class="modal-box">
-    <button class="modal-close" data-close>×</button>
+    <button class="modal-close" data-close aria-label="Закрыть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     <div id="loginStep1">
       <svg class="modal-logo" viewBox="0 0 32 27" fill="none" aria-hidden="true">
         <defs>
@@ -243,7 +241,7 @@
 <!-- ═══ Критерии ═══ -->
 <div class="modal-overlay" id="criteriaModal">
   <div class="modal-box">
-    <button class="modal-close" data-close>×</button>
+    <button class="modal-close" data-close aria-label="Закрыть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     <h3 data-i18n="criteriaTitle">Критерии медиа</h3>
     <div class="crit-section"><h4 class="yt">YouTube</h4><ul><li data-i18n="yt1">От 50 подписчиков</li><li data-i18n="yt2">Стабильные 100+ просмотров на последних роликах</li><li data-i18n="yt3">Тематика — Minecraft (HVH)</li><li data-i18n="yt4">Качественный монтаж</li></ul></div>
     <div class="crit-section"><h4 class="tt">TikTok</h4><ul><li data-i18n="tt1">От 200 подписчиков</li><li data-i18n="tt2">Стабильные 600–700+ просмотров</li><li data-i18n="tt3">Тематика — Minecraft (HVH)</li><li data-i18n="tt4">Качественный монтаж</li></ul></div>
@@ -253,7 +251,7 @@
 <!-- ═══ Комментарий админа ═══ -->
 <div class="modal-overlay" id="commentModal">
   <div class="modal-box">
-    <button class="modal-close" data-close>×</button>
+    <button class="modal-close" data-close aria-label="Закрыть"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
     <h3 id="commentTitle"></h3>
     <p class="hint" id="commentHint">Примечание (для отклонения выплаты — причина обязательна):</p>
     <textarea id="commentText" rows="3" maxlength="500"></textarea>

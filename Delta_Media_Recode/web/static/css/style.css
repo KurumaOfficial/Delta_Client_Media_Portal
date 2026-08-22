@@ -71,21 +71,11 @@ body {
     rgba(17, 18, 22, 0.8) 35%, rgba(17, 18, 22, 0.88) 55%, rgba(17, 18, 22, 0.95) 80%,
     rgb(17, 18, 22) 100%);
 }
-.bg-lower {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 65vh;
-  background: url("/static/landing3.jpg") center / cover no-repeat;
-  opacity: 0.15;
-}
-.bg-fade-top {
-  position: absolute; top: 0; left: 0; right: 0; height: 12rem;
-  background: linear-gradient(rgb(17, 18, 22) 0%, rgba(17, 18, 22, 0.64) 45%, rgba(17, 18, 22, 0) 100%);
-}
 .bg-fade-bottom {
   position: absolute; right: 0; bottom: 0; left: 0; height: 10rem;
   background: linear-gradient(to top, rgb(17, 18, 22) 0%, rgba(17, 18, 22, 0.76) 42%, rgba(17, 18, 22, 0) 100%);
 }
 @media (min-width: 640px) {
-  .bg-fade-top { height: 16rem; }
   .bg-fade-bottom { height: 14rem; }
 }
 
@@ -523,15 +513,17 @@ textarea { min-height: 110px; resize: vertical; }
 .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 0.9rem; }
 .modal-close {
   align-self: flex-end;
-  width: 32px; height: 32px;
+  width: 30px; height: 30px;
+  padding: 0;
   display: flex; align-items: center; justify-content: center;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 1.2rem; line-height: 1; cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
   transition: all 0.2s;
 }
-.modal-close:hover { color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.1); }
+.modal-close svg { display: block; }
+.modal-close:hover { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.12); }
 .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
 /* каскадное появление содержимого (auth-appear deltaclient) */
