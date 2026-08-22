@@ -27,9 +27,6 @@
   document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => showView(btn.dataset.view)));
 
-  // из админ-панели — обратно в кабинет
-  document.getElementById("backToCabinet").addEventListener("click", () => showView("cabinet"));
-
   initAuthUI();
   initPublicForm();
   initAdminNav();
