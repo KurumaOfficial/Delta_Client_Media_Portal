@@ -188,6 +188,10 @@ main.view {
   z-index: 10;
 }
 main.view.active { display: block; }
+
+/* админ-панель — на всю ширину экрана, а не в центральной колонке */
+#view-admin { max-width: none; padding-left: 1.5rem; padding-right: 1.5rem; }
+#view-admin .hero { margin-bottom: 2rem; }
 .tab-view-active { animation: tabSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 @keyframes tabSlideIn {
   from { opacity: 0; transform: translateY(14px); }
@@ -516,22 +520,35 @@ textarea { min-height: 110px; resize: vertical; }
 }
 .modal-box > * { position: relative; z-index: 1; }
 .modal-box > * { padding: 1.25rem 1.5rem; }
-.modal-box > :first-child { padding-bottom: 0.5rem; }
-.modal-box h3 { font-family: var(--font-title); font-size: 1.25rem; font-weight: 700; color: #fff; }
+.modal-box h3 { font-family: var(--font-title); font-size: 1.25rem; font-weight: 700; color: #fff; padding-right: 3.5rem; }
 .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 0.9rem; }
+
+/* крестик как в диалогах deltaclient: absolute top-4 right-4,
+   круглый white/5, плавно проявляется после приземления карточки */
 .modal-close {
-  align-self: flex-end;
-  width: 30px; height: 30px;
+  position: absolute;
+  top: 1rem; right: 1rem; z-index: 30;
+  width: 32px; height: 32px;
   padding: 0;
   display: flex; align-items: center; justify-content: center;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.2s, background-color 0.2s, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0;
+  animation: closeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
+}
+@keyframes closeIn {
+  from { opacity: 0; transform: scale(0.5) rotate(-90deg); }
+  to { opacity: 1; transform: scale(1) rotate(0deg); }
 }
 .modal-close svg { display: block; }
-.modal-close:hover { color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.12); }
+.modal-close:hover {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
 .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
 /* каскадное появление содержимого (auth-appear deltaclient) */
