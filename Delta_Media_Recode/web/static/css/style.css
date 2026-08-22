@@ -99,7 +99,7 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   align-items: center;
   gap: 0.25rem;
   border-radius: 9999px;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.08); /* border-white/8 из оригинала */
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(60px) saturate(150%);
   -webkit-backdrop-filter: blur(60px) saturate(150%);
