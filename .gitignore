@@ -1,21 +1,26 @@
-﻿# Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Local SQLite Database (Switched to Supabase)
+# Secrets & runtime state — never commit
+.env
 *.db
-*.db-shm
 *.db-wal
-delta.db*
-
-# Logs
-*.log
+*.db-shm
 app.log
+tg_session.json
 
-# OS & Editor
+# Old project reference copy (study only)
+.reference/
+
+# Uploads & media runtime dirs
+uploads/
+Delta_Media_Recode/uploads/
+Delta_Media_Recode/tgGIF/*
+!Delta_Media_Recode/tgGIF/.gitkeep
+
+# Binaries
+*.exe
+delta-portal.exe
+delta-media-recode.exe
+
+# OS / IDE
 .DS_Store
 Thumbs.db
 .idea/

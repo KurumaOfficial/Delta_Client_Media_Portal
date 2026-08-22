@@ -1,0 +1,324 @@
+package handlers
+
+import (
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
+
+	"dmr/config"
+	"dmr/internal/auth"
+	"dmr/internal/bans"
+	"dmr/internal/database"
+	"dmr/internal/middleware"
+	"dmr/internal/models"
+	"dmr/internal/payouts"
+	"dmr/internal/telegram"
+)
+
+// Admin — панель администратора. Все методы требуют роль admin (middleware).
+type Admin struct {
+	db     *database.DB
+	cfg    *config.Config
+	auth   *auth.Service
+	tg     *telegram.Service
+	bans   *bans.Service
+	pays   *payouts.Service
+	crypto *telegram.CryptoBot
+}
+
+func NewAdmin(db *database.DB, cfg *config.Config, authSvc *auth.Service, tg *telegram.Service,
+	banSvc *bans.Service, pays *payouts.Service, crypto *telegram.CryptoBot) *Admin {
+	return &Admin{db: db, cfg: cfg, auth: authSvc, tg: tg, bans: banSvc, pays: pays, crypto: crypto}
+}
+
+// ── Статистика ───────────────────────────────────────────────
+
+func (h *Admin) Stats(c *fiber.Ctx) error {
+	count := func(table, where string) int {
+		var n int
+		_ = h.db.QueryRow("SELECT COUNT(*) FROM " + table + " " + where).Scan(&n)
+		return n
+	}
+	week, _ := h.pays.CurrentWeek()
+	st := h.pays.Stats(week.ID)
+	return c.JSON(fiber.Map{"success": true, "stats": fiber.Map{
+		"media_pending":   count("v2_media_apps", "WHERE status = 'pending'"),
+		"hwid_pending":    count("v2_hwid_requests", "WHERE status = 'pending'"),
+		"discord_pending": count("v2_discord_bans", "WHERE status = 'pending'"),
+		"accounts_total":  count("v2_accounts", "WHERE is_active = 1"),
+		"payouts_pending": st.Pending,
+		"payouts_total":   st.Total,
+		"week_label":      week.Label,
+		"week_open":       h.pays.WindowOpen(),
+	}})
+}
+
+// ── Заявки: списки (новые внизу — ASC) ──────────────────────
+
+func (h *Admin) MediaApps(c *fiber.Ctx) error {
+	rows, err := h.db.SQL.Query(`
+		SELECT id, lang, uid, criteria_agreed, platform, channel_url, servers,
+		       videos_per_week, collaborations, why_join, exclusive, telegram,
+		       status, admin_comment, created_at, updated_at
+		FROM v2_media_apps ORDER BY id ASC`)
+	if err != nil {
+		return serverError(c, "Ошибка загрузки")
+	}
+	defer rows.Close()
+	list := []models.MediaApp{}
+	for rows.Next() {
+		var a models.MediaApp
+		var crit int
+		if rows.Scan(&a.ID, &a.Lang, &a.UID, &crit, &a.Platform, &a.ChannelURL, &a.Servers,
+			&a.VideosPerWeek, &a.Collaborations, &a.WhyJoin, &a.Exclusive, &a.Telegram,
+			&a.Status, &a.AdminComment, &a.CreatedAt, &a.UpdatedAt) == nil {
+			a.CriteriaAgreed = crit == 1
+			list = append(list, a)
+		}
+	}
+	return c.JSON(fiber.Map{"success": true, "data": list})
+}
+
+func (h *Admin) HWIDRequests(c *fiber.Ctx) error {
+	rows, err := h.db.SQL.Query(`
+		SELECT id, mod_nickname, uuid, proof_type, proof_file, proof_link, reason,
+		       status, admin_comment, created_at
+		FROM v2_hwid_requests ORDER BY id ASC`)
+	if err != nil {
+		return serverError(c, "Ошибка загрузки")
+	}
+	defer rows.Close()
+	list := []models.HWIDRequest{}
+	for rows.Next() {
+		var r models.HWIDRequest
+		if rows.Scan(&r.ID, &r.ModNickname, &r.UUID, &r.ProofType, &r.ProofFile, &r.ProofLink,
+			&r.Reason, &r.Status, &r.AdminComment, &r.CreatedAt) == nil {
+			list = append(list, r)
+		}
+	}
+	return c.JSON(fiber.Map{"success": true, "data": list})
+}
+
+func (h *Admin) DiscordBans(c *fiber.Ctx) error {
+	rows, err := h.db.SQL.Query(`
+		SELECT id, mod_nickname, offender_id, proof_type, proof_file, proof_link, reason,
+		       status, admin_comment, created_at
+		FROM v2_discord_bans ORDER BY id ASC`)
+	if err != nil {
+		return serverError(c, "Ошибка загрузки")
+	}
+	defer rows.Close()
+	list := []models.DiscordBan{}
+	for rows.Next() {
+		var r models.DiscordBan
+		if rows.Scan(&r.ID, &r.ModNickname, &r.OffenderID, &r.ProofType, &r.ProofFile, &r.ProofLink,
+			&r.Reason, &r.Status, &r.AdminComment, &r.CreatedAt) == nil {
+			list = append(list, r)
+		}
+	}
+	return c.JSON(fiber.Map{"success": true, "data": list})
+}
+
+// ── Решения по заявкам (HTTP-панель и Telegram-кнопки) ───────
+
+func (h *Admin) DecideMedia(c *fiber.Ctx) error {
+	var body models.StatusUpdate
+	if err := c.BodyParser(&body); err != nil {
+		return badRequest(c, "Некорректное решение")
+	}
+	approve := strings.EqualFold(body.Status, "approved")
+	id, _ := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err := h.decideMedia(id, approve, body.AdminComment, actorInfo(c)); err != nil {
+		return badRequest(c, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func (h *Admin) decideMedia(id int64, approve bool, comment, actor string) error {
+	var tgUsername, status string
+	err := h.db.QueryRow(`SELECT telegram, status FROM v2_media_apps WHERE id = ?`, id).Scan(&tgUsername, &status)
+	if err != nil {
+		return simpleErr("Заявка не найдена")
+	}
+	if status != "pending" {
+		return simpleErr("Заявка уже рассмотрена")
+	}
+	st := "rejected"
+	if approve {
+		st = "approved"
+	}
+	if _, err := h.db.Exec(`UPDATE v2_media_apps SET status = ?, admin_comment = ?, updated_at = ? WHERE id = ?`,
+		st, comment, time.Now(), id); err != nil {
+		return err
+	}
+	h.tg.SendVerdict(tgUsername, "media", id, approve, comment)
+	h.db.RecordAudit("STATUS_CHANGE", st, "Медиа-заявка #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
+	return nil
+}
+
+func (h *Admin) DecideHWID(c *fiber.Ctx) error {
+	var body models.StatusUpdate
+	if err := c.BodyParser(&body); err != nil {
+		return badRequest(c, "Некорректное решение")
+	}
+	approve := strings.EqualFold(body.Status, "approved")
+	id, _ := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err := h.decideHWID(id, approve, body.AdminComment, actorInfo(c)); err != nil {
+		return badRequest(c, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func (h *Admin) decideHWID(id int64, approve bool, comment, actor string) error {
+	var uuid, modNick, status string
+	err := h.db.QueryRow(`SELECT uuid, mod_nickname, status FROM v2_hwid_requests WHERE id = ?`, id).
+		Scan(&uuid, &modNick, &status)
+	if err != nil {
+		return simpleErr("Заявка не найдена")
+	}
+	if status != "pending" {
+		return simpleErr("Заявка уже рассмотрена")
+	}
+	st := "rejected"
+	if approve {
+		st = "approved"
+	}
+	if _, err := h.db.Exec(`UPDATE v2_hwid_requests SET status = ?, admin_comment = ? WHERE id = ?`, st, comment, id); err != nil {
+		return err
+	}
+	h.notifyAccountVerdict(modNick, "hwid", id, approve, comment)
+	h.db.RecordAudit("STATUS_CHANGE", st, "HWID #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
+	return nil
+}
+
+func (h *Admin) DecideDiscord(c *fiber.Ctx) error {
+	var body models.StatusUpdate
+	if err := c.BodyParser(&body); err != nil {
+		return badRequest(c, "Некорректное решение")
+	}
+	approve := strings.EqualFold(body.Status, "approved")
+	id, _ := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err := h.decideDiscord(id, approve, body.AdminComment, actorInfo(c)); err != nil {
+		return badRequest(c, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func (h *Admin) decideDiscord(id int64, approve bool, comment, actor string) error {
+	var offender, modNick, status string
+	err := h.db.QueryRow(`SELECT offender_id, mod_nickname, status FROM v2_discord_bans WHERE id = ?`, id).
+		Scan(&offender, &modNick, &status)
+	if err != nil {
+		return simpleErr("Заявка не найдена")
+	}
+	if status != "pending" {
+		return simpleErr("Заявка уже рассмотрена")
+	}
+	st := "rejected"
+	if approve {
+		st = "approved"
+	}
+	if _, err := h.db.Exec(`UPDATE v2_discord_bans SET status = ?, admin_comment = ? WHERE id = ?`, st, comment, id); err != nil {
+		return err
+	}
+	h.notifyAccountVerdict(modNick, "discord", id, approve, comment)
+	h.db.RecordAudit("STATUS_CHANGE", st, "Discord-бан #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
+	return nil
+}
+
+// notifyAccountVerdict шлёт вердикт модератору по нику его аккаунта.
+func (h *Admin) notifyAccountVerdict(nickname, kind string, id int64, approve bool, comment string) {
+	var telegram string
+	_ = h.db.QueryRow(`SELECT telegram FROM v2_accounts WHERE nickname = ? ORDER BY id ASC LIMIT 1`, nickname).Scan(&telegram)
+	if telegram == "" {
+		return
+	}
+	h.tg.SendVerdict(telegram, kind, id, approve, comment)
+}
+
+// DecideFromTelegram — вход для inline-кнопок бота.
+func (h *Admin) DecideFromTelegram(kind string, id int64, approve bool) error {
+	switch kind {
+	case "media":
+		return h.decideMedia(id, approve, "", "telegram")
+	case "hwid":
+		return h.decideHWID(id, approve, "", "telegram")
+	case "discord":
+		return h.decideDiscord(id, approve, "", "telegram")
+	case "pay":
+		return h.DecidePayoutInternal(id, approve, "", "telegram")
+	}
+	return simpleErr("Неизвестный тип заявки")
+}
+
+// ── Журнал ───────────────────────────────────────────────────
+
+func (h *Admin) Logs(c *fiber.Ctx) error {
+	rows, err := h.db.SQL.Query(`
+		SELECT id, event_type, status, details, ip, user_agent, created_at
+		FROM v2_audit_logs ORDER BY id DESC LIMIT 200`)
+	if err != nil {
+		return serverError(c, "Ошибка загрузки журнала")
+	}
+	defer rows.Close()
+	list := []models.AuditLog{}
+	for rows.Next() {
+		var l models.AuditLog
+		if rows.Scan(&l.ID, &l.EventType, &l.Status, &l.Details, &l.IP, &l.UserAgent, &l.CreatedAt) == nil {
+			list = append(list, l)
+		}
+	}
+	return c.JSON(fiber.Map{"success": true, "data": list})
+}
+
+// ── Настройки (пасты и тексты) ───────────────────────────────
+
+func (h *Admin) Settings(c *fiber.Ctx) error {
+	return c.JSON(fiber.Map{"success": true, "data": h.db.AllSettings()})
+}
+
+func (h *Admin) UpdateSetting(c *fiber.Ctx) error {
+	var body struct {
+		Key   string `json:"key"`
+		Value string `json:"value"`
+	}
+	if err := c.BodyParser(&body); err != nil || body.Key == "" {
+		return badRequest(c, "Некорректный запрос")
+	}
+	if !isEditableSetting(body.Key) {
+		return badRequest(c, "Этот параметр не редактируется через панель")
+	}
+	if len(body.Value) > 4000 {
+		return badRequest(c, "Текст слишком длинный (максимум 4000 символов)")
+	}
+	if err := h.db.SetSetting(body.Key, body.Value); err != nil {
+		return serverError(c, "Не удалось сохранить")
+	}
+	h.db.RecordAudit("SETTINGS", "success", "Обновлена настройка "+body.Key,
+		middleware.GetRealIP(c), c.Get("User-Agent"))
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func isEditableSetting(key string) bool {
+	switch key {
+	case "payout_paste_template", "payout_funpay_text", "payout_reject_text",
+		"payout_usdt_text", "week_summary_template":
+		return true
+	}
+	return false
+}
+
+func actorInfo(c *fiber.Ctx) string {
+	if account, ok := auth.AccountOf(c); ok {
+		return account.Nickname
+	}
+	return middleware.GetRealIP(c)
+}
+
+func simpleErr(msg string) error { return &errText{msg} }
+
+type errText struct{ msg string }
+
+func (e *errText) Error() string { return e.msg }
