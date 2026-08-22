@@ -796,6 +796,7 @@ td a { color: var(--color-primary-400); }
   display: flex; flex-direction: column; gap: 0.5rem;
 }
 .toast {
+  display: flex; align-items: center; gap: 0.6rem;
   background: var(--glass-bg-solid);
   border: 1px solid rgba(133, 155, 255, 0.35);
   border-radius: var(--radius);
@@ -814,6 +815,7 @@ td a { color: var(--color-primary-400); }
 
 /* ═══ Футер и бейдж версии ═══ */
 .site-footer {
+  position: relative;
   display: flex; align-items: center; justify-content: center; gap: 0.5rem;
   padding: 2.5rem 1rem 1.5rem;
   color: rgba(255, 255, 255, 0.35);
@@ -834,6 +836,97 @@ td a { color: var(--color-primary-400); }
   letter-spacing: 0.04em;
   z-index: 99;
   user-select: none; pointer-events: none;
+}
+
+/* ═══ Логотип delta: отрисовка штриха → проявление заливки ═══ */
+.brand-logo, .modal-logo { display: block; }
+.brand-logo { width: 26px; height: 22px; }
+.modal-logo { width: 72px; height: 61px; margin: 0.5rem auto 0.25rem; }
+
+.logo-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: logoDraw 0.9s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+}
+.logo-fill { opacity: 0; animation: logoFillIn 0.4s ease-in-out forwards; }
+.logo-stroke.ls-2 { animation-delay: 80ms; }
+.logo-fill.lf-1 { animation-delay: 800ms; }
+.logo-fill.lf-2 { animation-delay: 860ms; }
+@keyframes logoDraw { to { stroke-dashoffset: 0; } }
+@keyframes logoFillIn { to { opacity: 1; } }
+
+/* ═══ Auth-модалка (точные параметры deltaclient) ═══ */
+@keyframes authBackdropIn { 0% { opacity: 0; } to { opacity: 1; } }
+.auth-backdrop { animation: authBackdropIn 0.3s both; }
+
+@keyframes authFadeUp {
+  0% { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.auth-appear { opacity: 0; animation: authFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.auth-appear-d1 { animation-delay: 40ms; }
+.auth-appear-d2 { animation-delay: 80ms; }
+.auth-appear-d3 { animation-delay: 0.12s; }
+.auth-appear-d4 { animation-delay: 0.16s; }
+.auth-appear-d5 { animation-delay: 0.2s; }
+.auth-appear-d6 { animation-delay: 0.24s; }
+
+/* ═══ Прочие анимации deltaclient.xyz ═══ */
+@keyframes blink { 0% { opacity: 0.2; } 20% { opacity: 1; } to { opacity: 0.2; } }
+.animate-blink { animation: blink 1.4s infinite both; }
+
+@keyframes glowPulse { 0%, to { opacity: 0.5; } 50% { opacity: 1; } }
+.footer-glow {
+  position: absolute; top: -30px; left: 50%; transform: translateX(-50%);
+  width: 340px; height: 120px; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(var(--primary-rgb), 0.22), transparent 70%);
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0; }
+  50% { background-position: 100%; }
+  to { background-position: 0; }
+}
+.text-shine {
+  background: linear-gradient(90deg, var(--color-primary-500), #c7d2ff 50%, var(--color-primary-500));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes playPulse {
+  0% { opacity: 0.4; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.6); }
+}
+.play-pulse { position: relative; }
+.play-pulse::before {
+  content: "";
+  pointer-events: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 9999px;
+  position: absolute; inset: 0;
+  animation: playPulse 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes fadeIn { 0% { opacity: 0; } to { opacity: 1; } }
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
+
+@keyframes drip-expand { 0% { opacity: 0.2; transform: scale(0); } to { opacity: 0; transform: scale(2); } }
+.toast-dot {
+  width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0;
+  background: var(--color-primary-400);
+  animation: drip-expand 0.42s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ═══ Адаптив ═══ */

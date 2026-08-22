@@ -16,7 +16,17 @@
 <!-- ═══ Шапка-остров ═══ -->
 <header class="island-header">
   <div class="brand">
-    <svg class="brand-logo" viewBox="0 0 32 32"><path fill="url(#lg)" d="M16 3 29 27H3Z"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#859BFF"/><stop offset="1" stop-color="#505D99"/></linearGradient></defs></svg>
+    <svg class="brand-logo" viewBox="0 0 32 27" fill="none" aria-hidden="true">
+      <defs>
+        <radialGradient id="logo-grad-h" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(16 13.5) scale(16 13)">
+          <stop stop-color="#859bff"/><stop offset="1" stop-color="#505d99"/>
+        </radialGradient>
+      </defs>
+      <path class="logo-stroke ls-1" pathLength="1" d="M4.18 26.43H8.36L9.53 24.21L7.31 20.69L4.18 26.43Z" stroke="url(#logo-grad-h)" stroke-linejoin="round" stroke-width="0.8"/>
+      <path class="logo-fill lf-1" pathLength="1" d="M4.18 26.43H8.36L9.53 24.21L7.31 20.69L4.18 26.43Z" fill="url(#logo-grad-h)"/>
+      <path class="logo-stroke ls-2" pathLength="1" d="M14.89 26.3H19.33C24.09 26.08 29.89 22.95 31.54 16.67C31.84 15.54 32 14.31 32 12.98C32 12.84 32 12.7 31.99 12.57C31.83 8.7 29.37 4.92 26.27 2.67C24.46 1.37 22.43 0.57 20.51 0.57H0L14.89 26.3ZM13.71 17.03L18.94 7.89H14.76L11.62 13.24L6.14 4.1H19.72C22.8 4.1 27.37 6.88 28.21 11.67C28.3 12.17 28.34 12.7 28.34 13.24C28.34 17.94 24.29 22.64 19.72 22.64H16.85L13.71 17.03Z" stroke="url(#logo-grad-h)" stroke-linejoin="round" stroke-width="0.8"/>
+      <path class="logo-fill lf-2" pathLength="1" fill-rule="evenodd" d="M14.89 26.3H19.33C24.09 26.08 29.89 22.95 31.54 16.67C31.84 15.54 32 14.31 32 12.98C32 12.84 32 12.7 31.99 12.57C31.83 8.7 29.37 4.92 26.27 2.67C24.46 1.37 22.43 0.57 20.51 0.57H0L14.89 26.3ZM13.71 17.03L18.94 7.89H14.76L11.62 13.24L6.14 4.1H19.72C22.8 4.1 27.37 6.88 28.21 11.67C28.3 12.17 28.34 12.7 28.34 13.24C28.34 17.94 24.29 22.64 19.72 22.64H16.85L13.71 17.03Z" fill="url(#logo-grad-h)"/>
+    </svg>
     <span class="brand-title">delta media</span>
   </div>
   <nav class="nav" id="navTabs">
@@ -38,7 +48,7 @@
 <!-- ═══ Публичная форма: заявка на вступление в медиа ═══ -->
 <main class="view active" id="view-public">
   <section class="hero">
-    <div class="hero-pill"><span class="dot"></span><span data-i18n="heroPill">delta media · приём заявок открыт</span></div>
+    <div class="hero-pill"><span class="dot animate-blink"></span><span data-i18n="heroPill">delta media · приём заявок открыт</span></div>
     <h1 id="heroTitle" data-i18n-title="heroTitle">Стань частью <span class="text-highlight">delta&nbsp;media</span></h1>
     <p class="hero-desc" data-i18n="heroDesc">Заполни заявку — куратор рассмотрит её и ответит в Telegram. Контроль, скорость и поддержка — всё уже внутри.</p>
   </section>
@@ -127,7 +137,7 @@
       </div>
       <div class="tg-verify" id="tgVerifyBlock">
         <p data-i18n="tgVerifyDesc">Перед отправкой напишите нашему сотруднику — это защита от спама:</p>
-        <a class="btn-shimmer" id="staffContactBtn" href="#" target="_blank" rel="noopener" data-i18n="tgVerifyBtn">Написать сотруднику</a>
+        <a class="btn-shimmer play-pulse" id="staffContactBtn" href="#" target="_blank" rel="noopener" data-i18n="tgVerifyBtn">Написать сотруднику</a>
         <p class="tg-status" id="tgVerifyStatus"></p>
       </div>
       <div class="field" id="captchaField">
@@ -174,24 +184,35 @@
   </div>
 </main>
 
-<!-- ═══ Модалка входа ═══ -->
-<div class="modal-overlay" id="loginModal">
+<!-- ═══ Модалка входа (анимации deltaclient: authBackdropIn + authFadeUp) ═══ -->
+<div class="modal-overlay auth-backdrop" id="loginModal">
   <div class="modal-box">
     <button class="modal-close" data-close>×</button>
     <div id="loginStep1">
-      <h3 data-i18n="loginTitle">Вход по коду аккаунта</h3>
-      <p class="hint" data-i18n="loginHint">Введите код, выданный администратором</p>
-      <div class="field"><input type="text" id="loginCode" placeholder="DLT-XXXXX-XXXXX" autocomplete="off" maxlength="20"></div>
+      <svg class="modal-logo" viewBox="0 0 32 27" fill="none" aria-hidden="true">
+        <defs>
+          <radialGradient id="logo-grad-a" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(16 13.5) scale(16 13)">
+            <stop stop-color="#859bff"/><stop offset="1" stop-color="#505d99"/>
+          </radialGradient>
+        </defs>
+        <path class="logo-stroke ls-1" pathLength="1" d="M4.18 26.43H8.36L9.53 24.21L7.31 20.69L4.18 26.43Z" stroke="url(#logo-grad-a)" stroke-linejoin="round" stroke-width="0.8"/>
+        <path class="logo-fill lf-1" pathLength="1" d="M4.18 26.43H8.36L9.53 24.21L7.31 20.69L4.18 26.43Z" fill="url(#logo-grad-a)"/>
+        <path class="logo-stroke ls-2" pathLength="1" d="M14.89 26.3H19.33C24.09 26.08 29.89 22.95 31.54 16.67C31.84 15.54 32 14.31 32 12.98C32 12.84 32 12.7 31.99 12.57C31.83 8.7 29.37 4.92 26.27 2.67C24.46 1.37 22.43 0.57 20.51 0.57H0L14.89 26.3ZM13.71 17.03L18.94 7.89H14.76L11.62 13.24L6.14 4.1H19.72C22.8 4.1 27.37 6.88 28.21 11.67C28.3 12.17 28.34 12.7 28.34 13.24C28.34 17.94 24.29 22.64 19.72 22.64H16.85L13.71 17.03Z" stroke="url(#logo-grad-a)" stroke-linejoin="round" stroke-width="0.8"/>
+        <path class="logo-fill lf-2" pathLength="1" fill-rule="evenodd" d="M14.89 26.3H19.33C24.09 26.08 29.89 22.95 31.54 16.67C31.84 15.54 32 14.31 32 12.98C32 12.84 32 12.7 31.99 12.57C31.83 8.7 29.37 4.92 26.27 2.67C24.46 1.37 22.43 0.57 20.51 0.57H0L14.89 26.3ZM13.71 17.03L18.94 7.89H14.76L11.62 13.24L6.14 4.1H19.72C22.8 4.1 27.37 6.88 28.21 11.67C28.3 12.17 28.34 12.7 28.34 13.24C28.34 17.94 24.29 22.64 19.72 22.64H16.85L13.71 17.03Z" fill="url(#logo-grad-a)"/>
+      </svg>
+      <h3 class="auth-appear auth-appear-d1" data-i18n="loginTitle">Вход по коду аккаунта</h3>
+      <p class="hint auth-appear auth-appear-d2" data-i18n="loginHint">Введите код, выданный администратором</p>
+      <div class="field auth-appear auth-appear-d3"><input type="text" id="loginCode" placeholder="DLT-XXXXX-XXXXX" autocomplete="off" maxlength="20"></div>
       <p class="hint hidden" id="gpsHint" data-i18n="gpsHint">Потребуется подтвердить геолокацию — без неё вход невозможен</p>
-      <p class="form-error" id="loginError"></p>
-      <button class="btn-primary" id="loginSubmit" data-i18n="loginBtn">Войти</button>
+      <p class="form-error auth-appear auth-appear-d4" id="loginError"></p>
+      <button class="btn-primary btn-shimmer auth-appear auth-appear-d5" id="loginSubmit" data-i18n="loginBtn">Войти</button>
     </div>
     <div id="loginStep2" class="hidden">
-      <h3 data-i18n="tfaTitle">Подтвердите вход</h3>
-      <p class="hint" data-i18n="tfaDesc">Мы отправили запрос в Telegram. Нажмите «✅ Подтвердить» в сообщении от бота.</p>
-      <div class="tfa-spinner"></div>
-      <p class="form-error" id="tfaError"></p>
-      <button class="btn-ghost" id="tfaCancel" data-i18n="cancel">Отмена</button>
+      <h3 class="auth-appear auth-appear-d1" data-i18n="tfaTitle">Подтвердите вход</h3>
+      <p class="hint auth-appear auth-appear-d2" data-i18n="tfaDesc">Мы отправили запрос в Telegram. Нажмите «✅ Подтвердить» в сообщении от бота.</p>
+      <div class="tfa-spinner auth-appear auth-appear-d3"></div>
+      <p class="form-error auth-appear auth-appear-d4" id="tfaError"></p>
+      <button class="btn-ghost auth-appear auth-appear-d5" id="tfaCancel" data-i18n="cancel">Отмена</button>
     </div>
   </div>
 </div>
@@ -219,7 +240,7 @@
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
-<footer class="site-footer">© 2026 delta media portal</footer>
+<footer class="site-footer"><div class="footer-glow"></div>© 2026 delta media portal</footer>
 <div class="version-badge" title="Delta Media Recode">v2.0.0</div>
 
 <script src="/js/api.js"></script>

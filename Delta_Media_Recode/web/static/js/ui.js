@@ -62,7 +62,12 @@ function toast(msg, type) {
   const wrap = document.getElementById("toastWrap");
   const el = document.createElement("div");
   el.className = "toast " + (type || "");
-  el.textContent = msg;
+  const dot = document.createElement("span");
+  dot.className = "toast-dot";
+  if (type === "err") dot.style.background = "var(--rose)";
+  if (type === "ok") dot.style.background = "var(--emerald)";
+  el.appendChild(dot);
+  el.appendChild(document.createTextNode(msg));
   wrap.appendChild(el);
   setTimeout(() => el.remove(), 4200);
 }

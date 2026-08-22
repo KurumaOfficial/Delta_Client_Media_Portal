@@ -60,7 +60,7 @@ function applyHeroTitle() {
     span.className = "ltr";
     span.style.animationDelay = (delay++ * 0.03) + "s";
     span.innerHTML = ch === " " ? "&nbsp;" : ch;
-    return wrap ? `<span class="text-highlight">${span.outerHTML}</span>` : span.outerHTML;
+    return wrap ? `<span class="text-highlight text-shine">${span.outerHTML}</span>` : span.outerHTML;
   }).join("");
   el.innerHTML = split(plain + " ", false) + split(highlight, true);
 }
