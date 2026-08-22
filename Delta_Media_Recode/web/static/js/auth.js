@@ -107,38 +107,35 @@ async function loadSession() {
 const ROLE_TITLES = { admin: "Администратор", moderator: "Модератор", media: "Медиа", freemedia: "Фримедиа" };
 
 function applySessionUI() {
-  const loginBtn = document.getElementById("loginBtn");
-  const chip = document.getElementById("userChip");
   const cabinetTab = document.querySelector('[data-view="cabinet"]');
   const adminTab = document.querySelector('[data-view="admin"]');
   if (CURRENT_ACCOUNT) {
-    loginBtn.classList.add("hidden");
-    chip.classList.remove("hidden");
-    document.getElementById("userName").textContent = CURRENT_ACCOUNT.nickname;
-    document.getElementById("userRole").textContent = ROLE_TITLES[CURRENT_ACCOUNT.role] || CURRENT_ACCOUNT.role;
-    cabinetTab.classList.toggle("hidden", CURRENT_ACCOUNT.role === "admin");
+    // кнопка «Кабинет» справа остаётся всегда — она ведёт в кабинет/админку
+    cabinetTab.classList.remove("hidden");
     adminTab.classList.toggle("hidden", CURRENT_ACCOUNT.role !== "admin");
+    document.getElementById("cabinetSub").textContent =
+      CURRENT_ACCOUNT.nickname + " · " + (ROLE_TITLES[CURRENT_ACCOUNT.role] || CURRENT_ACCOUNT.role);
   } else {
-    loginBtn.classList.remove("hidden");
-    chip.classList.add("hidden");
     cabinetTab.classList.add("hidden");
     adminTab.classList.add("hidden");
   }
 }
 
 function initAuthUI() {
-  document.getElementById("loginBtn").addEventListener("click", () => {
-    resetLoginModal();
-    openModal("loginModal");
-    document.getElementById("gpsHint").classList.remove("hidden");
+  // «Кабинет» как на deltaclient: без сессии — окно входа, с сессией — в кабинет/админку
+  document.getElementById("cabinetBtn").addEventListener("click", () => {
+    if (CURRENT_ACCOUNT) {
+      const target = CURRENT_ACCOUNT.role === "admin" ? "admin" : "cabinet";
+      document.querySelector('[data-view="' + target + '"]').click();
+    } else {
+      resetLoginModal();
+      openModal("loginModal");
+      document.getElementById("gpsHint").classList.remove("hidden");
+    }
   });
   document.getElementById("loginSubmit").addEventListener("click", startLogin);
   document.getElementById("loginCode").addEventListener("keydown", (e) => { if (e.key === "Enter") startLogin(); });
   document.getElementById("tfaCancel").addEventListener("click", resetLoginModal);
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
-    await POST("/api/logout");
-    location.reload();
-  });
   document.getElementById("cabinetLogout").addEventListener("click", async () => {
     await POST("/api/logout");
     location.reload();

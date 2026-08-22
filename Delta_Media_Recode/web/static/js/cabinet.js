@@ -31,7 +31,6 @@ async function loadCabinet() {
   if (!CURRENT_ACCOUNT) return;
   const titles = { moderator: "Кабинет модератора", media: "Кабинет медиа", freemedia: "Кабинет фримедиа", admin: "Кабинет (админ)" };
   document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || "Кабинет";
-  document.getElementById("cabinetSub").textContent = CURRENT_ACCOUNT.nickname;
   const tabs = cabinetTabsForRole(CURRENT_ACCOUNT.role);
   document.getElementById("cabinetTabs").innerHTML =
     tabs.map(([id, label]) => `<button data-tab="${id}">${label}</button>`).join("");

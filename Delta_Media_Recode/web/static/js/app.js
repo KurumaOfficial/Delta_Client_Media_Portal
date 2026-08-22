@@ -20,6 +20,7 @@
       view.style.animation = "none";
       void view.offsetWidth;
       view.style.animation = "";
+      redrawHeaderLogo();
       if (btn.dataset.view === "cabinet") await loadCabinet();
       if (btn.dataset.view === "admin") await renderAdminCategory();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -48,6 +49,14 @@
     }
   });
 })();
+
+// Логотип в хедере заново «отрисовывается» при каждом переключении вкладки
+function redrawHeaderLogo() {
+  const logo = document.querySelector(".brand-logo");
+  if (!logo) return;
+  const clone = logo.cloneNode(true);
+  logo.replaceWith(clone);
+}
 
 // Побуквенное появление hero-заголовка (в стиле deltaclient.xyz)
 function applyHeroTitle() {
