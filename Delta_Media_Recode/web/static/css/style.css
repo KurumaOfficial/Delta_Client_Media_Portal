@@ -248,6 +248,8 @@ main.view.active { display: block; }
 }
 
 .form-card { max-width: 52rem; margin: 0 auto; display: flex; flex-direction: column; gap: 1.4rem; }
+/* платформенные блоки — те же интервалы между полями, что и в форме */
+#ytBlock, #ttBlock, #commonBlock { display: flex; flex-direction: column; gap: 1.4rem; }
 
 /* ═══ Карточки-стекло (white/3 + border white/8, rounded 24px) ═══ */
 .card {
