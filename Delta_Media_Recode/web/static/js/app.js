@@ -27,6 +27,9 @@
   document.querySelectorAll("#navTabs .nav-btn").forEach((btn) =>
     btn.addEventListener("click", () => showView(btn.dataset.view)));
 
+  // из админ-панели — обратно в кабинет
+  document.getElementById("backToCabinet").addEventListener("click", () => showView("cabinet"));
+
   initAuthUI();
   initPublicForm();
   initAdminNav();
@@ -42,11 +45,12 @@
     }
   });
 
-  // сессия: после входа сразу открываем кабинет (админа — админку)
+  // сессия: после входа сразу открываем кабинет
+  // (админ-панель — вкладка внутри кабинета)
   loadSession().then(() => {
-    if (CURRENT_ACCOUNT) showView(CURRENT_ACCOUNT.role === "admin" ? "admin" : "cabinet");
-    // heartbeat: пока страница открыта — сессия жива, закрыл — истечёт
     if (CURRENT_ACCOUNT) {
+      showView("cabinet");
+      // heartbeat: пока страница открыта — сессия жива, закрыл — истечёт
       setInterval(() => { POST("/api/session/ping").catch(() => {}); }, 25000);
     }
   });

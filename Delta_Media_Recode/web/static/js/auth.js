@@ -107,21 +107,18 @@ async function loadSession() {
 const ROLE_TITLES = { admin: "Администратор", moderator: "Модератор", media: "Медиа", freemedia: "Фримедиа" };
 
 function applySessionUI() {
-  const adminTab = document.querySelector('[data-view="admin"]');
   if (CURRENT_ACCOUNT) {
-    adminTab.classList.toggle("hidden", CURRENT_ACCOUNT.role !== "admin");
     document.getElementById("cabinetSub").textContent =
       CURRENT_ACCOUNT.nickname + " · " + (ROLE_TITLES[CURRENT_ACCOUNT.role] || CURRENT_ACCOUNT.role);
-  } else {
-    adminTab.classList.add("hidden");
   }
 }
 
 function initAuthUI() {
-  // «Кабинет» как на deltaclient: без сессии — окно входа, с сессией — в кабинет/админку
+  // «Кабинет» как на deltaclient: без сессии — окно входа, с сессией — в кабинет
+  // (вкладка админ-панели живёт внутри кабинета, в хедере её нет)
   document.getElementById("cabinetBtn").addEventListener("click", () => {
     if (CURRENT_ACCOUNT) {
-      showView(CURRENT_ACCOUNT.role === "admin" ? "admin" : "cabinet");
+      showView("cabinet");
     } else {
       resetLoginModal();
       openModal("loginModal");

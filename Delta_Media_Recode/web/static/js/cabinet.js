@@ -7,14 +7,16 @@ async function switchCabinetTab(tab) {
   cabinetActiveTab = tab;
   document.querySelectorAll("#cabinetTabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   const body = document.getElementById("cabinetBody");
-  const role = CURRENT_ACCOUNT ? CURRENT_ACCOUNT.role : "";
+  if (tab === "adminpanel") { // админ-панель — полноценный раздел внутри кабинета
+    await showView("admin");
+    return;
+  }
   if (tab === "hwid") body.innerHTML = buildProofForm("hwid", "Сброс HWID", "UID пользователя", "uuid");
   else if (tab === "discord") body.innerHTML = buildProofForm("discord", "Discord бан", "ID или @username нарушителя", "offender_id");
   else if (tab === "payout") body.innerHTML = buildPayoutForm();
   else if (tab === "lot") body.innerHTML = buildLotForm();
   else if (tab === "sub") body.innerHTML = buildSubForm();
   else if (tab === "my") await renderMyRequests();
-  void role;
   bindCabinetForms();
 }
 
@@ -22,21 +24,24 @@ function cabinetTabsForRole(role) {
   if (role === "moderator") return [["hwid", "🔄 Сброс HWID"], ["discord", "🔨 Discord бан"]];
   if (role === "media") return [["payout", "💸 Заявка на выплату"], ["lot", "🏷️ Заявка на лот"], ["my", "📋 Мои заявки"]];
   if (role === "freemedia") return [["sub", "📺 Запрос подписки"], ["my", "📋 Мои заявки"]];
-  if (role === "admin") return [["hwid", "🔄 Сброс HWID"], ["discord", "🔨 Discord бан"],
-    ["payout", "💸 Выплата"], ["lot", "🏷️ Лот"], ["sub", "📺 Подписка"], ["my", "📋 Мои заявки"]];
+  if (role === "admin") return [["adminpanel", "🛡️ Админ-панель"], ["hwid", "🔄 Сброс HWID"],
+    ["discord", "🔨 Discord бан"], ["payout", "💸 Выплата"], ["lot", "🏷️ Лот"],
+    ["sub", "📺 Подписка"], ["my", "📋 Мои заявки"]];
   return [];
 }
 
 async function loadCabinet() {
   if (!CURRENT_ACCOUNT) return;
-  const titles = { moderator: "Кабинет модератора", media: "Кабинет медиа", freemedia: "Кабинет фримедиа", admin: "Кабинет (админ)" };
+  const titles = { moderator: "Кабинет модератора", media: "Кабинет медиа", freemedia: "Кабинет фримедиа", admin: "Кабинет администратора" };
   document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || "Кабинет";
   const tabs = cabinetTabsForRole(CURRENT_ACCOUNT.role);
   document.getElementById("cabinetTabs").innerHTML =
     tabs.map(([id, label]) => `<button data-tab="${id}">${label}</button>`).join("");
   document.querySelectorAll("#cabinetTabs button").forEach((b) =>
     b.addEventListener("click", () => switchCabinetTab(b.dataset.tab)));
-  await switchCabinetTab(tabs[0][0]);
+  // админ-панель — вкладка, но не дефолтная: после входа открываем первую обычную
+  const initial = tabs.find((t) => t[0] !== "adminpanel") || tabs[0];
+  await switchCabinetTab(initial[0]);
 }
 
 // ── Формы с доказательствами (модераторы) ──
