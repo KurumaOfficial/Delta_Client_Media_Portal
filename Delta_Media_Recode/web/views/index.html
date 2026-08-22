@@ -8,10 +8,18 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23859BFF' d='M16 3 29 27H3Z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@500;600;700;800&family=Onest:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+
+<!-- Фоновая сцена 1:1 с deltaclient: рендер + kenBurns + слои градиентов -->
+<div class="bg-scene" aria-hidden="true">
+  <div class="bg-kenburns"></div>
+  <div class="bg-overlay"></div>
+  <div class="bg-fade-top"></div>
+  <div class="bg-fade-bottom"></div>
+</div>
 
 <!-- ═══ Шапка-остров ═══ -->
 <header class="island-header">
@@ -202,10 +210,14 @@
       </svg>
       <h3 class="auth-appear auth-appear-d1" data-i18n="loginTitle">Вход по коду аккаунта</h3>
       <p class="hint auth-appear auth-appear-d2" data-i18n="loginHint">Введите код, выданный администратором</p>
-      <div class="field auth-appear auth-appear-d3"><input type="text" id="loginCode" placeholder="DLT-XXXXX-XXXXX" autocomplete="off" maxlength="20"></div>
+      <div class="auth-input auth-appear auth-appear-d3">
+        <svg class="input-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        <input type="text" id="loginCode" placeholder="DLT-XXXXX-XXXXX" autocomplete="off" maxlength="20">
+      </div>
       <p class="hint hidden" id="gpsHint" data-i18n="gpsHint">Потребуется подтвердить геолокацию — без неё вход невозможен</p>
       <p class="form-error auth-appear auth-appear-d4" id="loginError"></p>
       <button class="btn-primary btn-shimmer auth-appear auth-appear-d5" id="loginSubmit" data-i18n="loginBtn">Войти</button>
+      <p class="auth-alt auth-appear auth-appear-d6">Нет аккаунта? <a id="toApplyLink">Подача заявки</a></p>
     </div>
     <div id="loginStep2" class="hidden">
       <h3 class="auth-appear auth-appear-d1" data-i18n="tfaTitle">Подтвердите вход</h3>

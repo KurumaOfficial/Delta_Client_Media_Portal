@@ -139,4 +139,11 @@ function initAuthUI() {
     await POST("/api/logout");
     location.reload();
   });
+  // «Нет аккаунта? Подача заявки» → закрыть модалку и открыть публичную форму
+  document.getElementById("toApplyLink").addEventListener("click", () => {
+    closeModal("loginModal");
+    const pubTab = document.querySelector('[data-view="public"]');
+    if (pubTab) pubTab.click();
+    setTimeout(() => document.getElementById("mediaForm")?.scrollIntoView({ behavior: "smooth", block: "center" }), 150);
+  });
 }
