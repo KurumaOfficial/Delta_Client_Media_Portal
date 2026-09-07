@@ -52,6 +52,7 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 		"payouts_total":   st.Total,
 		"week_label":      week.Label,
 		"week_open":       h.pays.WindowOpen(),
+		"apps_open":       h.db.Setting("apps_open") != "false",
 	}})
 }
 
@@ -301,10 +302,37 @@ func (h *Admin) UpdateSetting(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true})
 }
 
+func (h *Admin) ToggleApps(c *fiber.Ctx) error {
+	var body struct {
+		Open *bool `json:"open"`
+	}
+	var nextVal string
+	if err := c.BodyParser(&body); err == nil && body.Open != nil {
+		if *body.Open {
+			nextVal = "true"
+		} else {
+			nextVal = "false"
+		}
+	} else {
+		current := h.db.Setting("apps_open") != "false"
+		if current {
+			nextVal = "false"
+		} else {
+			nextVal = "true"
+		}
+	}
+	if err := h.db.SetSetting("apps_open", nextVal); err != nil {
+		return serverError(c, "Не удалось сохранить статус приёма заявок")
+	}
+	h.db.RecordAudit("TOGGLE_APPS", "success", "Приём заявок: "+nextVal,
+		middleware.GetRealIP(c), c.Get("User-Agent"))
+	return c.JSON(fiber.Map{"success": true, "apps_open": nextVal == "true"})
+}
+
 func isEditableSetting(key string) bool {
 	switch key {
 	case "payout_paste_template", "payout_funpay_text", "payout_reject_text",
-		"payout_usdt_text", "week_summary_template":
+		"payout_usdt_text", "week_summary_template", "apps_open":
 		return true
 	}
 	return false

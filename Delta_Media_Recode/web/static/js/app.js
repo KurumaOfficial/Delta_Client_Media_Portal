@@ -2,23 +2,37 @@
 "use strict";
 
 (function bootstrap() {
-  // язык из маршрута
-  setLanguage(location.pathname.startsWith("/en") ? "en" : "ru");
-  applyHeroTitle();
+  // язык из маршрута или сохранённый
+  let initLang = "ru";
+  if (location.pathname.startsWith("/en")) initLang = "en";
+  else if (location.pathname.startsWith("/ua") || location.pathname.startsWith("/uk")) initLang = "ua";
+  else {
+    try {
+      const saved = localStorage.getItem("delta_lang");
+      if (saved && (saved === "ru" || saved === "ua" || saved === "en")) initLang = saved;
+    } catch { /* ignore */ }
+  }
+  setLanguage(initLang);
   document.querySelectorAll(".lang-switch button").forEach((b) =>
-    b.addEventListener("click", () => { setLanguage(b.dataset.lang); applyHeroTitle(); }));
+    b.addEventListener("click", () => setLanguage(b.dataset.lang)));
 
   // переключение вкладок (общая функция — используется и кнопкой «Кабинет»)
   window.showView = async (name) => {
-    document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((b) =>
-      b.classList.toggle("active", b.dataset.view === name));
     document.querySelectorAll("main.view").forEach((v) => v.classList.remove("active"));
     const view = document.getElementById("view-" + name);
+    if (!view) return;
     view.classList.add("active");
-    // перезапуск анимации
-    view.style.animation = "none";
-    void view.offsetWidth;
-    view.style.animation = "";
+
+    // Затемняющий блюр 1:1 deltaclient.xyz/docs в кабинете всех ролей и в админке
+    document.body.classList.toggle("page-cabinet", name === "cabinet");
+    document.body.classList.toggle("page-admin", name === "admin");
+
+    // Футер отображается только на главной странице
+    const footer = document.querySelector(".site-footer");
+    if (footer) {
+      footer.style.display = (name === "public") ? "block" : "none";
+    }
+
     redrawHeaderLogo();
     if (name === "cabinet") await loadCabinet();
     if (name === "admin") await renderAdminCategory();
@@ -26,6 +40,35 @@
   };
   document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => showView(btn.dataset.view)));
+
+  // Клик по логотипу и "delta media" в шапке — возврат на главную
+  const brandLogo = document.getElementById("brandLogo");
+  if (brandLogo) {
+    brandLogo.addEventListener("click", (e) => {
+      e.preventDefault();
+      showView("public");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      const targetPath = "/" + (LANG === "ru" ? "" : LANG);
+      if (location.pathname !== targetPath) {
+        history.pushState({}, "", targetPath || "/");
+      }
+    });
+  }
+
+  // Анимация цветного логотипа в футере при прокрутке к нему
+  const footerLogo = document.querySelector(".footer-logo");
+  if (footerLogo && "IntersectionObserver" in window) {
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const clone = entry.target.cloneNode(true);
+          entry.target.replaceWith(clone);
+          obs.unobserve(clone);
+        }
+      });
+    }, { threshold: 0.1 });
+    obs.observe(footerLogo);
+  }
 
   initAuthUI();
   initPublicForm();

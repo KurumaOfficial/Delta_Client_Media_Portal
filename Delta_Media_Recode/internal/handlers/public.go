@@ -79,6 +79,10 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		return badRequest(c, "Некорректные данные формы")
 	}
 
+	if h.db.Setting("apps_open") == "false" {
+		return badRequest(c, "Приём заявок в delta media сейчас закрыт")
+	}
+
 	// ── Валидация всех текстов ──
 	uid, ok := validation.UID(body.UID)
 	if !ok {
@@ -216,6 +220,7 @@ func (h *Public) LogClientError(c *fiber.Ctx) error {
 
 // Health — проверка живости + публичный конфиг для фронтенда.
 func (h *Public) Health(c *fiber.Ctx) error {
+	appsOpen := h.db.Setting("apps_open") != "false"
 	return c.JSON(fiber.Map{"success": true, "time": time.Now().Format(time.RFC3339),
 		"turnstile_sitekey": h.cfg.TurnstileSiteKey,
 		"turnstile_enabled": h.cfg.TurnstileSecret != "",
@@ -223,6 +228,7 @@ func (h *Public) Health(c *fiber.Ctx) error {
 		"bot_username":      strings.TrimPrefix(h.tg.Client().Username(), "@"),
 		"staff_contact":     h.cfg.TGSecretary,
 		"admin_contact":     h.cfg.TGAdminContact,
+		"apps_open":         appsOpen,
 	})
 }
 

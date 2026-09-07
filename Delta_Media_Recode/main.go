@@ -95,6 +95,8 @@ func main() {
 	renderIndex := func(c *fiber.Ctx) error { return c.SendFile("./web/views/index.html") }
 	app.Get("/", renderIndex)
 	app.Get("/ru", renderIndex)
+	app.Get("/ua", renderIndex)
+	app.Get("/uk", renderIndex)
 	app.Get("/en", renderIndex)
 
 	api := app.Group("/api")
@@ -134,6 +136,7 @@ func main() {
 	// ── Админ-панель ──
 	adminGroup := api.Group("/admin", auth.Require(authSvc, models.RoleAdmin))
 	adminGroup.Get("/stats", adminH.Stats)
+	adminGroup.Post("/toggle-apps", adminH.ToggleApps)
 	adminGroup.Get("/logs", adminH.Logs)
 	adminGroup.Get("/settings", adminH.Settings)
 	adminGroup.Post("/settings", adminH.UpdateSetting)

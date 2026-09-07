@@ -192,6 +192,7 @@ func (db *DB) Migrate() error {
 // defaultSettings — редактируемые в админке тексты (пасты, шаблоны).
 func defaultSettings() map[string]string {
 	return map[string]string{
+		"apps_open":             "true",
 		"payout_paste_template": "📋 Заявка на выплату Delta Media\nUID: {uid}\nВ медиа: {duration}\nЧто хочу получить: {want}\nСумма (USDT): {amount}\nСпособ выплаты: {method}\nСсылка на лот (FunPay): {lot_url}",
 		"payout_funpay_text":    "✅ Твоя заявка на выплату №{id} одобрена!\nОплата через FunPay: {lot_url}\nЕсли появились вопросы — пиши администратору.",
 		"payout_reject_text":    "❌ Выплата была отклонена.\nПричина: {reason}",
@@ -218,7 +219,7 @@ func (db *DB) seedDefaults() error {
 // BootstrapAdmin создаёт корневой аккаунт администратора, если аккаунтов нет.
 func (db *DB) BootstrapAdmin(code, telegram string) error {
 	var count int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM v2_accounts`).Scan(&count); err != nil {
+	if err := db.QueryRow(`SELECT COUNT(*) FROM v2_accounts WHERE role = 'admin'`).Scan(&count); err != nil {
 		return err
 	}
 	if count > 0 {

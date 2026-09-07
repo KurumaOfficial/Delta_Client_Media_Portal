@@ -52,6 +52,8 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ═══ Фон 1:1 с deltaclient.xyz (значения сняты с живого сайта) ═══
@@ -77,6 +79,51 @@ body {
 }
 @media (min-width: 640px) {
   .bg-fade-bottom { height: 14rem; }
+}
+
+/* ═══ Затемняющий блюр-фон 1:1 с deltaclient.xyz/docs (кабинет всех ролей и админка) ═══ */
+.bg-docs {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.page-cabinet .bg-docs,
+body.page-admin .bg-docs {
+  display: block;
+  opacity: 1;
+}
+
+.bg-docs-img {
+  position: absolute;
+  inset: -30px;
+  background: url("/static/landing.jpg") center 40% / cover no-repeat;
+  filter: blur(20px);
+  transform: scale(1.06);
+}
+
+.bg-docs-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(17, 18, 22, 0.84) 0%,
+    rgba(17, 18, 22, 0.87) 16%,
+    rgba(17, 18, 22, 0.90) 36%,
+    rgba(17, 18, 22, 0.93) 58%,
+    rgba(17, 18, 22, 0.95) 80%,
+    rgba(17, 18, 22, 0.96) 100%
+  );
+}
+
+.bg-docs-dark {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.18);
 }
 
 a { color: inherit; text-decoration: none; }
@@ -110,9 +157,11 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
 }
 @keyframes fadeInDown { from { opacity: 0; transform: translate(-50%, -16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-.brand { display: flex; align-items: center; gap: 0.5rem; padding: 0 1.25rem 0 0.75rem; white-space: nowrap; }
-.brand:hover .brand-logo { transform: scale(1.05); }
-.brand-logo { width: 24px; height: 20px; display: block; transition: transform 0.2s ease; }
+.brand {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0 1.25rem 0 0.75rem;
+  white-space: nowrap; cursor: pointer; text-decoration: none;
+}
+.brand-logo { width: 24px; height: 20px; display: block; }
 .brand-title {
   font-family: var(--font-display);
   font-weight: 700; font-size: 0.9rem;
@@ -130,6 +179,8 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   font-size: 13px; font-weight: 500;
   color: rgba(255, 255, 255, 0.3);
   white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
   transition: all 0.2s;
 }
 .nav-btn svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; transition: color 0.2s; }
@@ -181,21 +232,21 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
 main.view {
   display: none;
   max-width: 76rem;
+  width: 100%;
   margin: 0 auto;
-  padding: 6.5rem 2rem 6rem;
+  padding: 6.5rem 2rem 4rem;
   position: relative;
   z-index: 10;
+  flex: 1 0 auto;
+  min-height: calc(100vh - 420px);
 }
-main.view.active { display: block; }
+main.view.active {
+  display: block;
+}
 
 /* админ-панель — на всю ширину экрана, а не в центральной колонке */
 #view-admin { max-width: none; padding-left: 1.5rem; padding-right: 1.5rem; }
 #view-admin .hero { margin-bottom: 2rem; }
-.tab-view-active { animation: tabSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
-@keyframes tabSlideIn {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 /* ═══ Hero (типографика deltaclient) ═══ */
 .hero { text-align: center; max-width: 52rem; margin: 0 auto 3rem; padding-top: 1rem; }
@@ -213,11 +264,30 @@ main.view.active { display: block; }
   font-size: 0.775rem; font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
 }
 .hero-pill .dot {
   width: 0.375rem; height: 0.375rem; border-radius: 9999px;
   background-color: var(--color-primary-400);
   box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.8);
+  transition: all 0.3s ease;
+}
+.hero-pill.closed {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(248, 113, 113, 0.15);
+}
+.hero-pill.closed .dot {
+  background-color: var(--rose);
+  box-shadow: 0 0 10px rgba(248, 113, 113, 0.9);
+}
+.hero-pill.closed .dot.animate-blink {
+  animation: blinkRed 1.2s infinite both;
+}
+@keyframes blinkRed {
+  0% { opacity: 0.2; box-shadow: 0 0 4px rgba(248, 113, 113, 0.3); }
+  50% { opacity: 1; box-shadow: 0 0 14px rgba(248, 113, 113, 1); }
+  100% { opacity: 0.2; box-shadow: 0 0 4px rgba(248, 113, 113, 0.3); }
 }
 
 .hero h1 {
@@ -250,7 +320,7 @@ main.view.active { display: block; }
 /* платформенные блоки — те же интервалы между полями, что и в форме */
 #ytBlock, #ttBlock, #commonBlock { display: flex; flex-direction: column; gap: 1.4rem; }
 
-/* ═══ Карточки-стекло (white/3 + border white/8, rounded 24px) ═══ */
+/* ═══ Карточки (сбалансированное тёмное стекло V1) ═══ */
 .card {
   position: relative;
   background: var(--glass-bg);
@@ -262,7 +332,10 @@ main.view.active { display: block; }
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
-.card:hover { border-color: rgba(var(--primary-rgb), 0.3); box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35); }
+.card:hover {
+  border-color: rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+}
 .card:has(.dropdown.open) { z-index: 90; }
 .card h3 {
   font-family: var(--font-title);
@@ -271,14 +344,14 @@ main.view.active { display: block; }
   display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
 }
 
-/* ═══ Формы (rounded-2xl, white/3, акцентный focus) ═══ */
+/* ═══ Формы ═══ */
 .field { display: flex; flex-direction: column; gap: 0.5rem; }
 .field label { font-family: var(--font-display); font-weight: 500; font-size: 0.9rem; color: rgba(255, 255, 255, 0.85); }
 .hint { font-family: var(--font-display); color: rgba(255, 255, 255, 0.45); font-size: 0.8rem; }
 .hint a { color: var(--color-primary-400); text-decoration: underline; font-weight: 600; cursor: pointer; }
 .hint a:hover { color: #fff; }
 
-input[type="text"], input[type="url"], textarea {
+input[type="text"], input[type="url"], input[type="email"], textarea {
   width: 100%;
   background: var(--glass-bg);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -297,6 +370,48 @@ input:focus, textarea:focus {
   box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.1), 0 0 20px rgba(var(--primary-rgb), 0.06);
 }
 textarea { min-height: 110px; resize: vertical; }
+
+/* ═══ Все нативные теги <select> (в админ-панели и формах) ═══ */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  width: 100%;
+  background-color: var(--glass-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.45)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1.125rem center;
+  background-size: 14px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 0.875rem 2.75rem 0.875rem 1.125rem;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
+}
+select:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+select:focus {
+  border-color: rgba(var(--primary-rgb), 0.25);
+  background-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.1), 0 0 20px rgba(var(--primary-rgb), 0.06);
+}
+select option {
+  background-color: #14151a;
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  padding: 0.6rem 1rem;
+}
+select option:checked {
+  background-color: rgba(var(--primary-rgb), 0.3);
+  color: #fff;
+}
 
 .char-counter { text-align: right; font-size: 0.75rem; color: rgba(255, 255, 255, 0.45); font-family: var(--font-mono); }
 
@@ -319,6 +434,7 @@ textarea { min-height: 110px; resize: vertical; }
 
 /* ═══ Дропдауны ═══ */
 .dropdown { position: relative; width: 100%; z-index: 10; }
+.dropdown.open { z-index: 99999; }
 .dropdown-head {
   width: 100%;
   display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
@@ -331,10 +447,17 @@ textarea { min-height: 110px; resize: vertical; }
   transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
 }
 .dropdown-head:hover { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.2); }
-.dropdown.open { z-index: 99999; }
 .dropdown.open .chev { transform: rotate(180deg); color: var(--color-primary-400); }
 .chev { transition: transform 0.2s ease; color: rgba(255, 255, 255, 0.5); font-size: 0.8rem; }
-.dropdown-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.dropdown-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
 .dropdown-menu {
   display: none;
   position: absolute; top: calc(100% + 0.5rem); left: 0; right: 0;
@@ -401,6 +524,15 @@ textarea { min-height: 110px; resize: vertical; }
   20%, 60% { transform: translateX(-6px); }
   40%, 80% { transform: translateX(6px); }
 }
+.btn-primary:disabled, .btn-primary.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 .btn-ghost {
   border: none;
@@ -426,16 +558,18 @@ textarea { min-height: 110px; resize: vertical; }
 @keyframes shimmerSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
 .btn-tg {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.55rem 1.1rem;
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
   font-family: var(--font-display);
   font-size: 0.8rem; font-weight: 600;
   color: #fff;
   background: linear-gradient(135deg, #2aabee 0%, #229ed9 100%);
   border-radius: 0.75rem;
   white-space: nowrap;
+  text-decoration: none;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+.btn-tg svg { flex-shrink: 0; }
 .btn-tg:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(42, 171, 238, 0.3); }
 
 .form-error { font-family: var(--font-display); color: var(--rose); font-size: 0.85rem; min-height: 1.2em; }
@@ -479,13 +613,17 @@ textarea { min-height: 110px; resize: vertical; }
 .bug-text span { font-family: var(--font-display); font-size: 0.78rem; color: rgba(255, 255, 255, 0.45); line-height: 1.3; }
 
 /* ═══ Модалки 1:1 (rounded-28, blurred landing внутри, 3D-вход) ═══ */
+.auth-backdrop,
 .modal-overlay {
   position: fixed; inset: 0; z-index: 9999999;
   background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: none;
   align-items: center; justify-content: center;
   padding: 1.5rem;
 }
+.auth-backdrop.open,
 .modal-overlay.open { display: flex; animation: authBackdropIn 0.3s both; }
 @keyframes authBackdropIn { 0% { opacity: 0; } to { opacity: 1; } }
 
@@ -552,55 +690,543 @@ textarea { min-height: 110px; resize: vertical; }
 }
 .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
-/* каскадное появление содержимого (auth-appear deltaclient) */
-@keyframes authFadeUp {
-  0% { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ═══ Delta Client Auth Modal (1:1 живой deltaclient.xyz) ═══ */
+:root {
+  --ease-delta: cubic-bezier(0.16, 1, 0.3, 1);
 }
-.auth-appear { opacity: 0; animation: authFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-.auth-appear-d1 { animation-delay: 40ms; }
-.auth-appear-d2 { animation-delay: 80ms; }
-.auth-appear-d3 { animation-delay: 0.12s; }
-.auth-appear-d4 { animation-delay: 0.16s; }
-.auth-appear-d5 { animation-delay: 0.2s; }
-.auth-appear-d6 { animation-delay: 0.24s; }
 
-/* поле входа — как auth-input deltaclient */
-.auth-input { position: relative; }
-.auth-input input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-family: var(--font-mono);
-  letter-spacing: 0.04em;
+.delta-auth-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+.delta-auth-modal.open {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Бэкдроп: fade-in 0.35s */
+.delta-auth-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+
+/* Карточка: 820px на десктопе, 540px высота, rounded-3xl (24px/28px), shadow-2xl, 3D perspective 1200px */
+.delta-auth-card {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  min-height: auto;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 0, 0, 0.6);
+  transform-origin: center center;
+  transform: perspective(1200px) translateY(50px) rotateX(6deg) scale(0.92);
+  opacity: 0;
+  transition: transform 0.45s var(--ease-delta), opacity 0.45s var(--ease-delta);
+}
+@media (min-width: 768px) {
+  .delta-auth-card {
+    max-width: 820px;
+    height: 540px;
+  }
+}
+.delta-auth-modal.open .delta-auth-card {
+  opacity: 1;
+  transform: perspective(1200px) translateY(0) rotateX(0deg) scale(1);
+}
+
+/* Фоновый слой карточки: landing_1.jpg blur(20px) + bg [rgba(11,13,22,0.9)] */
+.delta-auth-card-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.delta-auth-card-bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 40%;
+  transform: scale(1.02);
+  filter: blur(20px);
+}
+.delta-auth-card-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 13, 22, 0.9);
+}
+
+/* Кнопка закрытия: absolute top-4 right-4 z-20 w-8 h-8 rounded-full bg-white/[0.05] */
+.delta-auth-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 30;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.3);
+  border: none;
+  cursor: pointer;
+  transform: scale(0) rotate(-180deg);
+  opacity: 0;
+  transition: color 0.2s, background-color 0.2s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s, opacity 0.3s ease 0.15s;
+}
+.delta-auth-modal.open .delta-auth-close {
+  transform: scale(1) rotate(0deg);
+  opacity: 1;
+}
+.delta-auth-close:hover {
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Левая панель: hidden md:flex w-[40%] clipPath: inset(0 100% 0 0) -> inset(0 0% 0 0) */
+.delta-auth-left {
+  position: relative;
+  display: none;
+  width: 40%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  overflow: hidden;
+  background-color: var(--color-delta-900);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.55s var(--ease-delta);
+}
+@media (min-width: 768px) {
+  .delta-auth-left {
+    display: flex;
+  }
+}
+.delta-auth-modal.open .delta-auth-left {
+  clip-path: inset(0 0% 0 0);
+}
+.delta-auth-left-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.05);
+}
+.delta-auth-left-dark {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 13, 22, 0.8);
+}
+.delta-auth-left-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, rgba(133, 155, 255, 0.5));
+  mix-blend-mode: overlay;
+}
+.delta-auth-left-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 2rem;
+  opacity: 0;
+  transform: translateY(20px) scale(0.9);
+  transition: opacity 0.5s var(--ease-delta) 0.3s, transform 0.5s var(--ease-delta) 0.3s;
+}
+.delta-auth-modal.open .delta-auth-left-content {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+.delta-auth-left-brand {
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.025em;
+  margin-top: 0.875rem;
+}
+/* ═══ Логотип SVG: плавная прорисовка контуров и заливка (1:1 Delta Client) ═══ */
+.delta-auth-logo {
+  display: block;
+  filter: drop-shadow(0 0 16px rgba(133, 155, 255, 0.4));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.delta-auth-left:hover .delta-auth-logo {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 24px rgba(133, 155, 255, 0.65));
+}
+
+.delta-auth-logo .logo-stroke {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  will-change: stroke-dashoffset;
+}
+.delta-auth-logo .logo-fill {
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Каскадная прорисовка путей при открытии модалки */
+.delta-auth-modal.open .delta-auth-logo .ls-1 {
+  animation: deltaLogoDraw 0.85s cubic-bezier(0.45, 0, 0.55, 1) 0.12s forwards;
+}
+.delta-auth-modal.open .delta-auth-logo .ls-2 {
+  animation: deltaLogoDraw 0.9s cubic-bezier(0.45, 0, 0.55, 1) 0.2s forwards;
+}
+.delta-auth-modal.open .delta-auth-logo .lf-1 {
+  animation: deltaLogoFill 0.4s ease-out 0.82s forwards;
+}
+.delta-auth-modal.open .delta-auth-logo .lf-2 {
+  animation: deltaLogoFill 0.4s ease-out 0.88s forwards;
+}
+
+@keyframes deltaLogoDraw {
+  0% { stroke-dashoffset: 1; }
+  100% { stroke-dashoffset: 0; }
+}
+@keyframes deltaLogoFill {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+/* Стилизация печатающегося слогана */
+.delta-auth-left-tagline {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 0.625rem;
+  max-width: 230px;
+  min-height: 44px; /* фиксирует высоту 2 строк, чтобы верстка не скакала */
+  line-height: 1.625;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  letter-spacing: -0.01em;
+}
+.typewriter-cursor {
+  display: inline-block;
+  color: #859bff;
+  font-weight: 400;
+  margin-left: 2px;
+  animation: typewriterBlink 0.75s infinite;
+}
+@keyframes typewriterBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.typewriter-cursor.cursor-done {
+  animation: typewriterFadeOut 1.5s 1.2s forwards;
+}
+@keyframes typewriterFadeOut {
+  to { opacity: 0; }
+}
+
+/* Правая панель */
+.delta-auth-right {
+  position: relative;
+  z-index: 5;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2.5rem 2rem;
+}
+@media (min-width: 768px) {
+  .delta-auth-right {
+    padding: 2.5rem;
+  }
+}
+.delta-auth-inner {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+}
+
+/* Мобильный логотип в правой панели */
+.delta-auth-mobile-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+@media (min-width: 768px) {
+  .delta-auth-mobile-header {
+    display: none;
+  }
+}
+.delta-auth-mobile-brand {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.025em;
+}
+
+/* Заголовок формы (Вход) */
+.delta-auth-header {
+  margin-bottom: 1.75rem;
+  opacity: 0;
+  transform: translateX(-24px);
+  transition: opacity 0.55s var(--ease-delta) 0.1s, transform 0.55s var(--ease-delta) 0.1s;
+}
+.delta-auth-modal.open .delta-auth-header {
+  opacity: 1;
+  transform: translateX(0);
+}
+.delta-auth-title {
+  font-family: var(--font-title);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.375rem;
+  line-height: 1.2;
+}
+.delta-auth-sub {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Форма */
+.delta-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Каскадное появление полей (animate: opacity: 1, x: 0, rotate: 0) */
+.delta-auth-field {
+  opacity: 0;
+  transform: translateX(40px) rotate(1.5deg);
+  transition: opacity 0.5s var(--ease-delta), transform 0.5s var(--ease-delta);
+}
+.delta-field-anim-0 { transition-delay: 0.12s; }
+.delta-field-anim-1 { transition-delay: 0.19s; }
+.delta-auth-modal.open .delta-auth-field {
+  opacity: 1;
+  transform: translateX(0) rotate(0deg);
+}
+
+.delta-auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+.delta-auth-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-left: 0.25rem;
+  text-transform: lowercase;
+}
+.delta-auth-forgot {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-right: 0.25rem;
+  cursor: pointer;
+  transition: color 0.2s;
+  text-decoration: none;
+}
+.delta-auth-forgot:hover {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Поле ввода: 1:1 auth-input из deltaclient.xyz */
+.auth-input {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+}
+.auth-input:focus-within {
+  border-color: rgba(133, 155, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 0 0 1px rgba(133, 155, 255, 0.1), 0 0 20px rgba(133, 155, 255, 0.06);
 }
 .auth-input .input-icon {
-  position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.35);
-  pointer-events: none;
+  color: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
   transition: color 0.3s;
 }
-.auth-input input { padding-left: 2.9rem; }
-.auth-input:focus-within { 
-  box-shadow: 0 0 0 1px rgba(var(--primary-rgb), 0.1), 0 0 20px rgba(var(--primary-rgb), 0.06);
-  border-radius: 1rem;
+.auth-input:focus-within .input-icon {
+  color: rgba(133, 155, 255, 0.55);
 }
-.auth-input:focus-within .input-icon { color: rgba(var(--primary-rgb), 0.55); }
+.auth-input input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.05em;
+  outline: none;
+}
+.auth-input input::placeholder {
+  color: rgba(255, 255, 255, 0.18);
+  font-family: var(--font-mono);
+}
+.auth-input input::selection {
+  background: rgba(133, 155, 255, 0.3);
+  color: #fff;
+}
 
-.auth-alt {
+/* Автофилл браузера в стиле deltaclient */
+.auth-input input:-webkit-autofill,
+.auth-input input:-webkit-autofill:hover,
+.auth-input input:-webkit-autofill:focus {
+  caret-color: #fff;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.85) !important;
+  transition: background-color 5000s ease-in-out;
+  background: transparent !important;
+  -webkit-box-shadow: inset 0 0 0 1000px rgba(10, 13, 26, 0) !important;
+}
+
+/* Капча контейнер */
+.delta-turnstile-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 65px;
+}
+
+/* Ошибка */
+.delta-auth-error {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: rgba(248, 113, 113, 0.8);
+  margin-left: 0.25rem;
+  margin-top: -0.25rem;
+  animation: authFadeUp 0.25s ease both;
+}
+
+/* Кнопка отправки: spring появление scale 0.85 -> 1 */
+.delta-auth-submit-wrap {
+  margin-top: 0.5rem;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.26s, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.26s;
+}
+.delta-auth-modal.open .delta-auth-submit-wrap {
+  opacity: 1;
+  transform: scale(1);
+}
+.delta-auth-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background-color: #859bff;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s, box-shadow 0.3s, transform 0.2s;
+}
+.delta-auth-btn:hover:not(:disabled) {
+  background-color: #97abff;
+  box-shadow: 0 0 40px rgba(133, 155, 255, 0.25);
+}
+.delta-auth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.delta-auth-btn .delta-auth-btn-arrow {
+  transition: transform 0.2s ease;
+}
+.delta-auth-btn:hover:not(:disabled) .delta-auth-btn-arrow {
+  transform: translateX(2px);
+}
+.delta-auth-btn-spinner {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 2FA Pending */
+.delta-auth-2fa-pending {
+  margin-top: 1rem;
+  text-align: center;
+}
+.delta-auth-2fa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.875rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+.delta-auth-2fa-badge svg {
+  color: #859bff;
+}
+
+.btn-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-radius: 1rem;
+  font-family: var(--font-display);
+  font-size: 15px; font-weight: 600;
+  color: #fff;
+  background: var(--color-primary-500);
+  transition: all 0.3s;
+  cursor: pointer;
+  border: none;
+}
+.btn-cta:hover { background: var(--color-primary-400); box-shadow: 0 0 50px rgba(var(--primary-rgb), 0.3); }
+.btn-cta:active { transform: scale(0.99); }
+
+.auth-submit { margin-top: 0.5rem; width: 100%; }
+
+.auth-forgot {
   text-align: center;
   font-family: var(--font-display);
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 0.75rem;
-}
-.auth-alt a {
-  color: var(--color-primary-400);
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.3);
   transition: color 0.2s;
+  cursor: pointer;
+  display: block;
+  text-decoration: none;
+  margin-top: 0.25rem;
 }
-.auth-alt a:hover { color: var(--color-primary-300); text-decoration: underline; }
+.auth-forgot:hover { color: rgba(255, 255, 255, 0.55); text-decoration: underline; }
 
 .tfa-spinner {
   width: 44px; height: 44px; margin: 0.5rem auto;
@@ -626,6 +1252,9 @@ textarea { min-height: 110px; resize: vertical; }
   font-size: 13px; font-weight: 500;
   white-space: nowrap;
   transition: all 0.2s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
 }
 .cabinet-tabs button:hover { color: rgba(255, 255, 255, 0.65); background: rgba(255, 255, 255, 0.04); }
 .cabinet-tabs button.active { color: #fff; background: rgba(255, 255, 255, 0.06); }
@@ -833,7 +1462,7 @@ td a { color: var(--color-primary-400); }
 @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
 
 /* ═══ Логотип delta: отрисовка штриха → проявление заливки ═══ */
-.brand-logo, .modal-logo { display: block; }
+.brand-logo, .modal-logo, .footer-logo { display: block; }
 .modal-logo { width: 72px; height: 61px; margin: 0.5rem auto 0.25rem; }
 
 .logo-stroke {
@@ -852,14 +1481,7 @@ td a { color: var(--color-primary-400); }
 @keyframes blink { 0% { opacity: 0.2; } 20% { opacity: 1; } to { opacity: 0.2; } }
 .animate-blink { animation: blink 1.4s infinite both; }
 
-@keyframes glowPulse { 0%, to { opacity: 0.5; } 50% { opacity: 1; } }
-.footer-glow {
-  position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 380px; height: 80px; pointer-events: none;
-  background: radial-gradient(ellipse at center, rgba(var(--primary-rgb), 0.22), transparent 70%);
-  animation: glowPulse 4s ease-in-out infinite;
-}
+
 
 @keyframes gradientShift { 0% { background-position: 0; } 50% { background-position: 100%; } to { background-position: 0; } }
 
@@ -889,17 +1511,186 @@ td a { color: var(--color-primary-400); }
   }
 }
 
-/* ═══ Футер и бейдж версии ═══ */
+/* ═══ Футер 1:1 deltaclient.xyz (только на главной странице) ═══ */
 .site-footer {
   position: relative;
-  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-  padding: 2.25rem 1rem;
-  font-family: var(--font-display);
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 0.8rem;
+  z-index: 10;
+  width: 100%;
+  margin-top: 9.5rem; /* Опущен ниже для большего свободного пространства */
+  padding: 5rem 1.5rem 3.5rem;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(17, 18, 22, 0.25) 20%,
+    rgba(17, 18, 22, 0.6) 50%,
+    rgba(17, 18, 22, 0.9) 85%,
+    #111216 100%
+  );
+  flex-shrink: 0;
 }
-/* свечение центрируется ровно по тексту */
-.footer-inner { position: relative; display: inline-flex; align-items: center; }
+
+/* Скрываем футер в кабинете всех ролей и в админке — отображается только на главной */
+body.page-cabinet .site-footer,
+body.page-admin .site-footer {
+  display: none !important;
+}
+
+.footer-container {
+  max-width: 64rem; /* max-w-5xl (1024px) как в оригинале */
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 640px) {
+  .footer-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 3rem;
+  }
+}
+
+.footer-col-brand {
+  grid-column: span 2 / span 2;
+}
+
+@media (min-width: 640px) {
+  .footer-col-brand {
+    grid-column: span 1 / span 1;
+  }
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.footer-logo {
+  width: 20px;
+  height: 17px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.footer-brand-name {
+  font-family: var(--font-title);
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: -0.02em;
+}
+
+.footer-tagline {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.2);
+  line-height: 1.6;
+  margin-bottom: 1.25rem;
+  max-width: 180px;
+}
+
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-social-btn {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.2);
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.footer-social-btn:hover {
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.footer-heading {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.75rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-link {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.2);
+  text-align: left;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-block;
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.footer-link:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.footer-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding-top: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .footer-bottom {
+    flex-direction: row;
+  }
+}
+
+.footer-copy {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.footer-inc {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  text-decoration: none;
+  transition: color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.footer-inc:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
 
 .version-badge {
   position: fixed;
@@ -938,6 +1729,8 @@ td a { color: var(--color-primary-400); }
   .bug-banner { flex-direction: column; text-align: center; }
   .bug-text { align-items: center; }
   .btn-tg { width: 100%; justify-content: center; }
+  .site-footer { margin-top: 6rem; padding: 3.5rem 1rem 2.5rem; }
+  .footer-grid { gap: 1.75rem; margin-bottom: 2rem; }
 }
 @media (max-width: 480px) {
   .brand-title { display: none; }

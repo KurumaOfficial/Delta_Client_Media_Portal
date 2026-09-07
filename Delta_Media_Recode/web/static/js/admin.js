@@ -18,6 +18,7 @@ const ICONS = {
 function initAdminNav() {
   document.querySelectorAll(".side-btn").forEach((b) =>
     b.addEventListener("click", () => {
+      if (b.dataset.cat === adminCat) return;
       document.querySelectorAll(".side-btn").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
       adminCat = b.dataset.cat;
@@ -29,21 +30,28 @@ function initAdminNav() {
 
 async function renderAdminCategory() {
   const body = document.getElementById("adminBody");
+  if (!body) return;
+  body.classList.remove("tab-fade-in");
+  void body.offsetWidth;
+  body.classList.add("tab-fade-in");
   body.innerHTML = '<p class="hint">Загрузка…</p>';
   try {
-    if (adminCat === "overview") return renderOverview();
-    if (adminCat === "media") return renderAppsTable("media");
-    if (adminCat === "hwid") return renderAppsTable("hwid");
-    if (adminCat === "discord") return renderAppsTable("discord");
-    if (adminCat === "payouts") return renderPayouts();
-    if (adminCat === "accounts") return renderAccounts();
-    if (adminCat === "bans") return renderBans();
-    if (adminCat === "windows") return renderWindows();
-    if (adminCat === "logs") return renderLogs();
-    if (adminCat === "settings") return renderSettings();
+    if (adminCat === "overview") await renderOverview();
+    else if (adminCat === "media") await renderAppsTable("media");
+    else if (adminCat === "hwid") await renderAppsTable("hwid");
+    else if (adminCat === "discord") await renderAppsTable("discord");
+    else if (adminCat === "payouts") await renderPayouts();
+    else if (adminCat === "accounts") await renderAccounts();
+    else if (adminCat === "bans") await renderBans();
+    else if (adminCat === "windows") await renderWindows();
+    else if (adminCat === "logs") await renderLogs();
+    else if (adminCat === "settings") await renderSettings();
   } catch (e) {
     body.innerHTML = `<div class="card">${esc(e.message)}</div>`;
   }
+  body.classList.remove("tab-fade-in");
+  void body.offsetWidth;
+  body.classList.add("tab-fade-in");
 }
 
 // ── Глобальный фильтр-бар (действует на все таблицы) ──
@@ -53,7 +61,7 @@ function filterBarHTML(withStatuses) {
     <input type="text" id="fSearch" placeholder="Поиск по всем таблицам…" value="${esc(ADMIN_FILTER.search)}">
     ${withStatuses ? `
     <div class="dropdown multi" id="fStatus">
-      <button type="button" class="dropdown-head"><span class="dropdown-value">Статусы: все</span><span class="chev">▾</span></button>
+      <button type="button" class="dropdown-head"><span class="dropdown-value">Статусы: все</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
       <div class="dropdown-menu">
         <label class="dropdown-item check"><input type="checkbox" value="pending"> в ожидании</label>
         <label class="dropdown-item check"><input type="checkbox" value="approved"> одобрено</label>
@@ -85,8 +93,23 @@ function bindFilterBar(rerender) {
 // ── Обзор ──
 async function renderOverview() {
   const { stats } = await GET("/api/admin/stats");
+  const appsOpen = stats.apps_open !== false;
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(false)}
+    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;border:1px solid ${appsOpen ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'};background:${appsOpen ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)'};">
+      <div>
+        <div style="display:flex;align-items:center;gap:0.65rem;">
+          <span class="dot" style="width:10px;height:10px;border-radius:9999px;background:${appsOpen ? 'var(--emerald)' : 'var(--rose)'};box-shadow:0 0 12px ${appsOpen ? 'rgba(52,211,153,0.9)' : 'rgba(248,113,113,0.9)'};"></span>
+          <b style="font-size:1.05rem;">Приём медиа-заявок: ${appsOpen ? '<span style="color:var(--emerald)">ОТКРЫТ</span>' : '<span style="color:var(--rose)">ЗАКРЫТ</span>'}</b>
+        </div>
+        <p class="hint" style="margin-top:0.35rem;">
+          ${appsOpen ? 'На главной странице отображается «delta media · приём заявок открыт», форма активна.' : 'На главной странице отображается «delta media · приём заявок закрыт», точка мигает красным, кнопка отправки заблокирована.'}
+        </p>
+      </div>
+      <button class="btn-ghost" id="toggleAppsBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${appsOpen ? 'rgba(248,113,113,0.45)' : 'rgba(52,211,153,0.45)'};background:${appsOpen ? 'rgba(248,113,113,0.12)' : 'rgba(52,211,153,0.12)'};color:${appsOpen ? 'var(--rose)' : 'var(--emerald)'};">
+        ${appsOpen ? '✕ Закрыть набор заявок' : '✓ Открыть набор заявок'}
+      </button>
+    </div>
     <div class="stats-row">
       <div class="stat-card"><b>${stats.media_pending}</b><span>Медиа заявки (в ожидании)</span></div>
       <div class="stat-card"><b>${stats.hwid_pending}</b><span>HWID запросы</span></div>
@@ -97,6 +120,23 @@ async function renderOverview() {
     <div class="card"><b>${esc(stats.week_label || "—")}</b>
       <p class="hint">${stats.week_open ? "🟢 Приём выплат открыт" : "🔴 Приём выплат закрыт (окно: вт 01:00 — пн 22:00 МСК)"}</p>
     </div>`;
+
+  document.getElementById("toggleAppsBtn")?.addEventListener("click", async () => {
+    const res = await POST("/api/admin/toggle-apps", { open: !appsOpen });
+    if (res.success) {
+      toast(res.apps_open ? "Набор заявок открыт" : "Набор заявок закрыт", "ok");
+      if (typeof SITE_CONFIG !== "undefined" && SITE_CONFIG) {
+        SITE_CONFIG.apps_open = res.apps_open;
+      }
+      if (typeof updateAppsOpenUI === "function") {
+        updateAppsOpenUI(res.apps_open);
+      }
+      renderOverview();
+    } else {
+      toast(res.error || "Ошибка изменения статуса", "err");
+    }
+  });
+
   bindFilterBar(() => renderOverview());
 }
 

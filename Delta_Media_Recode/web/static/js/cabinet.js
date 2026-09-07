@@ -7,10 +7,14 @@ async function switchCabinetTab(tab) {
   cabinetActiveTab = tab;
   document.querySelectorAll("#cabinetTabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   const body = document.getElementById("cabinetBody");
+  if (!body) return;
   if (tab === "adminpanel") { // админ-панель — полноценный раздел внутри кабинета
     await showView("admin");
     return;
   }
+  body.classList.remove("tab-fade-in");
+  void body.offsetWidth;
+  body.classList.add("tab-fade-in");
   if (tab === "hwid") body.innerHTML = buildProofForm("hwid", "Сброс HWID", "UID пользователя", "uuid");
   else if (tab === "discord") body.innerHTML = buildProofForm("discord", "Discord бан", "ID или @username нарушителя", "offender_id");
   else if (tab === "payout") body.innerHTML = buildPayoutForm();
@@ -21,24 +25,27 @@ async function switchCabinetTab(tab) {
 }
 
 function cabinetTabsForRole(role) {
-  if (role === "moderator") return [["hwid", "🔄 Сброс HWID"], ["discord", "🔨 Discord бан"]];
-  if (role === "media") return [["payout", "💸 Заявка на выплату"], ["lot", "🏷️ Заявка на лот"], ["my", "📋 Мои заявки"]];
-  if (role === "freemedia") return [["sub", "📺 Запрос подписки"], ["my", "📋 Мои заявки"]];
-  // у админа кабинет = сразу админ-панель, без чужих вкладок
-  if (role === "admin") return [["adminpanel", "🛡️ Админ-панель"]];
+  if (role === "moderator") return [["hwid", t("tabHwid")], ["discord", t("tabDiscord")]];
+  if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["my", t("tabMy")]];
+  if (role === "freemedia") return [["sub", t("tabSub")], ["my", t("tabMy")]];
+  if (role === "admin") return [["adminpanel", t("tabAdmin")]];
   return [];
 }
 
 async function loadCabinet() {
   if (!CURRENT_ACCOUNT) return;
-  const titles = { moderator: "Кабинет модератора", media: "Кабинет медиа", freemedia: "Кабинет фримедиа", admin: "Кабинет администратора" };
-  document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || "Кабинет";
+  const titles = {
+    moderator: t("cabinetModerator"),
+    media: t("cabinetMedia"),
+    freemedia: t("cabinetFreemedia"),
+    admin: t("cabinetAdmin")
+  };
+  document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || t("cabinetTitle");
   const tabs = cabinetTabsForRole(CURRENT_ACCOUNT.role);
   document.getElementById("cabinetTabs").innerHTML =
     tabs.map(([id, label]) => `<button data-tab="${id}">${label}</button>`).join("");
   document.querySelectorAll("#cabinetTabs button").forEach((b) =>
     b.addEventListener("click", () => switchCabinetTab(b.dataset.tab)));
-  // админ-панель — вкладка, но не дефолтная: после входа открываем первую обычную
   const initial = tabs.find((t) => t[0] !== "adminpanel") || tabs[0];
   await switchCabinetTab(initial[0]);
 }
@@ -89,7 +96,7 @@ function buildPayoutForm() {
     <div class="field"><label>Что хотите получить *</label><textarea name="want" maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
     <div class="field"><label>Способ выплаты *</label>
       <div class="dropdown" id="payMethod">
-        <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите способ</span><span class="chev">▾</span></button>
+        <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите способ</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
         <div class="dropdown-menu">
           <button type="button" class="dropdown-item" data-value="usdt">USDT-чек (CryptoBot)</button>
           <button type="button" class="dropdown-item" data-value="funpay">FunPay</button>
@@ -110,7 +117,7 @@ function buildLotForm() {
     <div class="field"><label>Ваш UID *</label><input type="text" name="uid" maxlength="64"></div>
     <div class="field"><label>Платформа *</label>
       <div class="dropdown" id="lotPlatform">
-        <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите платформу</span><span class="chev">▾</span></button>
+        <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите платформу</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
         <div class="dropdown-menu">
           <button type="button" class="dropdown-item" data-value="youtube">YouTube</button>
           <button type="button" class="dropdown-item" data-value="tiktok">TikTok</button>

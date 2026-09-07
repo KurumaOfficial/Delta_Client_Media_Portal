@@ -10,8 +10,10 @@ tg_session.json
 .reference/
 
 # Uploads & media runtime dirs
+/uploads/
+/Delta_Media_Recode/uploads/
 uploads/
-Delta_Media_Recode/uploads/
+!Delta_Media_Recode/internal/uploads/
 Delta_Media_Recode/tgGIF/*
 !Delta_Media_Recode/tgGIF/.gitkeep
 

@@ -9,18 +9,68 @@ async function loadSiteConfig() {
     SITE_CONFIG = await GET("/api/health");
     const staff = SITE_CONFIG.staff_contact || "notyxs";
     const admin = SITE_CONFIG.admin_contact || "notyxx";
-    document.getElementById("staffContactBtn").href = "https://t.me/" + staff;
-    document.getElementById("bugReportBtn").href = "https://t.me/" + admin;
-    if (!SITE_CONFIG.turnstile_enabled) document.getElementById("captchaField").classList.add("hidden");
-  } catch { SITE_CONFIG = {}; }
+    const staffBtn = document.getElementById("staffContactBtn");
+    if (staffBtn) staffBtn.href = "https://t.me/" + staff;
+    const bugBtn = document.getElementById("bugReportBtn");
+    if (bugBtn) bugBtn.href = "https://t.me/" + admin;
+    const forgotBtn = document.getElementById("authForgot");
+    if (forgotBtn) forgotBtn.href = "https://t.me/" + admin;
+    if (!SITE_CONFIG.turnstile_enabled) {
+      document.getElementById("captchaField")?.classList.add("hidden");
+      document.getElementById("loginCaptcha")?.classList.add("hidden");
+    }
+    updateAppsOpenUI(SITE_CONFIG.apps_open !== false);
+  } catch {
+    SITE_CONFIG = {};
+    updateAppsOpenUI(true);
+  }
+}
+
+function updateAppsOpenUI(isOpen) {
+  const pill = document.querySelector(".hero-pill");
+  const pillText = pill ? pill.querySelector("[data-i18n]") : null;
+  const submitBtn = document.getElementById("mediaSubmit");
+
+  if (isOpen) {
+    if (pill) pill.classList.remove("closed");
+    if (pillText) {
+      pillText.setAttribute("data-i18n", "heroPill");
+      pillText.textContent = t("heroPill");
+    }
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove("disabled");
+      submitBtn.setAttribute("data-i18n", "sendApp");
+      submitBtn.textContent = t("sendApp");
+    }
+  } else {
+    if (pill) pill.classList.add("closed");
+    if (pillText) {
+      pillText.setAttribute("data-i18n", "heroPillClosed");
+      pillText.textContent = t("heroPillClosed");
+    }
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.classList.add("disabled");
+      submitBtn.setAttribute("data-i18n", "sendAppClosed");
+      submitBtn.textContent = t("sendAppClosed");
+    }
+  }
 }
 
 function renderTurnstile() {
   if (!SITE_CONFIG || !SITE_CONFIG.turnstile_enabled || !window.turnstile) return;
-  if (turnstileWidgetId !== null) return;
-  turnstileWidgetId = window.turnstile.render("#turnstileBox", {
-    sitekey: SITE_CONFIG.turnstile_sitekey, theme: "dark",
-  });
+  if (turnstileWidgetId === null && document.getElementById("turnstileBox")) {
+    turnstileWidgetId = window.turnstile.render("#turnstileBox", {
+      sitekey: SITE_CONFIG.turnstile_sitekey, theme: "dark",
+    });
+  }
+  const loginBox = document.getElementById("loginTurnstileBox");
+  if (loginBox && !loginBox.hasChildNodes()) {
+    window.turnstile.render("#loginTurnstileBox", {
+      sitekey: SITE_CONFIG.turnstile_sitekey, theme: "dark",
+    });
+  }
 }
 
 function getTurnstileToken() {
@@ -91,6 +141,11 @@ async function submitMediaApp(e) {
   e.preventDefault();
   const btn = document.getElementById("mediaSubmit");
   const err = (msg) => { buttonState(btn, "err", msg, 3500); if (msg.includes("сотруднику")) flashTGBlock(); };
+
+  if (SITE_CONFIG && SITE_CONFIG.apps_open === false) {
+    err(t("heroPillClosed"));
+    return;
+  }
 
   const platform = document.getElementById("platformDrop").dataset.value;
   const servers = (document.getElementById("serversDrop").dataset.value || "").split(",").filter(Boolean);

@@ -10,8 +10,8 @@ function closeModal(id) {
 }
 document.addEventListener("click", (e) => {
   const closer = e.target.closest("[data-close]");
-  if (closer) closer.closest(".modal-overlay").classList.remove("open");
-  if (e.target.classList && e.target.classList.contains("modal-overlay")) {
+  if (closer) (closer.closest(".modal-overlay") || closer.closest(".auth-backdrop"))?.classList.remove("open");
+  if (e.target.classList && (e.target.classList.contains("modal-overlay") || e.target.classList.contains("auth-backdrop"))) {
     e.target.classList.remove("open");
   }
 });
@@ -31,10 +31,22 @@ document.addEventListener("click", (e) => {
   }
 });
 
-function dropdownSet(dropId, value, label) {
+function dropdownSet(dropId, value, label, iconHtml) {
   const drop = document.getElementById(dropId);
+  if (!drop) return;
   drop.dataset.value = value || "";
-  drop.querySelector(".dropdown-value").textContent = label;
+  const valSpan = drop.querySelector(".dropdown-value");
+  if (valSpan) {
+    if (iconHtml) {
+      valSpan.innerHTML = `${iconHtml} <span>${esc(label)}</span>`;
+    } else {
+      valSpan.textContent = label;
+    }
+  }
+  drop.classList.toggle("has-value", !!value);
+  drop.querySelectorAll(".dropdown-item").forEach((it) => {
+    it.classList.toggle("picked", it.dataset.value === value);
+  });
   drop.classList.remove("open");
 }
 
@@ -43,18 +55,26 @@ document.addEventListener("click", (e) => {
   const item = e.target.closest(".dropdown:not(.multi) .dropdown-item:not(.check)");
   if (!item) return;
   const drop = item.closest(".dropdown");
-  dropdownSet(drop.id, item.dataset.value, item.textContent.trim());
+  const svg = item.querySelector("svg");
+  const iconHtml = svg ? svg.outerHTML : "";
+  dropdownSet(drop.id, item.dataset.value, item.textContent.trim(), iconHtml);
 });
 
 // multi-select: чекбоксы
 document.addEventListener("change", (e) => {
   if (!e.target.matches(".dropdown.multi input[type=checkbox]")) return;
   const drop = e.target.closest(".dropdown");
-  const picked = [...drop.querySelectorAll("input:checked")].map((c) => c.value);
+  if (!drop) return;
+  const checkedBoxes = [...drop.querySelectorAll("input:checked")];
+  const picked = checkedBoxes.map((c) => c.value);
   const label = drop.querySelector(`input[value="${picked[picked.length - 1]}"]`)?.closest("label")?.textContent.trim();
   drop.dataset.value = picked.join(",");
-  drop.querySelector(".dropdown-value").textContent =
-    picked.length ? (picked.length === 1 ? label : picked.join(", ")) : I18N[LANG].pickServers;
+  drop.classList.toggle("has-value", picked.length > 0);
+  const defaultLabel = (I18N[LANG] && I18N[LANG].pickServers) || "Выберите серверы";
+  const valSpan = drop.querySelector(".dropdown-value");
+  if (valSpan) {
+    valSpan.textContent = picked.length ? (picked.length === 1 ? label : picked.join(", ")) : defaultLabel;
+  }
 });
 
 // ── Тосты ──
