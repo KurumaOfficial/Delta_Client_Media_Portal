@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -12,15 +13,60 @@ import (
 )
 
 // IPBanCheck — блокирует любой запрос с забаненного IP (исправленный бан по IP:
-// работает на всех маршрутах, включая статику, и отдаёт понятную ошибку).
+// работает на всех маршрутах, включая статику и SPA, и полностью блокирует доступ к сайту).
 func IPBanCheck(svc *bans.Service) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ip := GetRealIP(c)
 		if svc.IsIPBanned(ip) {
-			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-				"success": false,
-				"error":   "Ваш IP-адрес заблокирован на сайте.",
-			})
+			reason := svc.BanReasonOfIP(ip)
+			if reason == "" {
+				reason = "Нарушение правил проекта"
+			}
+			// Для API-запросов отдаём JSON 403
+			if strings.HasPrefix(c.Path(), "/api/") {
+				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+					"success": false,
+					"error":   "Ваш IP-адрес заблокирован: " + reason,
+				})
+			}
+			// Для браузера отдаём страницу блокировки доступа 403 Forbidden
+			c.Set("Content-Type", "text/html; charset=utf-8")
+			return c.Status(fiber.StatusForbidden).SendString(fmt.Sprintf(`<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Доступ заблокирован — Delta Media</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0c0d12; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+  .card { background: rgba(22, 24, 32, 0.95); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 16px; padding: 2.5rem; max-width: 480px; width: 100%%; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7); backdrop-filter: blur(20px); }
+  .icon { width: 56px; height: 56px; margin: 0 auto 1.25rem; background: rgba(248, 113, 113, 0.12); border: 1px solid rgba(248, 113, 113, 0.3); border-radius: 50%%; display: flex; align-items: center; justify-content: center; color: #f87171; }
+  h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem; color: #fff; }
+  p { font-size: 0.92rem; color: rgba(255, 255, 255, 0.65); line-height: 1.6; margin-bottom: 1.25rem; }
+  .box { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 1rem; text-align: left; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  .box-row { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+  .box-row:last-child { margin-bottom: 0; }
+  .lbl { color: rgba(255,255,255,0.45); }
+  .val { color: #f87171; font-family: monospace; font-weight: 600; }
+  .foot { font-size: 0.8rem; color: rgba(255,255,255,0.35); }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
+  </div>
+  <h1>Доступ заблокирован</h1>
+  <p>Ваш IP-адрес заблокирован администрацией портала Delta Media.</p>
+  <div class="box">
+    <div class="box-row"><span class="lbl">IP-адрес:</span><span class="val">%s</span></div>
+    <div class="box-row"><span class="lbl">Причина:</span><span class="val" style="color:#e2e8f0;font-family:inherit">%s</span></div>
+  </div>
+  <div class="foot">Сайт недоступен. Если вы считаете, что произошла ошибка, обратитесь к администрации.</div>
+</div>
+</body>
+</html>`, ip, reason))
 		}
 		return c.Next()
 	}

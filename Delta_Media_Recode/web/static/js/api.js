@@ -38,15 +38,39 @@ const GET = (p) => api("GET", p);
 const POST = (p, b) => api("POST", p, b);
 const DELETE = (p) => api("DELETE", p);
 
-// Перехват клиентских ошибок → аудит-лог сервера
+// Перехват клиентских ошибок → аудит-лог сервера (с фильтром шумов и расширений)
 (function clientErrorLogger() {
+  function shouldIgnore(val) {
+    if (!val) return false;
+    const s = String(val).toLowerCase();
+    return s.includes("turnstile") ||
+           s.includes("300010") ||
+           s.includes("challenges.cloudflare.com") ||
+           s.includes("chrome-extension") ||
+           s.includes("moz-extension") ||
+           s.includes("safari-extension") ||
+           s.includes("extension:") ||
+           s.includes("resizeobserver") ||
+           s.includes("script error") ||
+           s.includes("grammarly") ||
+           s.includes("failed to fetch");
+  }
+
   function send(type, message, error) {
+    if (shouldIgnore(message) || shouldIgnore(error)) return;
     try {
       navigator.sendBeacon("/api/log-client-error",
         new Blob([JSON.stringify({ type, message, error: String(error || "") })],
                  { type: "application/json" }));
     } catch { /* ignore */ }
   }
-  window.addEventListener("error", (e) => send("JS_ERROR", e.message + " @ " + (e.filename || "") + ":" + (e.lineno || 0)));
-  window.addEventListener("unhandledrejection", (e) => send("UNHANDLED_PROMISE", String(e.reason)));
+
+  window.addEventListener("error", (e) => {
+    if (shouldIgnore(e.message) || shouldIgnore(e.filename)) return;
+    send("JS_ERROR", e.message + " @ " + (e.filename || "") + ":" + (e.lineno || 0), e.error);
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    if (shouldIgnore(e.reason)) return;
+    send("UNHANDLED_PROMISE", String(e.reason));
+  });
 })();

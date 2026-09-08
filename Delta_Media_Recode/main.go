@@ -183,6 +183,8 @@ func main() {
 
 	adminGroup.Get("/bans", adminH.Bans)
 	adminGroup.Post("/bans", adminH.AddBan)
+	adminGroup.Put("/bans/:id", adminH.UpdateBan)
+	adminGroup.Post("/bans/:id", adminH.UpdateBan)
 	adminGroup.Delete("/bans/:id", adminH.RemoveBan)
 	adminGroup.Get("/tg-windows", adminH.TGWindows)
 

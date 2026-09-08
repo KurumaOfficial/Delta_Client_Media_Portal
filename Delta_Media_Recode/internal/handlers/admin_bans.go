@@ -23,49 +23,65 @@ func (h *Admin) Bans(c *fiber.Ctx) error {
 
 func (h *Admin) AddBan(c *fiber.Ctx) error {
 	var body struct {
-		BType  string `json:"btype"`
-		Value  string `json:"value"`
-		Reason string `json:"reason"`
+		Channel  string `json:"channel"`
+		UID      string `json:"uid"`
+		Telegram string `json:"telegram"`
+		Discord  string `json:"discord"`
+		IP       string `json:"ip"`
+		Reason   string `json:"reason"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректный запрос")
 	}
-	if !validation.InList(body.BType, models.BanIP, models.BanYouTube, models.BanTikTok,
-		models.BanTelegram, models.BanUID) {
-		return badRequest(c, "Тип бана: ip, youtube, tiktok, telegram или uid")
+	ban := models.Ban{
+		Channel:  validation.Clean(body.Channel, 300),
+		UID:      validation.Clean(body.UID, 100),
+		Telegram: validation.Clean(body.Telegram, 100),
+		Discord:  validation.Clean(body.Discord, 100),
+		IP:       validation.Clean(body.IP, 100),
+		Reason:   validation.Clean(body.Reason, 300),
+		BannedBy: actorInfo(c),
 	}
-	value := validation.Clean(body.Value, 300)
-	reason := validation.Clean(body.Reason, 300)
-	if value == "" {
-		return badRequest(c, "Укажите значение бана")
-	}
-	// валидация значения по типу (кроме ip — его проверит сервис с CIDR)
-	switch body.BType {
-	case models.BanYouTube:
-		if _, ok := validation.YouTubeChannel(value); !ok {
-			return badRequest(c, "Некорректная ссылка на YouTube-канал")
-		}
-	case models.BanTikTok:
-		if _, ok := validation.TikTokChannel(value); !ok {
-			return badRequest(c, "Некорректная ссылка на TikTok")
-		}
-	case models.BanTelegram:
-		if _, ok := validation.Telegram(value); !ok {
-			return badRequest(c, "Некорректный @username")
-		}
-		value = value[1:] // храним без @
-	case models.BanUID:
-		if _, ok := validation.UID(value); !ok {
-			return badRequest(c, "Некорректный UID")
-		}
-	}
-
-	actor := actorInfo(c)
-	if err := h.bans.Add(body.BType, value, reason, actor); err != nil {
+	if err := h.bans.Add(ban); err != nil {
 		return badRequest(c, err.Error())
 	}
 	h.db.RecordAudit("BAN_ADD", "success",
-		"Бан "+body.BType+": "+value+" ("+reason+")", middleware.GetRealIP(c), c.Get("User-Agent"))
+		"Блокировка: chan="+ban.Channel+" uid="+ban.UID+" tg="+ban.Telegram+" dc="+ban.Discord+" ip="+ban.IP+" ("+ban.Reason+")",
+		middleware.GetRealIP(c), c.Get("User-Agent"))
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func (h *Admin) UpdateBan(c *fiber.Ctx) error {
+	id, err := paramID(c)
+	if err != nil {
+		return badRequest(c, "Неверный ID блокировки")
+	}
+	var body struct {
+		Channel  string `json:"channel"`
+		UID      string `json:"uid"`
+		Telegram string `json:"telegram"`
+		Discord  string `json:"discord"`
+		IP       string `json:"ip"`
+		Reason   string `json:"reason"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return badRequest(c, "Некорректный запрос")
+	}
+	ban := models.Ban{
+		ID:       id,
+		Channel:  validation.Clean(body.Channel, 300),
+		UID:      validation.Clean(body.UID, 100),
+		Telegram: validation.Clean(body.Telegram, 100),
+		Discord:  validation.Clean(body.Discord, 100),
+		IP:       validation.Clean(body.IP, 100),
+		Reason:   validation.Clean(body.Reason, 300),
+	}
+	if err := h.bans.Update(ban); err != nil {
+		return badRequest(c, err.Error())
+	}
+	h.db.RecordAudit("BAN_UPDATE", "success",
+		"Обновление бана #"+itoa64(id)+": chan="+ban.Channel+" uid="+ban.UID+" tg="+ban.Telegram+" dc="+ban.Discord+" ip="+ban.IP+" ("+ban.Reason+")",
+		middleware.GetRealIP(c), c.Get("User-Agent"))
 	return c.JSON(fiber.Map{"success": true})
 }
 

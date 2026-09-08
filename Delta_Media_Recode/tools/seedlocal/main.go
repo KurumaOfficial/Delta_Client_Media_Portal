@@ -140,16 +140,14 @@ func main() {
 		fmt.Println("  + Discord баны (pending, approved)")
 	}
 
-	// Банлист (IP, UID, Telegram, Channel)
+	// Банлист (групповые блокировки: аккаунт, UID, Telegram, Discord, IP)
 	var bansCount int
 	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_bans`).Scan(&bansCount)
-	if bansCount < 3 {
-		_, _ = db.Exec(`INSERT OR IGNORE INTO v2_bans (btype, value, reason, banned_by) VALUES
-			('ip', '185.220.101.5', 'Спам-бот / Tor exit node', 'admin'),
-			('telegram', '@scammer_hvh', 'Попытка скама на аккаунты', 'admin'),
-			('uid', 'UID-CHEATER-999', 'Использование сливов и декомпиляция', 'admin'),
-			('link', 'https://youtube.com/@fake_delta', 'Фейковый канал с малварью', 'admin')`)
-		fmt.Println("  + записи в банлисте (IP, TG, UID, Ссылка)")
+	if bansCount < 2 {
+		_, _ = db.Exec(`INSERT INTO v2_bans (channel, uid, telegram, discord, ip, reason, banned_by) VALUES
+			('https://youtube.com/@scammer_demo', 'UID-CHEATER-999', 'scammer_hvh', 'scammer#1337', '185.220.101.5', 'Попытка скама и декомпиляция', 'admin'),
+			('https://youtube.com/@fake_delta', '', 'fakedelta', '', '', 'Фейковый канал с малварью', 'admin')`)
+		fmt.Println("  + записи в банлисте (групповые блокировки)")
 	}
 
 	// Журнал аудита

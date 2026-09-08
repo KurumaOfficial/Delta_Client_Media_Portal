@@ -145,12 +145,15 @@ func (db *DB) Migrate() error {
 
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS v2_bans (
 			id %s,
-			btype TEXT NOT NULL,
-			value TEXT NOT NULL,
+			channel TEXT NOT NULL DEFAULT '',
+			uid TEXT NOT NULL DEFAULT '',
+			telegram TEXT NOT NULL DEFAULT '',
+			discord TEXT NOT NULL DEFAULT '',
+			ip TEXT NOT NULL DEFAULT '',
 			reason TEXT NOT NULL DEFAULT '',
 			banned_by TEXT NOT NULL DEFAULT '',
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE (btype, value)
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`, pk),
 
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS v2_audit_logs (
@@ -175,6 +178,87 @@ func (db *DB) Migrate() error {
 			return fmt.Errorf("create table: %w\nQuery: %s", err, s)
 		}
 	}
+
+	// Миграция v2_bans со старой схемы (btype, value) на групповую (1 запись = 1 сущность)
+	var hasBType bool
+	if db.IsPostgres() {
+		var cnt int
+		_ = db.SQL.QueryRow(`SELECT count(*) FROM information_schema.columns WHERE table_name = 'v2_bans' AND column_name = 'btype'`).Scan(&cnt)
+		hasBType = cnt > 0
+	} else {
+		rows, err := db.SQL.Query(`PRAGMA table_info(v2_bans)`)
+		if err == nil {
+			for rows.Next() {
+				var cid int
+				var name, ctype string
+				var notnull, pkCol int
+				var dflt interface{}
+				if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pkCol); err == nil && name == "btype" {
+					hasBType = true
+				}
+			}
+			rows.Close()
+		}
+	}
+	if hasBType {
+		log.Println("[Migrate] Migrating v2_bans from single-value to grouped entity schema...")
+		if db.IsPostgres() {
+			_, _ = db.SQL.Exec(`ALTER TABLE v2_bans RENAME TO v2_bans_old;`)
+			_, _ = db.SQL.Exec(`CREATE TABLE v2_bans (
+				id BIGSERIAL PRIMARY KEY,
+				channel TEXT NOT NULL DEFAULT '',
+				uid TEXT NOT NULL DEFAULT '',
+				telegram TEXT NOT NULL DEFAULT '',
+				discord TEXT NOT NULL DEFAULT '',
+				ip TEXT NOT NULL DEFAULT '',
+				reason TEXT NOT NULL DEFAULT '',
+				banned_by TEXT NOT NULL DEFAULT '',
+				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);`)
+			_, _ = db.SQL.Exec(`INSERT INTO v2_bans (id, channel, uid, telegram, discord, ip, reason, banned_by, created_at, updated_at)
+				SELECT id,
+					CASE WHEN btype IN ('youtube','tiktok','link','channel') THEN value ELSE '' END,
+					CASE WHEN btype = 'uid' THEN value ELSE '' END,
+					CASE WHEN btype = 'telegram' THEN value ELSE '' END,
+					CASE WHEN btype = 'discord' THEN value ELSE '' END,
+					CASE WHEN btype = 'ip' THEN value ELSE '' END,
+					reason, banned_by, created_at, created_at
+				FROM v2_bans_old;`)
+			_, _ = db.SQL.Exec(`DROP TABLE v2_bans_old;`)
+		} else {
+			_, _ = db.SQL.Exec(`ALTER TABLE v2_bans RENAME TO v2_bans_old;`)
+			_, _ = db.SQL.Exec(`CREATE TABLE v2_bans (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				channel TEXT NOT NULL DEFAULT '',
+				uid TEXT NOT NULL DEFAULT '',
+				telegram TEXT NOT NULL DEFAULT '',
+				discord TEXT NOT NULL DEFAULT '',
+				ip TEXT NOT NULL DEFAULT '',
+				reason TEXT NOT NULL DEFAULT '',
+				banned_by TEXT NOT NULL DEFAULT '',
+				created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+			);`)
+			_, _ = db.SQL.Exec(`INSERT INTO v2_bans (id, channel, uid, telegram, discord, ip, reason, banned_by, created_at, updated_at)
+				SELECT id,
+					CASE WHEN btype IN ('youtube','tiktok','link','channel') THEN value ELSE '' END,
+					CASE WHEN btype = 'uid' THEN value ELSE '' END,
+					CASE WHEN btype = 'telegram' THEN value ELSE '' END,
+					CASE WHEN btype = 'discord' THEN value ELSE '' END,
+					CASE WHEN btype = 'ip' THEN value ELSE '' END,
+					reason, banned_by, created_at, created_at
+				FROM v2_bans_old;`)
+			_, _ = db.SQL.Exec(`DROP TABLE v2_bans_old;`)
+		}
+	}
+
+	// Очистка спам-ошибок turnstile и расширений браузера из журнала аудита
+	_, _ = db.SQL.Exec(`DELETE FROM v2_audit_logs WHERE event_type = 'CLIENT_ERROR' AND (
+		details LIKE '%turnstile%' OR details LIKE '%Turnstile%' OR details LIKE '%300010%' OR
+		details LIKE '%chrome-extension%' OR details LIKE '%moz-extension%' OR details LIKE '%safari-extension%' OR
+		details LIKE '%ResizeObserver%' OR details LIKE '%Script error%'
+	);`)
 
 	// мягкая миграция существующих баз (колонка могла отсутствовать).
 	// SQLite не разрешает ADD COLUMN с DEFAULT CURRENT_TIMESTAMP — добавляем

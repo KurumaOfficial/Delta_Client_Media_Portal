@@ -9,6 +9,7 @@ const (
 	BanTikTok   = "tiktok"
 	BanTelegram = "telegram"
 	BanUID      = "uid"
+	BanDiscord  = "discord"
 )
 
 func BanTypeTitle(t string) string {
@@ -23,17 +24,23 @@ func BanTypeTitle(t string) string {
 		return "Telegram"
 	case BanUID:
 		return "UID"
+	case BanDiscord:
+		return "Discord"
 	}
 	return t
 }
 
 type Ban struct {
 	ID        int64     `json:"id"`
-	BType     string    `json:"btype"`
-	Value     string    `json:"value"`
+	Channel   string    `json:"channel"`
+	UID       string    `json:"uid"`
+	Telegram  string    `json:"telegram"`
+	Discord   string    `json:"discord"`
+	IP        string    `json:"ip"`
 	Reason    string    `json:"reason"`
 	BannedBy  string    `json:"banned_by"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type AuditLog struct {

@@ -142,7 +142,15 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		return badRequest(c, "Капча не пройдена")
 	}
 
-	// ── Банлист: ссылки, тг, uid ──
+	// ── Банлист: IP, ссылки, тг, uid ──
+	ip := middleware.GetRealIP(c)
+	if h.bans.IsIPBanned(ip) {
+		reason := h.bans.BanReasonOfIP(ip)
+		if reason == "" {
+			reason = "Ваш IP-адрес заблокирован."
+		}
+		return banHit(c, models.Ban{IP: ip, Reason: reason})
+	}
 	banType := models.BanYouTube
 	if body.Platform == "tiktok" {
 		banType = models.BanTikTok
@@ -219,6 +227,21 @@ func (h *Public) LogClientError(c *fiber.Ctx) error {
 	if err := c.BodyParser(&body); err != nil {
 		return c.JSON(fiber.Map{"success": true})
 	}
+	raw := strings.ToLower(body.Type + " " + body.Message + " " + body.Error)
+	// Игнорируем блокировки Cloudflare Turnstile, расширений браузера и сетевые шумы
+	if strings.Contains(raw, "turnstile") ||
+		strings.Contains(raw, "300010") ||
+		strings.Contains(raw, "challenges.cloudflare.com") ||
+		strings.Contains(raw, "chrome-extension") ||
+		strings.Contains(raw, "moz-extension") ||
+		strings.Contains(raw, "safari-extension") ||
+		strings.Contains(raw, "extension") ||
+		strings.Contains(raw, "resizeobserver") ||
+		strings.Contains(raw, "script error") ||
+		strings.Contains(raw, "failed to fetch") {
+		return c.JSON(fiber.Map{"success": true})
+	}
+
 	h.db.RecordAudit("CLIENT_ERROR", "error",
 		"["+validation.Clean(body.Type, 40)+"] "+validation.MultiLine(body.Message, 500)+
 			" | "+validation.MultiLine(body.Error, 1000),
