@@ -377,43 +377,20 @@ function drawAppsTable(kind, cfg) {
 
   const rows = pageRows.map((r) => {
     if (kind === "media") {
-      const isYT = r.platform === "youtube";
-      const contentInfo = isYT
-        ? (r.videos_per_week ? `<span style="color:var(--color-primary-300);">📹 ${esc(r.videos_per_week)}</span>` : '<span class="hint">—</span>')
-        : (r.collaborations ? `<span style="color:#38bdf8;">🤝 ${esc(r.collaborations)}</span>` : '<span class="hint">—</span>');
-      const exclusiveBadge = r.exclusive === "yes"
-        ? `<span class="badge approved" style="font-size:0.72rem;padding:0.15rem 0.5rem;">Да</span>`
-        : `<span class="badge warning" style="font-size:0.72rem;padding:0.15rem 0.5rem;">Нет</span>`;
-      const whySnippet = esc(r.why_join || "—");
       const tgClean = (r.telegram || "").replace(/^@/, "");
       const tgLink = tgClean ? `<a href="https://t.me/${esc(tgClean)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">@${esc(tgClean)}</a>` : '<span class="hint">—</span>';
-      const channelLink = r.channel_url ? `<a href="${esc(r.channel_url)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">${esc(r.channel_url)}</a>` : '<span class="hint">—</span>';
-      const platformBadge = isYT
-        ? `<span style="display:inline-flex;align-items:center;gap:0.3rem;color:#f87171;font-weight:600;"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M23 7.5s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.4 4 12 4 12 4s-4.4 0-7.7.2c-.5.1-1.5.1-2.4 1C1.2 5.9 1 7.5 1 7.5S.8 9.4.8 11.3v1.4c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.5 1 1.8.2 7.6.2 7.6.2s4.4 0 7.7-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.7v-1.4c0-1.9-.2-3.8-.2-3.8ZM9.7 15.1V8.4l6.4 3.4-6.4 3.3Z"/></svg> YouTube</span>`
-        : `<span style="display:inline-flex;align-items:center;gap:0.3rem;color:#38bdf8;font-weight:600;"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19.6 6.7a5 5 0 0 1-3.5-1.4 5 5 0 0 1-1.4-3.6h-3.3v13.2a2.9 2.9 0 1 1-2.1-2.8V8.6a6.3 6.3 0 0 0-1-.1 6.2 6.2 0 1 0 6.4 6.2V9.9a8.2 8.2 0 0 0 4.9 1.6V8.2c0-.5 0-1-.1-1.5Z"/></svg> TikTok</span>`;
-
       return `
-        <tr class="clickable-row" data-media-id="${r.id}" style="cursor:pointer;" title="Нажмите для просмотра всей информации по заявке">
+        <tr class="clickable-row" data-media-id="${r.id}" style="cursor:pointer;" title="Нажмите, чтобы просмотреть всю информацию по заявке">
           <td class="mono">#${r.id}</td>
-          <td><span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">${formatDate(r.created_at)}</span></td>
           <td class="mono">${esc(r.uid)}</td>
-          <td>${platformBadge}</td>
-          <td>${channelLink}</td>
-          <td>${esc(r.servers || "—")}</td>
-          <td>${contentInfo}</td>
-          <td>${exclusiveBadge}</td>
-          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${whySnippet}">${whySnippet}</td>
+          <td><b>${esc(r.platform)}</b></td>
+          <td><a href="${esc(r.channel_url)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">${esc(r.channel_url)}</a></td>
+          <td>${esc(r.servers)}</td>
           <td>${tgLink}</td>
-          <td>${statusBadge(r.status)}${r.admin_comment ? `<br><small style="color:var(--text-muted);">💬 ${esc(r.admin_comment)}</small>` : ""}</td>
-          <td>
-            <div class="row-actions" onclick="event.stopPropagation()">
-              <button class="act" data-view-media="${r.id}" title="Посмотреть всю анкету">👁</button>
-              ${r.status === "pending" ? `
-                <button class="act" data-decide="approved" data-id="${r.id}" title="Одобрить">✓</button>
-                <button class="act reject" data-decide="rejected" data-id="${r.id}" title="Отклонить">✕</button>
-              ` : ""}
-            </div>
-          </td>
+          <td>${statusBadge(r.status)}</td>
+          <td>${r.status === "pending" ? `<div class="row-actions" onclick="event.stopPropagation()">
+            <button class="act" data-decide="approved" data-id="${r.id}">✓ Одобрить</button>
+            <button class="act reject" data-decide="rejected" data-id="${r.id}">✕ Отклонить</button></div>` : "—"}</td>
         </tr>`;
     }
     if (kind === "hwid") return `
@@ -427,11 +404,11 @@ function drawAppsTable(kind, cfg) {
   }).join("");
 
   const theadCols = kind === "media"
-    ? "<th>ID</th><th>Дата</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Контент/Опыт</th><th>Эксклюзив</th><th>Мотивация</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
+    ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
     : kind === "hwid"
     ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
-  const colSpan = kind === "media" ? 12 : (kind === "hwid" ? 5 : 7);
+  const colSpan = kind === "hwid" ? 5 : (kind === "media" ? 8 : 7);
 
   const tableBoxHTML = `
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
