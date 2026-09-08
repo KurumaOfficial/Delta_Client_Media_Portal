@@ -1791,6 +1791,27 @@ body.page-admin .site-footer {
   .brand { padding-right: 0.25rem; }
   .nav { max-width: 46vw; }
   .version-badge { bottom: 0.5rem; right: 0.5rem; font-size: 0.6rem; padding: 0.2rem 0.5rem; }
+  .maintenance-countdown {
+    width: 100%;
+    max-width: 320px;
+    gap: 0.4rem;
+    padding: 0.85rem 0.75rem;
+    border-radius: 18px;
+  }
+  .timer-card {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+  .timer-num {
+    font-size: 1.65rem;
+  }
+  .timer-label {
+    font-size: 10px;
+  }
+  .timer-colon {
+    font-size: 1.35rem;
+    margin-top: -0.4rem;
+  }
 }
 
 /* ═══ Режим технических работ ═══ */
@@ -1881,13 +1902,25 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 }
 
 .maintenance-countdown {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.85rem;
-  margin: 2.25rem 0 2rem;
-  flex-wrap: wrap;
+  gap: 1.35rem;
+  margin: 2rem auto;
+  padding: 1.25rem 2.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(60px) saturate(160%);
+  -webkit-backdrop-filter: blur(60px) saturate(160%);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
   animation: appearanceIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both 0.35s;
+}
+.maintenance-countdown:hover {
+  border-color: rgba(var(--primary-rgb), 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
 }
 
 .timer-card {
@@ -1896,25 +1929,12 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 105px;
-  padding: 1.25rem 1.15rem 1rem;
-  border-radius: 24px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-}
-.timer-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(var(--primary-rgb), 0.3);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+  min-width: 75px;
 }
 
 .timer-num {
   font-family: var(--font-mono);
-  font-size: 2.35rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #fff;
   line-height: 1.1;
@@ -1925,7 +1945,7 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.45);
   text-transform: lowercase;
   margin-top: 0.35rem;
   letter-spacing: 0.05em;
