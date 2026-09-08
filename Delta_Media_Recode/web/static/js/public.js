@@ -42,7 +42,7 @@ function updateMaintenanceUI() {
     } else {
       document.body.classList.remove("user-is-staff");
       if (typeof showView === "function") {
-        showView("maintenance");
+        showView("maintenance", false);
       }
     }
     startMaintenanceCountdown(SITE_CONFIG.maintenance_until, SITE_CONFIG.maintenance_seconds_left);
@@ -116,7 +116,7 @@ function updateTimerDisplay(h, m, s) {
 }
 
 function updateAppsOpenUI(isOpen) {
-  const pill = document.querySelector(".hero-pill");
+  const pill = document.querySelector("#view-public .hero-pill");
   const pillText = pill ? pill.querySelector("[data-i18n]") : null;
   const submitBtn = document.getElementById("mediaSubmit");
 

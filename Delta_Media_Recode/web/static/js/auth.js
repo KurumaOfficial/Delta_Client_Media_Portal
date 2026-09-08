@@ -181,13 +181,18 @@ async function getGeoPosition() {
 
 function initAuthUI() {
   // Кнопка «Кабинет» в шапке
-  document.getElementById("cabinetBtn")?.addEventListener("click", () => {
-    if (CURRENT_ACCOUNT) {
-      showView("cabinet");
-    } else {
-      openAuth();
-    }
-  });
+  const cabBtn = document.getElementById("cabinetBtn");
+  if (cabBtn && !cabBtn.dataset.bound) {
+    cabBtn.dataset.bound = "1";
+    cabBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (CURRENT_ACCOUNT) {
+        showView("cabinet");
+      } else {
+        openAuth();
+      }
+    });
+  }
 
 
 

@@ -1,22 +1,100 @@
 /* app.js — точка входа: язык, вкладки, сессия, инициализация */
 "use strict";
 
-(function bootstrap() {
-  // язык из маршрута или сохранённый
-  let initLang = "ru";
-  if (location.pathname.startsWith("/en")) initLang = "en";
-  else if (location.pathname.startsWith("/ua") || location.pathname.startsWith("/uk")) initLang = "ua";
-  else {
-    try {
-      const saved = localStorage.getItem("delta_lang");
-      if (saved && (saved === "ru" || saved === "ua" || saved === "en")) initLang = saved;
-    } catch { /* ignore */ }
-  }
-  setLanguage(initLang);
-  document.querySelectorAll(".lang-switch button").forEach((b) =>
-    b.addEventListener("click", () => setLanguage(b.dataset.lang)));
+// ═══ Состояние анимаций экрана техработ ═══
+let maintTypewriterTimer = null;
+let maintTypewriterInterval = null;
 
-  // переключение вкладок (общая функция — используется и кнопкой «Кабинет»)
+// Логотип в хедере заново «отрисовывается» при каждом переключении вкладки
+function redrawHeaderLogo() {
+  const logo = document.querySelector(".brand-logo");
+  if (!logo) return;
+  const clone = logo.cloneNode(true);
+  logo.replaceWith(clone);
+}
+window.redrawHeaderLogo = redrawHeaderLogo;
+
+// Побуквенное появление hero-заголовка (в стиле deltaclient.xyz)
+function applyHeroTitle() {
+  const el = document.getElementById("heroTitle");
+  if (!el) return;
+  if (!I18N || !I18N[LANG] || !I18N[LANG].heroTitle) return;
+  const [plain, highlight] = I18N[LANG].heroTitle;
+  let delay = 0;
+  const split = (text) => text.split("").map((ch) => {
+    const span = document.createElement("span");
+    span.className = "ltr";
+    span.style.animationDelay = (delay++ * 0.03) + "s";
+    span.innerHTML = ch === " " ? "&nbsp;" : ch;
+    return span.outerHTML;
+  }).join("");
+  // подсвеченное слово — один спан-обёртка со всеми буквами
+  el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
+}
+window.applyHeroTitle = applyHeroTitle;
+
+// ═══ Анимации экрана техработ: побуквенный заголовок + печать описания ═══
+function applyMaintenanceTitle() {
+  const el = document.getElementById("maintenanceTitle");
+  if (!el) return;
+  const plain = (typeof t === "function" && t("maintenanceTitle")) || "Технические";
+  const highlight = (typeof t === "function" && t("maintenanceHighlight")) || "работы";
+  let delay = 0;
+  const split = (text) => text.split("").map((ch) => {
+    const span = document.createElement("span");
+    span.className = "ltr";
+    span.style.animationDelay = (delay++ * 0.035) + "s";
+    span.innerHTML = ch === " " ? "&nbsp;" : ch;
+    return span.outerHTML;
+  }).join("");
+  el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
+}
+window.applyMaintenanceTitle = applyMaintenanceTitle;
+
+function startMaintenanceTypewriter() {
+  if (maintTypewriterTimer) {
+    clearTimeout(maintTypewriterTimer);
+    maintTypewriterTimer = null;
+  }
+  if (maintTypewriterInterval) {
+    clearInterval(maintTypewriterInterval);
+    maintTypewriterInterval = null;
+  }
+
+  const el = document.getElementById("maintenanceDesc");
+  if (!el) return;
+
+  const fullText = (typeof t === "function" && t("maintenanceDesc")) ||
+    "Мы проводим плановое обновление портала delta media. Скоро вернемся к работе.";
+
+  el.innerHTML = '<span class="typewriter-text"></span><span class="typewriter-cursor">|</span>';
+  const textSpan = el.querySelector(".typewriter-text");
+  const cursor = el.querySelector(".typewriter-cursor");
+
+  let i = 0;
+  maintTypewriterTimer = setTimeout(() => {
+    maintTypewriterInterval = setInterval(() => {
+      if (i < fullText.length) {
+        if (textSpan) textSpan.textContent += fullText.charAt(i);
+        i++;
+      } else {
+        clearInterval(maintTypewriterInterval);
+        maintTypewriterInterval = null;
+        if (cursor) cursor.classList.add("cursor-done");
+      }
+    }, 22);
+  }, 350);
+}
+window.startMaintenanceTypewriter = startMaintenanceTypewriter;
+
+function applyMaintenanceAnimations() {
+  applyMaintenanceTitle();
+  startMaintenanceTypewriter();
+}
+window.applyMaintenanceAnimations = applyMaintenanceAnimations;
+
+(function bootstrap() {
+  // 1. Общая функция переключения вкладок (используется и кнопкой «Кабинет»)
   window.showView = async (name, pushUrl = true) => {
     const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
     const staff = typeof isStaff === "function" && isStaff();
@@ -60,6 +138,8 @@
     if (name === "maintenance") applyMaintenanceAnimations();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // 2. Вкладки навигации
   document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => showView(btn.dataset.view)));
 
@@ -69,7 +149,8 @@
     brandLogo.addEventListener("click", (e) => {
       e.preventDefault();
       const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
-      if (isMaint) {
+      const staff = typeof isStaff === "function" && isStaff();
+      if (isMaint && !staff) {
         showView("maintenance");
         return;
       }
@@ -112,13 +193,28 @@
     obs.observe(footerLogo);
   }
 
+  // 3. Инициализация UI модулей
   initAuthUI();
   initPublicForm();
   initAdminNav();
 
-  // Инициализация приложения: проверка «Запомнить меня», конфиг и сессия
+  // 4. Язык из маршрута или сохранённый
+  let initLang = "ru";
+  if (location.pathname.startsWith("/en")) initLang = "en";
+  else if (location.pathname.startsWith("/ua") || location.pathname.startsWith("/uk")) initLang = "ua";
+  else {
+    try {
+      const saved = localStorage.getItem("delta_lang");
+      if (saved && (saved === "ru" || saved === "ua" || saved === "en")) initLang = saved;
+    } catch { /* ignore */ }
+  }
+  setLanguage(initLang);
+  document.querySelectorAll(".lang-switch button").forEach((b) =>
+    b.addEventListener("click", () => setLanguage(b.dataset.lang)));
+
+  // 5. Инициализация приложения: проверка «Запомнить меня», конфиг и сессия
   (async () => {
-    // 1. Проверка галочки «Запомнить меня»:
+    // Проверка галочки «Запомнить меня»:
     // Если пользователь вошёл без галочки «Запомнить меня», то при обновлении страницы (F5)
     // происходит разлогин и выкидывает из аккаунта
     const remember = localStorage.getItem("delta_remember") === "1";
@@ -130,7 +226,7 @@
       localStorage.removeItem("delta_remember");
     }
 
-    // 2. Загрузка конфигурации сайта (техработы, приём заявок, turnstile)
+    // Загрузка конфигурации сайта (техработы, приём заявок, turnstile)
     await loadSiteConfig();
 
     if (SITE_CONFIG && SITE_CONFIG.turnstile_enabled) {
@@ -141,14 +237,14 @@
       document.head.appendChild(s);
     }
 
-    // 3. Загрузка активной сессии (только если «Запомнить меня» было включено)
+    // Загрузка активной сессии (только если «Запомнить меня» было включено)
     if (remember) {
       await loadSession();
     } else {
       updateCabinetBtn();
     }
 
-    // 4. Определение начального экрана и маршрута
+    // Определение начального экрана и маршрута
     const isMaintRoute = location.pathname === "/maintenance";
     const isMaintActive = !!(SITE_CONFIG && SITE_CONFIG.maintenance_enabled);
     const staff = typeof isStaff === "function" && isStaff();
@@ -168,88 +264,3 @@
     }
   })();
 })();
-
-// Логотип в хедере заново «отрисовывается» при каждом переключении вкладки
-function redrawHeaderLogo() {
-  const logo = document.querySelector(".brand-logo");
-  if (!logo) return;
-  const clone = logo.cloneNode(true);
-  logo.replaceWith(clone);
-}
-
-// Побуквенное появление hero-заголовка (в стиле deltaclient.xyz)
-function applyHeroTitle() {
-  const el = document.getElementById("heroTitle");
-  if (!el) return;
-  const [plain, highlight] = I18N[LANG].heroTitle;
-  let delay = 0;
-  const split = (text) => text.split("").map((ch) => {
-    const span = document.createElement("span");
-    span.className = "ltr";
-    span.style.animationDelay = (delay++ * 0.03) + "s";
-    span.innerHTML = ch === " " ? "&nbsp;" : ch;
-    return span.outerHTML;
-  }).join("");
-  // подсвеченное слово — один спан-обёртка со всеми буквами
-  el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
-}
-
-// ═══ Анимации экрана техработ: побуквенный заголовок + печать описания ═══
-let maintTypewriterTimer = null;
-let maintTypewriterInterval = null;
-
-function applyMaintenanceAnimations() {
-  applyMaintenanceTitle();
-  startMaintenanceTypewriter();
-}
-
-function applyMaintenanceTitle() {
-  const el = document.getElementById("maintenanceTitle");
-  if (!el) return;
-  const plain = (typeof t === "function" && t("maintenanceTitle")) || "Технические";
-  const highlight = (typeof t === "function" && t("maintenanceHighlight")) || "работы";
-  let delay = 0;
-  const split = (text) => text.split("").map((ch) => {
-    const span = document.createElement("span");
-    span.className = "ltr";
-    span.style.animationDelay = (delay++ * 0.035) + "s";
-    span.innerHTML = ch === " " ? "&nbsp;" : ch;
-    return span.outerHTML;
-  }).join("");
-  el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
-}
-
-function startMaintenanceTypewriter() {
-  if (maintTypewriterTimer) {
-    clearTimeout(maintTypewriterTimer);
-    maintTypewriterTimer = null;
-  }
-  if (maintTypewriterInterval) {
-    clearInterval(maintTypewriterInterval);
-    maintTypewriterInterval = null;
-  }
-
-  const el = document.getElementById("maintenanceDesc");
-  if (!el) return;
-
-  const fullText = (typeof t === "function" && t("maintenanceDesc")) ||
-    "Мы проводим плановое обновление портала delta media. Скоро вернемся к работе.";
-
-  el.innerHTML = '<span class="typewriter-text"></span><span class="typewriter-cursor">|</span>';
-  const textSpan = el.querySelector(".typewriter-text");
-  const cursor = el.querySelector(".typewriter-cursor");
-
-  let i = 0;
-  maintTypewriterTimer = setTimeout(() => {
-    maintTypewriterInterval = setInterval(() => {
-      if (i < fullText.length) {
-        textSpan.textContent += fullText.charAt(i);
-        i++;
-      } else {
-        clearInterval(maintTypewriterInterval);
-        maintTypewriterInterval = null;
-        if (cursor) cursor.classList.add("cursor-done");
-      }
-    }, 22);
-  }, 350);
-}

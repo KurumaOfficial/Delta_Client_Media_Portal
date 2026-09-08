@@ -333,14 +333,20 @@ function setLanguage(lang) {
     history.replaceState({}, "", path + location.hash);
   }
 
-  if (typeof applyHeroTitle === "function") applyHeroTitle();
-  if (typeof applyMaintenanceAnimations === "function") applyMaintenanceAnimations();
-  if (typeof updateCabinetBtn === "function") updateCabinetBtn();
+  try {
+    if (typeof applyHeroTitle === "function") applyHeroTitle();
+  } catch (e) { /* ignore */ }
+  try {
+    if (typeof applyMaintenanceAnimations === "function") applyMaintenanceAnimations();
+  } catch (e) { /* ignore */ }
+  try {
+    if (typeof updateCabinetBtn === "function") updateCabinetBtn();
+  } catch (e) { /* ignore */ }
   
   // Если открыта модалка — обновляем печатающийся слоган
   const modal = document.getElementById("authModal");
   if (modal && modal.classList.contains("open") && typeof startTaglineTypewriter === "function") {
-    startTaglineTypewriter();
+    try { startTaglineTypewriter(); } catch (e) { /* ignore */ }
   }
 
   // Обновляем статус набора заявок (открыт/закрыт)
