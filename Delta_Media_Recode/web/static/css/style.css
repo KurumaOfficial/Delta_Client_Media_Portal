@@ -254,7 +254,7 @@ main.view.active {
 .hero { text-align: center; max-width: 52rem; margin: 0 auto 3rem; padding-top: 1rem; }
 
 .hero-pill {
-  display: inline-flex; align-items: center; gap: 0.5rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   padding: 0.45rem 1.25rem;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.04);
@@ -264,6 +264,7 @@ main.view.active {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   font-family: var(--font-display);
   font-size: 0.775rem; font-weight: 500;
+  line-height: 1.2;
   color: rgba(255, 255, 255, 0.9);
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
@@ -273,6 +274,7 @@ main.view.active {
   background-color: var(--color-primary-400);
   box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.8);
   transition: all 0.3s ease;
+  flex-shrink: 0;
 }
 .hero-pill.closed {
   border-color: rgba(248, 113, 113, 0.35);
@@ -1848,15 +1850,21 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.6));
 }
 
+@keyframes pillAppear {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .hero-pill.maintenance-pill {
   border-color: rgba(251, 191, 36, 0.35);
   background: rgba(251, 191, 36, 0.08);
   box-shadow: 0 8px 32px 0 rgba(251, 191, 36, 0.15);
-  animation: fadeInDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) both 0.1s;
+  animation: pillAppear 0.5s cubic-bezier(0.16, 1, 0.3, 1) both 0.1s;
 }
 .hero-pill.maintenance-pill .dot {
   background-color: #fbbf24;
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
+  flex-shrink: 0;
 }
 
 #maintenanceTitle {
@@ -1883,23 +1891,25 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 }
 
 .timer-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 95px;
-  padding: 1.1rem 1rem;
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(30px) saturate(150%);
-  -webkit-backdrop-filter: blur(30px) saturate(150%);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, border-color 0.2s;
+  min-width: 105px;
+  padding: 1.25rem 1.15rem 1rem;
+  border-radius: 24px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 .timer-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(133, 155, 255, 0.3);
+  border-color: rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
 }
 
 .timer-num {
