@@ -11,16 +11,16 @@ tg_session.json
 
 # Uploads & media runtime dirs
 /uploads/
-/Delta_Media_Recode/uploads/
 uploads/
-!Delta_Media_Recode/internal/uploads/
-Delta_Media_Recode/tgGIF/*
-!Delta_Media_Recode/tgGIF/.gitkeep
+Delta_Media_Recode/
+tgGIF/*
+!tgGIF/.gitkeep
 
 # Binaries
 *.exe
 delta-portal.exe
 delta-media-recode.exe
+dmr.exe
 
 # OS / IDE
 .DS_Store
