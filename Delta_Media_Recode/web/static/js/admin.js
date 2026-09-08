@@ -675,21 +675,15 @@ async function renderBans() {
   );
 
   const rows = filtered.map((b) => `
-    <tr class="clickable-row" data-ban-row="${b.id}" style="cursor:pointer;" title="Нажмите, чтобы просмотреть или дозаполнить данные">
+    <tr class="clickable-row" data-ban-row="${b.id}" style="cursor:pointer;" title="Нажмите, чтобы открыть и изменить данные">
       <td class="mono">#${b.id}</td>
-      <td>${b.channel ? `<a href="${esc(b.channel)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">${esc(b.channel)}</a>` : '<span class="hint">—</span>'}</td>
+      <td>${b.channel ? `<span class="mono">${esc(b.channel)}</span>` : '<span class="hint">—</span>'}</td>
       <td>${b.uid ? `<span class="mono">${esc(b.uid)}</span>` : '<span class="hint">—</span>'}</td>
       <td>${b.telegram ? `<span class="mono">@${esc(b.telegram.replace(/^@/, ''))}</span>` : '<span class="hint">—</span>'}</td>
       <td>${b.discord ? `<span class="mono">${esc(b.discord)}</span>` : '<span class="hint">—</span>'}</td>
       <td>${b.ip ? `<span class="mono">${esc(b.ip)}</span>` : '<span class="hint">—</span>'}</td>
       <td>${esc(b.reason || "—")}</td>
       <td>${esc(b.banned_by || "admin")}</td>
-      <td>
-        <div class="row-actions" onclick="event.stopPropagation()">
-          <button class="act" data-edit-ban="${b.id}">✏ Редактировать</button>
-          <button class="act reject" data-unban="${b.id}">✕ Снять</button>
-        </div>
-      </td>
     </tr>
   `).join("");
 
@@ -698,7 +692,7 @@ async function renderBans() {
       <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem 0.5rem;flex-wrap:wrap;gap:0.75rem;">
         <div>
           <h3 style="padding:0;margin:0;">${ICONS.bans} Заблокированные пользователи <span class="badge pending">${filtered.length}</span></h3>
-          <p class="hint" style="margin:0.25rem 0 0 0;">1 строка = 1 блокировка. Нажмите на строку, чтобы просмотреть или дозаполнить данные.</p>
+          <p class="hint" style="margin:0.25rem 0 0 0;">1 строка = 1 блокировка. Нажмите на любую запись, чтобы изменить или стереть данные.</p>
         </div>
         <button class="btn-primary" id="openAddBanBtn" type="button" style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:0.6rem 1.25rem;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;border:none;cursor:pointer;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -716,10 +710,9 @@ async function renderBans() {
             <th>IP-адрес</th>
             <th>Причина</th>
             <th>Кем</th>
-            <th>Действия</th>
           </tr>
         </thead>
-        <tbody>${rows || '<tr><td colspan="9" class="hint">Банлист пуст</td></tr>'}</tbody>
+        <tbody>${rows || '<tr><td colspan="8" class="hint">Банлист пуст</td></tr>'}</tbody>
       </table></div>
     </div>`;
 
@@ -745,29 +738,6 @@ async function renderBans() {
       if (ban) openBanModal(ban);
     });
   });
-
-  document.querySelectorAll("[data-edit-ban]").forEach((b) => {
-    b.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = parseInt(b.dataset.editBan, 10);
-      const ban = bansCache.find((x) => x.id === id);
-      if (ban) openBanModal(ban);
-    });
-  });
-
-  document.querySelectorAll("[data-unban]").forEach((b) =>
-    b.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      if (!confirm("Снять эту блокировку?")) return;
-      try {
-        await DELETE("/api/admin/bans/" + b.dataset.unban);
-        toast("Блокировка снята", "ok");
-        renderBans();
-      } catch (ex) {
-        toast(ex.message, "err");
-      }
-    })
-  );
 }
 
 function openBanModal(ban) {
@@ -780,48 +750,61 @@ function openBanModal(ban) {
   }
 
   const isEdit = !!(ban && ban.id);
+  const channelVal = ban ? ban.channel || "" : "";
+  const uidVal = ban ? ban.uid || "" : "";
+  const tgVal = ban ? (ban.telegram ? (ban.telegram.startsWith("@") ? ban.telegram : "@" + ban.telegram) : "") : "";
+  const dcVal = ban ? ban.discord || "" : "";
+  const ipVal = ban ? ban.ip || "" : "";
+  const reasonVal = ban ? ban.reason || "" : "";
+
   modalWrap.innerHTML = `
     <div class="ban-modal-card">
       <div class="ban-modal-header">
         <div class="ban-modal-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-          ${isEdit ? `Редактировать блокировку #${ban.id}` : "Заблокировать пользователя"}
+          ${isEdit ? `Данные блокировки #${ban.id}` : "Заблокировать пользователя"}
         </div>
         <button type="button" class="ban-modal-close" id="banModalCloseBtn">&times;</button>
       </div>
       <form id="banModalForm">
         <div class="ban-field-row">
-          <label>Аккаунт (YouTube / TikTok)</label>
-          <input type="text" name="channel" placeholder="https://youtube.com/@username или TikTok" value="${esc(ban ? ban.channel || '' : '')}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+            <label style="margin-bottom:0;">Аккаунт (YouTube / TikTok)</label>
+            ${channelVal && channelVal.startsWith("http") ? `<a href="${esc(channelVal)}" target="_blank" rel="noopener" style="font-size:0.75rem;color:var(--color-primary-400);text-decoration:none;" title="Открыть ссылку">Открыть ↗</a>` : ""}
+          </div>
+          <input type="text" name="channel" placeholder="https://youtube.com/@username или TikTok" value="${esc(channelVal)}">
         </div>
         <div class="ban-field-row">
           <label>UID</label>
-          <input type="text" name="uid" placeholder="UID пользователя" value="${esc(ban ? ban.uid || '' : '')}">
+          <input type="text" name="uid" placeholder="UID пользователя" value="${esc(uidVal)}">
         </div>
         <div class="ban-field-row">
           <label>Telegram</label>
-          <input type="text" name="telegram" placeholder="@username" value="${esc(ban ? (ban.telegram ? (ban.telegram.startsWith('@') ? ban.telegram : '@' + ban.telegram) : '') : '')}">
+          <input type="text" name="telegram" placeholder="@username" value="${esc(tgVal)}">
         </div>
         <div class="ban-field-row">
           <label>Discord</label>
-          <input type="text" name="discord" placeholder="username#0000" value="${esc(ban ? ban.discord || '' : '')}">
+          <input type="text" name="discord" placeholder="username#0000" value="${esc(dcVal)}">
         </div>
         <div class="ban-field-row">
           <label>IP-адрес</label>
-          <input type="text" name="ip" placeholder="192.168.1.1 или CIDR 185.22.0.0/16" value="${esc(ban ? ban.ip || '' : '')}">
+          <input type="text" name="ip" placeholder="192.168.1.1 или CIDR 185.22.0.0/16" value="${esc(ipVal)}">
         </div>
         <div class="ban-field-row">
           <label>Причина блокировки</label>
-          <input type="text" name="reason" placeholder="Спам, нарушение правил, читы..." value="${esc(ban ? ban.reason || '' : '')}">
+          <input type="text" name="reason" placeholder="Спам, нарушение правил, читы..." value="${esc(reasonVal)}">
         </div>
         <p class="hint" style="margin: 0.85rem 0 1.25rem 0; font-size: 0.78rem; line-height: 1.4;">
-          Заполните хотя бы одно поле. Если хотя бы одно совпадёт — заявка и доступ будут заблокированы. Вы можете дозаполнить недостающие данные в любой момент.
+          Вы можете вписать новые данные или стереть ненужные. Для сохранения блокировки должно оставаться хотя бы одно поле.
         </p>
-        <div style="display:flex;gap:0.6rem;align-items:center;">
-          <button type="submit" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#dc2626);flex:1;padding:0.75rem;">
+        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
+          <button type="submit" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#dc2626);flex:1;padding:0.75rem;min-width:140px;">
             ${isEdit ? "Сохранить изменения" : "Заблокировать"}
           </button>
-          ${isEdit ? `<button type="button" id="banModalDeleteBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.3);padding:0.75rem 1rem;">Снять бан</button>` : ""}
+          ${isEdit ? `
+            <button type="button" id="banModalClearBtn" class="btn-ghost" style="padding:0.75rem 1rem;color:var(--text-muted);border:1px solid rgba(255,255,255,0.12);" title="Очистить все поля формы">Стереть поля</button>
+            <button type="button" id="banModalDeleteBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.3);padding:0.75rem 1rem;">Снять бан</button>
+          ` : ""}
         </div>
       </form>
     </div>
@@ -848,6 +831,13 @@ function openBanModal(ban) {
   };
   window.addEventListener("keydown", onKeyEsc);
 
+  document.getElementById("banModalClearBtn")?.addEventListener("click", () => {
+    const form = document.getElementById("banModalForm");
+    if (!form) return;
+    form.querySelectorAll("input").forEach((inp) => (inp.value = ""));
+    toast("Поля очищены. Вы можете вписать новые или снять бан.", "ok");
+  });
+
   document.getElementById("banModalDeleteBtn")?.addEventListener("click", async () => {
     if (!confirm(`Снять блокировку #${ban.id}?`)) return;
     try {
@@ -864,13 +854,34 @@ function openBanModal(ban) {
     e.preventDefault();
     const fd = new FormData(e.target);
     const payload = {
-      channel: fd.get("channel"),
-      uid: fd.get("uid"),
-      telegram: fd.get("telegram"),
-      discord: fd.get("discord"),
-      ip: fd.get("ip"),
-      reason: fd.get("reason"),
+      channel: (fd.get("channel") || "").trim(),
+      uid: (fd.get("uid") || "").trim(),
+      telegram: (fd.get("telegram") || "").trim(),
+      discord: (fd.get("discord") || "").trim(),
+      ip: (fd.get("ip") || "").trim(),
+      reason: (fd.get("reason") || "").trim(),
     };
+
+    const hasAny = payload.channel || payload.uid || payload.telegram || payload.discord || payload.ip;
+    if (!hasAny) {
+      if (isEdit) {
+        if (confirm("Все идентификаторы стёрты. Снять эту блокировку?")) {
+          try {
+            await DELETE("/api/admin/bans/" + ban.id);
+            closeModal();
+            toast("Блокировка снята", "ok");
+            renderBans();
+          } catch (ex) {
+            toast(ex.message, "err");
+          }
+        }
+        return;
+      } else {
+        toast("Заполните хотя бы одно поле", "err");
+        return;
+      }
+    }
+
     try {
       if (isEdit) {
         await POST("/api/admin/bans/" + ban.id, payload);
