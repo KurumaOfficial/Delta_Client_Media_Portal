@@ -156,7 +156,7 @@ const ADMIN_FILTER = { search: "", statuses: new Set(), page: {} };
 
 function applyGlobalFilter(rowText, rowStatus) {
   if (ADMIN_FILTER.search && !rowText.includes(ADMIN_FILTER.search)) return false;
-  if (ADMIN_FILTER.statuses.size && !ADMIN_FILTER.statuses.has(rowStatus)) return false;
+  if (rowStatus && ADMIN_FILTER.statuses.size && !ADMIN_FILTER.statuses.has(rowStatus)) return false;
   return true;
 }
 

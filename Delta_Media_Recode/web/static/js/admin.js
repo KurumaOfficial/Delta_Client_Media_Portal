@@ -195,7 +195,6 @@ async function renderOverview() {
     </div>
     <div class="stats-row">
       <div class="stat-card"><b>${stats.media_pending}</b><span>Медиа заявки (в ожидании)</span></div>
-      <div class="stat-card"><b>${stats.hwid_pending}</b><span>HWID запросы</span></div>
       <div class="stat-card"><b>${stats.discord_pending}</b><span>Discord баны</span></div>
       <div class="stat-card"><b>${stats.payouts_pending}</b><span>Выплаты (неделя)</span></div>
       <div class="stat-card"><b>${stats.accounts_total}</b><span>Активные аккаунты</span></div>
@@ -367,7 +366,7 @@ async function renderAppsTable(kind) {
 function drawAppsTable(kind, cfg) {
   const all = adminCache[kind] || [];
   const filtered = all.filter((r) => applyGlobalFilter(
-    JSON.stringify(r).toLowerCase(), r.status));
+    JSON.stringify(r).toLowerCase(), kind === "hwid" ? "" : r.status));
 
   // пагинация: новые внизу (ASC), срез текущей страницы
   const pageSize = cfg.pageSize;
@@ -387,9 +386,7 @@ function drawAppsTable(kind, cfg) {
         <button class="act reject" data-decide="rejected" data-id="${r.id}">✕ Отклонить</button></div>` : "—"}</td></tr>`;
     if (kind === "hwid") return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.uuid)}</td>
-      <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
-      <td>${statusBadge(r.status)}</td>
-      <td>${r.status === "pending" ? decideButtons(r.id) : "—"}</td></tr>`;
+      <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td></tr>`;
     return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.offender_id)}</td>
       <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
@@ -397,23 +394,28 @@ function drawAppsTable(kind, cfg) {
       <td>${r.status === "pending" ? decideButtons(r.id) : "—"}</td></tr>`;
   }).join("");
 
+  const theadCols = kind === "media"
+    ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
+    : kind === "hwid"
+    ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
+    : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
+  const colSpan = kind === "hwid" ? 5 : 8;
+
   const tableBoxHTML = `
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
       <div class="table-scroll"><table>
-        <thead><tr>${kind === "media"
-          ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
-          : kind === "hwid"
-          ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>"
-          : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>"}</tr></thead>
-        <tbody>${rows || '<tr><td colspan="8" class="hint">Нет заявок</td></tr>'}</tbody>
+        <thead><tr>${theadCols}</tr></thead>
+        <tbody>${rows || `<tr><td colspan="${colSpan}" class="hint">Нет заявок</td></tr>`}</tbody>
       </table></div>
       <div class="pager" id="pager-${kind}"></div>
     </div>`;
 
+  const withStatuses = kind !== "hwid";
   let tableWrap = document.getElementById("adminTableWrap");
-  if (!tableWrap || !document.getElementById("fStatus")) {
+  const hasStatusFilter = !!document.getElementById("fStatus");
+  if (!tableWrap || (withStatuses !== hasStatusFilter)) {
     document.getElementById("adminBody").innerHTML = `
-      <div id="adminFilterWrap">${filterBarHTML(true)}</div>
+      <div id="adminFilterWrap">${filterBarHTML(withStatuses)}</div>
       <div id="adminTableWrap">${tableBoxHTML}</div>`;
     tableWrap = document.getElementById("adminTableWrap");
     bindFilterBar(() => drawAppsTable(kind, cfg));
