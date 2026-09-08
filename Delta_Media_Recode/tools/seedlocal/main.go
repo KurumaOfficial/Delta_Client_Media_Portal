@@ -69,40 +69,93 @@ func main() {
 
 	var payoutsCount int
 	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_requests`).Scan(&payoutsCount)
-	if payoutsCount == 0 {
-		_, err := pays.Create(models.Request{Kind: models.KindPayout, Source: "cabinet", AccountID: mediaID,
+	if payoutsCount < 3 {
+		_, _ = pays.Create(models.Request{Kind: models.KindPayout, Source: "cabinet", AccountID: mediaID,
 			Nickname: "DemoMedia", Telegram: "@demo_media", UID: "UID-DEMO-0001",
-			Duration: "5 месяцев", Want: "выплата за 2 ролика", Amount: "42", Method: models.MethodUSDT})
-		if err != nil {
-			fmt.Println("  (выплата не создана:", err, ")")
-		}
+			Duration: "5 месяцев", Want: "выплата за 2 ролика на Funtime", Amount: "45", Method: models.MethodUSDT})
 		_, _ = pays.Create(models.Request{Kind: models.KindLot, Source: "cabinet", AccountID: mediaID,
 			Nickname: "DemoMedia", Telegram: "@demo_media", UID: "UID-DEMO-0001",
-			Want: "реклама лота", Platform: "funpay", LotURL: "https://funpay.com/lots/123abc"})
+			Want: "реклама лота под видео", Platform: "funpay", LotURL: "https://funpay.com/lots/123abc456"})
 		_, _ = pays.Create(models.Request{Kind: models.KindSubscription, Source: "cabinet", AccountID: freeID,
-			Nickname: "DemoFree", Telegram: "@demo_free", UID: "UID-DEMO-0002", Want: "подписка Delta на 1 месяц"})
+			Nickname: "DemoFree", Telegram: "@demo_free", UID: "UID-DEMO-0002", Want: "подписка Delta Client на 1 месяц"})
 		fmt.Println("  + демо-заявки недели: выплата USDT, лот FunPay, подписка")
 	}
 
-	// Демо-заявка на вступление в медиа + HWID (для таблиц админки)
+	// Демо-заявки на вступление в медиа (для админки)
 	var mediaApps int
 	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_media_apps`).Scan(&mediaApps)
-	if mediaApps == 0 {
+	if mediaApps < 3 {
 		_, _ = db.InsertReturningID(`INSERT INTO v2_media_apps
-			(lang, uid, criteria_agreed, platform, channel_url, servers, videos_per_week, why_join, exclusive, telegram)
+			(lang, uid, criteria_agreed, platform, channel_url, servers, videos_per_week, why_join, exclusive, telegram, status)
 			VALUES ('ru', 'UID-DEMO-0003', 1, 'youtube', 'https://youtube.com/@demochannel', 'Funtime, Holyworld',
-			'2-3 ролика', 'Снимаю HVH клипы давно, хочу в команду', 'yes', '@demo_media')`)
+			'2-3 ролика', 'Снимаю качественный HVH контент, стабильный онлайн', 'yes', '@demo_media', 'pending')`)
+		_, _ = db.InsertReturningID(`INSERT INTO v2_media_apps
+			(lang, uid, criteria_agreed, platform, channel_url, servers, videos_per_week, collaborations, why_join, exclusive, telegram, status)
+			VALUES ('ru', 'UID-DEMO-1002', 1, 'tiktok', 'https://tiktok.com/@delta_hvh_clips', 'Spookytime, Reallyworld',
+			'4-5 клипов', 'Сотрудничал с мелкими проектами', 'Хочу развиваться вместе с Delta', 'no', '@tiktok_star', 'pending')`)
+		_, _ = db.InsertReturningID(`INSERT INTO v2_media_apps
+			(lang, uid, criteria_agreed, platform, channel_url, servers, videos_per_week, why_join, exclusive, telegram, status, admin_comment)
+			VALUES ('ru', 'UID-DEMO-1003', 1, 'youtube', 'https://youtube.com/@approved_streamer', 'Funtime',
+			'1-2 стрима', 'Постоянные стримы по 100+ зрителей', 'yes', '@pro_streamer', 'approved', 'Принят в основной состав')`)
+		fmt.Println("  + демо-заявки на вступление в медиа (pending, approved)")
+	}
+
+	// HWID запросы (для модераторов/админки)
+	var hwidCount int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_hwid_requests`).Scan(&hwidCount)
+	if hwidCount < 2 {
 		var modNick string
 		_ = db.QueryRow(`SELECT nickname FROM v2_accounts WHERE id = ?`, modID).Scan(&modNick)
 		if modNick == "" {
 			modNick = "DemoMod"
 		}
 		_, _ = db.InsertReturningID(`INSERT INTO v2_hwid_requests
-			(account_id, mod_nickname, uuid, proof_type, proof_link, reason)
-			VALUES (?, ?, 'UID-DEMO-0004', 'link', 'https://imgur.com/demo', 'Смена железа после ремонта')`,
+			(account_id, mod_nickname, uuid, proof_type, proof_link, reason, status)
+			VALUES (?, ?, 'UUID-HWID-001', 'link', 'https://imgur.com/demo_hwid1', 'Смена материнской платы и процессора после апгрейда', 'pending')`,
 			modID, modNick)
-		fmt.Println("  + демо-заявка на вступление в медиа и HWID-запрос")
+		_, _ = db.InsertReturningID(`INSERT INTO v2_hwid_requests
+			(account_id, mod_nickname, uuid, proof_type, proof_link, reason, status, admin_comment)
+			VALUES (?, ?, 'UUID-HWID-002', 'link', 'https://imgur.com/demo_hwid2', 'Переустановка чистой Windows', 'approved', 'Сброшено')`,
+			modID, modNick)
+		fmt.Println("  + HWID запросы (pending, approved)")
 	}
+
+	// Discord баны
+	var discordCount int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_discord_bans`).Scan(&discordCount)
+	if discordCount < 2 {
+		var modNick string
+		_ = db.QueryRow(`SELECT nickname FROM v2_accounts WHERE id = ?`, modID).Scan(&modNick)
+		if modNick == "" {
+			modNick = "DemoMod"
+		}
+		_, _ = db.InsertReturningID(`INSERT INTO v2_discord_bans
+			(account_id, mod_nickname, offender_id, proof_type, proof_link, reason, status)
+			VALUES (?, ?, '789123456789012345', 'link', 'https://imgur.com/proof_discord1', 'Массовый спам вредоносными ссылками в чате', 'pending')`,
+			modID, modNick)
+		_, _ = db.InsertReturningID(`INSERT INTO v2_discord_bans
+			(account_id, mod_nickname, offender_id, proof_type, proof_link, reason, status, admin_comment)
+			VALUES (?, ?, '456123789012345678', 'link', 'https://imgur.com/proof_discord2', 'Оскорбление администрации сервера', 'approved', 'Забанен бессрочно')`,
+			modID, modNick)
+		fmt.Println("  + Discord баны (pending, approved)")
+	}
+
+	// Банлист (IP, UID, Telegram, Channel)
+	var bansCount int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_bans`).Scan(&bansCount)
+	if bansCount < 3 {
+		_, _ = db.Exec(`INSERT OR IGNORE INTO v2_bans (btype, value, reason, banned_by) VALUES
+			('ip', '185.220.101.5', 'Спам-бот / Tor exit node', 'admin'),
+			('telegram', '@scammer_hvh', 'Попытка скама на аккаунты', 'admin'),
+			('uid', 'UID-CHEATER-999', 'Использование сливов и декомпиляция', 'admin'),
+			('link', 'https://youtube.com/@fake_delta', 'Фейковый канал с малварью', 'admin')`)
+		fmt.Println("  + записи в банлисте (IP, TG, UID, Ссылка)")
+	}
+
+	// Журнал аудита
+	_, _ = db.Exec(`INSERT INTO v2_audit_logs (event_type, status, details, ip) VALUES
+		('SEED', 'success', 'Инициализация тестовых данных для локальной разработки', '127.0.0.1'),
+		('LOGIN', 'success', 'Авторизован аккаунт DemoMedia (роль media)', '127.0.0.1')`)
 
 	fmt.Println("═══ Готово. Админ-код смотрите в ADMIN_BOOTSTRAP_CODE (.env) ═══")
 }

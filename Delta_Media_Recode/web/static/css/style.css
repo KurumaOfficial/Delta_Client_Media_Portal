@@ -1054,58 +1054,51 @@ select option:checked {
   color: rgba(255, 255, 255, 0.55);
 }
 
-/* Поле ввода: 1:1 auth-input из deltaclient.xyz */
-.auth-input {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Поле ввода кода доступа: аккуратное единое поле без матрёшки */
+input[type="text"].delta-auth-input,
+.delta-auth-input {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
-  transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
-}
-.auth-input:focus-within {
-  border-color: rgba(133, 155, 255, 0.25) !important;
-  background: rgba(255, 255, 255, 0.06) !important;
-  box-shadow: 0 0 0 1px rgba(133, 155, 255, 0.1), 0 0 20px rgba(133, 155, 255, 0.06);
-}
-.auth-input .input-icon {
-  color: rgba(255, 255, 255, 0.2);
-  flex-shrink: 0;
-  transition: color 0.3s;
-}
-.auth-input:focus-within .input-icon {
-  color: rgba(133, 155, 255, 0.55);
-}
-.auth-input input {
-  flex: 1;
-  background: transparent;
-  border: none;
   font-family: var(--font-mono);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.9);
   letter-spacing: 0.05em;
   outline: none;
+  transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
 }
-.auth-input input::placeholder {
-  color: rgba(255, 255, 255, 0.18);
+input[type="text"].delta-auth-input:focus,
+.delta-auth-input:focus {
+  border-color: rgba(133, 155, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 0 0 1px rgba(133, 155, 255, 0.15), 0 0 24px rgba(133, 155, 255, 0.08) !important;
+}
+input[type="text"].delta-auth-input::placeholder,
+.delta-auth-input::placeholder {
+  color: rgba(255, 255, 255, 0.22);
   font-family: var(--font-mono);
+  letter-spacing: 0.04em;
 }
-.auth-input input::selection {
+input[type="text"].delta-auth-input::selection,
+.delta-auth-input::selection {
   background: rgba(133, 155, 255, 0.3);
   color: #fff;
 }
-
-/* Автофилл браузера в стиле deltaclient */
-.auth-input input:-webkit-autofill,
-.auth-input input:-webkit-autofill:hover,
-.auth-input input:-webkit-autofill:focus {
+input[type="text"].delta-auth-input:-webkit-autofill,
+input[type="text"].delta-auth-input:-webkit-autofill:hover,
+input[type="text"].delta-auth-input:-webkit-autofill:focus,
+.delta-auth-input:-webkit-autofill,
+.delta-auth-input:-webkit-autofill:hover,
+.delta-auth-input:-webkit-autofill:focus {
   caret-color: #fff;
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.85) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
   transition: background-color 5000s ease-in-out;
   background: transparent !important;
-  -webkit-box-shadow: inset 0 0 0 1000px rgba(10, 13, 26, 0) !important;
+  -webkit-box-shadow: inset 0 0 0 1000px rgba(10, 13, 26, 0.85) !important;
 }
 
 /* Капча контейнер */
