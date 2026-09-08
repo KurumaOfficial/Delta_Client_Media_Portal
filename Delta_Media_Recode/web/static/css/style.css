@@ -1683,6 +1683,12 @@ td a { color: var(--color-primary-400); }
   font-size: 0.84rem;
 }
 
+.summary-editor {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
 .summary-editor textarea { min-height: 140px; font-family: var(--font-mono); font-size: 0.85rem; }
 
 .copy-chip {
