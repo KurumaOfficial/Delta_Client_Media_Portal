@@ -159,17 +159,17 @@ async function renderOverview() {
     ${filterBarHTML(false)}
     <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.25rem;margin-bottom:1.25rem;">
       <!-- Приём заявок -->
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;border:1px solid ${appsOpen ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'};background:${appsOpen ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)'};">
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;">
         <div>
           <div style="display:flex;align-items:center;gap:0.65rem;">
-            <span class="dot" style="width:10px;height:10px;border-radius:9999px;background:${appsOpen ? 'var(--emerald)' : 'var(--rose)'};box-shadow:0 0 12px ${appsOpen ? 'rgba(52,211,153,0.9)' : 'rgba(248,113,113,0.9)'};"></span>
-            <b style="font-size:1.05rem;">Приём медиа-заявок: ${appsOpen ? '<span style="color:var(--emerald)">ОТКРЫТ</span>' : '<span style="color:var(--rose)">ЗАКРЫТ</span>'}</b>
+            <span class="dot" style="width:8px;height:8px;border-radius:9999px;background:${appsOpen ? 'var(--emerald)' : 'var(--rose)'};"></span>
+            <b style="font-size:1.05rem;">Приём медиа-заявок: <span class="badge ${appsOpen ? 'approved' : 'rejected'}">${appsOpen ? 'ОТКРЫТ' : 'ЗАКРЫТ'}</span></b>
           </div>
           <p class="hint" style="margin-top:0.35rem;">
             ${appsOpen ? 'На главной отображается «приём заявок открыт», форма активна.' : 'На главной отображается «приём заявок закрыт», кнопка заблокирована.'}
           </p>
         </div>
-        <button class="btn-ghost" id="toggleAppsBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${appsOpen ? 'rgba(248,113,113,0.45)' : 'rgba(52,211,153,0.45)'};background:${appsOpen ? 'rgba(248,113,113,0.12)' : 'rgba(52,211,153,0.12)'};color:${appsOpen ? 'var(--rose)' : 'var(--emerald)'};">
+        <button class="btn-ghost" id="toggleAppsBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);">
           ${appsOpen ? '✕ Закрыть набор' : '✓ Открыть набор'}
         </button>
       </div>
