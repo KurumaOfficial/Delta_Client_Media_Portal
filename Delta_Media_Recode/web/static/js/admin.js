@@ -561,9 +561,9 @@ function openMediaAppModal(r) {
             <label style="display:block;font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.35rem;">Комментарий к решению (опционально):</label>
             <input type="text" id="modalMediaComment" placeholder="Причина отказа или приветствие..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.65rem 0.95rem;color:#fff;outline:none;">
           </div>
-          <div style="display:flex;gap:0.75rem;align-items:center;">
-            <button type="button" id="modalApproveBtn" class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);flex:1;padding:0.75rem;font-weight:600;">✓ Одобрить заявку</button>
-            <button type="button" id="modalRejectBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.3);flex:1;padding:0.75rem;font-weight:600;">✕ Отклонить заявку</button>
+          <div class="modal-btn-row">
+            <button type="button" id="modalApproveBtn" class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);">✓ Принять заявку</button>
+            <button type="button" id="modalRejectBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.35);">✕ Отклонить заявку</button>
           </div>
         </div>
       ` : ""}
@@ -973,13 +973,13 @@ function openBanModal(ban) {
         <p class="hint" style="margin: 0.85rem 0 1.25rem 0; font-size: 0.78rem; line-height: 1.4;">
           Вы можете вписать новые данные или стереть ненужные. Для сохранения блокировки должно оставаться хотя бы одно поле.
         </p>
-        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
-          <button type="submit" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#dc2626);flex:1;padding:0.75rem;min-width:140px;">
+        <div class="modal-btn-row">
+          <button type="submit" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
             ${isEdit ? "Сохранить изменения" : "Заблокировать"}
           </button>
           ${isEdit ? `
-            <button type="button" id="banModalClearBtn" class="btn-ghost" style="padding:0.75rem 1rem;color:var(--text-muted);border:1px solid rgba(255,255,255,0.12);" title="Очистить все поля формы">Стереть поля</button>
-            <button type="button" id="banModalDeleteBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.3);padding:0.75rem 1rem;">Снять бан</button>
+            <button type="button" id="banModalClearBtn" class="btn-ghost" style="color:var(--text-muted);border:1px solid rgba(255,255,255,0.14);" title="Очистить все поля формы">Стереть поля</button>
+            <button type="button" id="banModalDeleteBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.35);">Снять бан</button>
           ` : ""}
         </div>
       </form>

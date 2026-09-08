@@ -2336,4 +2336,53 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   overflow-y: auto;
 }
 
+/* ═══ Выравнивание кнопок действий в модальных окнах ═══ */
+.modal-btn-row {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 0.65rem !important;
+  margin-top: 1.25rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.modal-btn-row button,
+.modal-btn-row .btn-primary,
+.modal-btn-row .btn-ghost {
+  margin: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--font-display) !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.75rem !important;
+  box-sizing: border-box !important;
+  padding: 0 1.25rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  text-decoration: none !important;
+  flex: 1 1 0 !important;
+  white-space: nowrap !important;
+}
+.modal-btn-row .btn-primary {
+  color: #fff !important;
+  border: none !important;
+}
+.modal-btn-row .btn-primary:hover {
+  filter: brightness(1.08) !important;
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.35) !important;
+}
+.modal-btn-row .btn-ghost {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.modal-btn-row .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
 
