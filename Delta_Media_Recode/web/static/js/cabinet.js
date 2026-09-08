@@ -1,17 +1,17 @@
-/* cabinet.js — личный кабинет: модератор (HWID/Discord), медиа (выплаты/лоты), фримедиа (подписки) */
+/* cabinet.js — личный кабинет: модератор (HWID/Discord/Мои заявки), медиа (выплаты/лоты/Мои заявки), фримедиа (подписки/Мои заявки) */
 "use strict";
 
 let cabinetActiveTab = null;
 
-// Lucide SVG-иконки для вкладок и заголовков личного кабинета (вместо эмодзи)
+// Lucide SVG-иконки для вкладок и заголовков личного кабинета с фиксированными размерами
 const CABINET_ICONS = {
-  hwid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>',
-  discord: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/></svg>',
-  payout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
-  lot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>',
-  sub: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
-  my: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
-  adminpanel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>'
+  hwid: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>',
+  discord: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/></svg>',
+  payout: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
+  lot: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>',
+  sub: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
+  my: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  adminpanel: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>'
 };
 
 function formatFileSize(bytes) {
@@ -43,7 +43,7 @@ async function switchCabinetTab(tab) {
 }
 
 function cabinetTabsForRole(role) {
-  if (role === "moderator") return [["hwid", t("tabHwid")], ["discord", t("tabDiscord")]];
+  if (role === "moderator") return [["hwid", t("tabHwid")], ["discord", t("tabDiscord")], ["my", t("tabMy")]];
   if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["my", t("tabMy")]];
   if (role === "freemedia") return [["sub", t("tabSub")], ["my", t("tabMy")]];
   if (role === "admin") return [["adminpanel", t("tabAdmin")]];
@@ -80,7 +80,7 @@ function buildProofForm(kind, title, targetLabel, targetName) {
         <input type="file" id="proof-${kind}" accept="image/*,video/*" multiple class="proof-dropzone-input">
         <div class="proof-dropzone-inner">
           <div class="proof-dropzone-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="17 8 12 3 7 8"/>
               <line x1="12" y1="3" x2="12" y2="15"/>
@@ -184,28 +184,245 @@ function buildSubForm() {
   </form>`;
 }
 
+// ── Вкладка «Мои заявки» (для Медиа, Фримедиа и Модераторов) ──
 async function renderMyRequests() {
   const body = document.getElementById("cabinetBody");
-  let data;
+  if (!body) return;
+  body.innerHTML = '<p class="hint" style="text-align:center">Загрузка заявок…</p>';
+
+  const isMod = CURRENT_ACCOUNT && CURRENT_ACCOUNT.role === "moderator";
+  let requests = [];
+  let windowNote = "";
+
   try {
-    data = await GET("/api/cabinet/requests");
-  } catch (e) { body.innerHTML = `<div class="card">${esc(e.message)}</div>`; return; }
-  const kindTitle = { payout: "Выплата", lot: "Лот", subscription: "Подписка" };
-  const items = (data.data || []).map((r) => `
-    <div class="request-item">
-      <b>#${r.id}</b>
-      <div class="grow"><b>${kindTitle[r.kind] || r.kind}</b> — ${esc(r.want || r.amount || "")}
-        <br><small>${esc(r.week || "")} · ${r.source === "telegram" ? "из Telegram" : "с сайта"} · ${new Date(r.created_at).toLocaleString("ru-RU")}</small>
-        ${r.decision_comment ? `<br><small>Ответ: ${esc(r.decision_comment)}</small>` : ""}
+    if (isMod) {
+      const resp = await GET("/api/mod/requests");
+      requests = resp.data || [];
+    } else {
+      const resp = await GET("/api/cabinet/requests");
+      requests = resp.data || [];
+      windowNote = resp.window_open
+        ? `Текущая неделя: ${esc(resp.week || "")} — приём открыт`
+        : `Приём заявок закрыт до вторника 01:00 (МСК)`;
+    }
+  } catch (e) {
+    body.innerHTML = `<div class="card">${esc(e.message)}</div>`;
+    return;
+  }
+
+  const kindTitle = {
+    payout: "Выплата",
+    lot: "Лот",
+    subscription: "Подписка",
+    hwid: "Сброс HWID",
+    discord: "Discord бан"
+  };
+
+  const itemsHTML = requests.map((r, idx) => {
+    let mainText = "";
+    let subText = "";
+    let replySnippet = "";
+
+    if (isMod) {
+      const targetLabel = r.kind === "hwid" ? "UID" : "Нарушитель";
+      mainText = `<b>${kindTitle[r.kind] || r.kind}</b> — ${targetLabel}: <code>${esc(r.target || "—")}</code>`;
+      subText = `${formatDate(r.created_at)} · Причина: ${esc(r.reason || "—")}`;
+      if (r.admin_comment) {
+        replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(r.admin_comment)}</small>`;
+      }
+    } else {
+      mainText = `<b>${kindTitle[r.kind] || r.kind}</b> — ${esc(r.want || r.amount || "")}`;
+      subText = `${esc(r.week || "")} · ${r.source === "telegram" ? "из Telegram" : "с сайта"} · ${formatDate(r.created_at)}`;
+      if (r.decision_comment) {
+        replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(r.decision_comment)}</small>`;
+      }
+    }
+
+    return `
+      <div class="request-item" data-req-idx="${idx}">
+        <b>#${r.id}</b>
+        <div class="grow">
+          <div>${mainText}</div>
+          <small>${subText}${replySnippet}</small>
+        </div>
+        ${statusBadge(r.status)}
+        <span class="req-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+        </span>
+      </div>`;
+  }).join("");
+
+  body.innerHTML = `
+    ${windowNote ? `<p class="hint" style="text-align:center;margin-bottom:1rem;">${windowNote}</p>` : ""}
+    <div class="request-list">
+      ${itemsHTML || '<p class="hint" style="text-align:center;padding:2rem 0;">Заявок пока нет</p>'}
+    </div>`;
+
+  body.querySelectorAll("[data-req-idx]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const idx = +el.dataset.reqIdx;
+      const req = requests[idx];
+      if (req) openRequestDetailsModal(req, isMod ? "moderator" : "media");
+    });
+  });
+}
+
+// ── Модальное окно просмотра деталей заявки с ответом администратора ──
+function openRequestDetailsModal(req, role) {
+  let modalWrap = document.getElementById("reqDetailsModalOverlay");
+  if (!modalWrap) {
+    modalWrap = document.createElement("div");
+    modalWrap.id = "reqDetailsModalOverlay";
+    modalWrap.className = "ban-modal-overlay";
+    document.body.appendChild(modalWrap);
+  }
+
+  const kindTitle = {
+    payout: "Заявка на выплату",
+    lot: "Заявка на лот",
+    subscription: "Запрос подписки",
+    hwid: "Запрос сброса HWID",
+    discord: "Запрос Discord-бана"
+  };
+
+  let fieldsHTML = "";
+  let adminComment = "";
+
+  if (role === "moderator") {
+    adminComment = req.admin_comment || "";
+    const targetLabel = req.kind === "hwid" ? "UID пользователя" : "Нарушитель (ID/@username)";
+
+    let proofsHTML = "—";
+    const chips = [];
+    if (req.proof_file) {
+      req.proof_file.split(",").filter(Boolean).forEach((p, i) => {
+        const ext = p.split(".").pop().toLowerCase();
+        const isVid = ["mp4", "webm", "mov", "avi"].includes(ext);
+        const ico = isVid
+          ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+          : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+        chips.push(`<a href="${esc(p)}" target="_blank" rel="noopener" class="proof-chip">${ico}<span>Файл ${i + 1}</span></a>`);
+      });
+    }
+    if (req.proof_link) {
+      chips.push(`<a href="${esc(req.proof_link)}" target="_blank" rel="noopener" class="proof-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Ссылка</span></a>`);
+    }
+    if (chips.length) {
+      proofsHTML = `<div class="proof-chips-wrap">${chips.join("")}</div>`;
+    }
+
+    fieldsHTML = `
+      <div class="req-detail-field">
+        <span class="req-detail-label">Тип запроса</span>
+        <span class="req-detail-value">${kindTitle[req.kind] || req.kind}</span>
       </div>
-      ${statusBadge(r.status)}
-    </div>`).join("");
-  const windowNote = data.window_open
-    ? `Текущая неделя: ${esc(data.week)} — приём открыт`
-    : `Приём заявок закрыт до вторника 01:00 (МСК)`;
-  document.getElementById("cabinetBody").innerHTML = `
-    <p class="hint" style="text-align:center">${windowNote}</p>
-    <div class="request-list">${items || '<p class="hint" style="text-align:center">Заявок пока нет</p>'}</div>`;
+      <div class="req-detail-field">
+        <span class="req-detail-label">${targetLabel}</span>
+        <span class="req-detail-value mono">${esc(req.target || "—")}</span>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Причина</span>
+        <span class="req-detail-value">${esc(req.reason || "—")}</span>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Доказательства</span>
+        <div class="req-detail-value">${proofsHTML}</div>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Дата отправки</span>
+        <span class="req-detail-value">${formatDate(req.created_at)}</span>
+      </div>
+    `;
+  } else {
+    adminComment = req.decision_comment || "";
+
+    const methodOrPlatform = req.method === "usdt"
+      ? `USDT (${esc(req.amount || "")})`
+      : req.method === "funpay"
+      ? `<a href="${esc(req.lot_url)}" target="_blank" rel="noopener">FunPay лот</a>`
+      : req.platform || "—";
+
+    fieldsHTML = `
+      <div class="req-detail-field">
+        <span class="req-detail-label">Тип заявки</span>
+        <span class="req-detail-value">${kindTitle[req.kind] || req.kind}</span>
+      </div>
+      <div class="req-detail-field">
+        <span class="req-detail-label">UID аккаунта</span>
+        <span class="req-detail-value mono">${esc(req.uid || "—")}</span>
+      </div>
+      ${req.duration ? `
+      <div class="req-detail-field">
+        <span class="req-detail-label">Срок в медиа</span>
+        <span class="req-detail-value">${esc(req.duration)}</span>
+      </div>` : ""}
+      <div class="req-detail-field">
+        <span class="req-detail-label">Способ / Платформа</span>
+        <span class="req-detail-value">${methodOrPlatform}</span>
+      </div>
+      ${req.channel_url ? `
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Ссылка на канал</span>
+        <span class="req-detail-value"><a href="${esc(req.channel_url)}" target="_blank" rel="noopener">${esc(req.channel_url)}</a></span>
+      </div>` : ""}
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Что хотите получить</span>
+        <span class="req-detail-value">${esc(req.want || "—")}</span>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Дата подачи</span>
+        <span class="req-detail-value">${formatDate(req.created_at)}</span>
+      </div>
+    `;
+  }
+
+  let adminReplyBlock = "";
+  if (adminComment) {
+    adminReplyBlock = `
+      <div class="req-admin-reply ${req.status || ''}">
+        <div class="req-admin-reply-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          Ответ / уточнение администратора:
+        </div>
+        <p>${esc(adminComment)}</p>
+      </div>`;
+  } else if (req.status === "pending") {
+    adminReplyBlock = `
+      <div class="hint" style="margin-top:1.15rem;padding:0.85rem 1rem;background:rgba(255,255,255,0.02);border-radius:0.75rem;border:1px solid rgba(255,255,255,0.06);">
+        Заявка находится на рассмотрении. Администратор ещё не вынес решение.
+      </div>`;
+  }
+
+  modalWrap.innerHTML = `
+    <div class="req-detail-modal-card">
+      <div class="ban-modal-header" style="margin-bottom:0.75rem;">
+        <div class="ban-modal-title">
+          <h3 style="margin:0;padding:0;font-size:1.1rem;display:flex;align-items:center;gap:0.6rem;">
+            Заявка #${req.id} ${statusBadge(req.status)}
+          </h3>
+        </div>
+        <button type="button" class="ban-modal-close" id="reqDetailsCloseBtn">&times;</button>
+      </div>
+      <div class="req-detail-grid">
+        ${fieldsHTML}
+      </div>
+      ${adminReplyBlock}
+      <div style="margin-top:1.25rem;display:flex;justify-content:flex-end;">
+        <button type="button" class="btn-ghost" id="reqDetailsOkBtn" style="padding:0.6rem 1.4rem;font-size:0.88rem;">Закрыть</button>
+      </div>
+    </div>`;
+
+  void modalWrap.offsetWidth;
+  modalWrap.classList.add("open");
+
+  const close = () => modalWrap.classList.remove("open");
+  document.getElementById("reqDetailsCloseBtn")?.addEventListener("click", close);
+  document.getElementById("reqDetailsOkBtn")?.addEventListener("click", close);
+  modalWrap.addEventListener("click", (e) => {
+    if (e.target === modalWrap) close();
+  });
 }
 
 // ── Обработчики всех кабинетных форм ──
@@ -268,7 +485,7 @@ async function bindProofForm(kind) {
             <span class="proof-file-size">${formatFileSize(f.size)}</span>
           </div>
           <button type="button" class="proof-file-remove" data-del="${i}" title="Удалить файл">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         </div>`;
     }).join("");

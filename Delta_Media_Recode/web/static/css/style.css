@@ -347,6 +347,18 @@ main.view.active {
   color: #fff;
   display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
 }
+.card h3 svg,
+.form-card h3 svg,
+h3 svg {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+  color: var(--color-primary-400);
+}
 
 /* ═══ Формы ═══ */
 .field { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -1550,20 +1562,130 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
   color: var(--color-primary-400);
 }
 
-.request-list { display: flex; flex-direction: column; gap: 0.6rem; max-width: 52rem; margin: 0 auto; }
+.request-list { display: flex; flex-direction: column; gap: 0.65rem; max-width: 52rem; margin: 0 auto; }
 .request-item {
   display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 1rem;
-  padding: 0.875rem 1.1rem;
+  padding: 0.95rem 1.25rem;
   font-family: var(--font-display);
   font-size: 0.88rem;
   backdrop-filter: blur(24px);
   animation: rowFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.request-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(133, 155, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 .request-item .grow { flex: 1; min-width: 220px; }
-.request-item small { color: rgba(255, 255, 255, 0.4); }
+.request-item small { color: rgba(255, 255, 255, 0.45); }
+.request-item .req-arrow {
+  color: rgba(255, 255, 255, 0.3);
+  display: flex; align-items: center;
+  margin-left: 0.25rem;
+  transition: transform 0.2s, color 0.2s;
+}
+.request-item:hover .req-arrow {
+  color: var(--color-primary-400);
+  transform: translateX(3px);
+}
+
+/* Модалка деталей заявки в кабинете */
+.req-detail-modal-card {
+  width: 100%;
+  max-width: 580px;
+  background: #14151a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75);
+  position: relative;
+  z-index: 10001;
+  animation: authCardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.req-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 1.2rem 0;
+}
+.req-detail-grid.full { grid-template-columns: 1fr; }
+.req-detail-field {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.req-detail-field.span-2 { grid-column: span 2; }
+.req-detail-label {
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.req-detail-value {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  word-break: break-word;
+}
+.req-detail-value.mono {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--color-primary-300);
+}
+.req-admin-reply {
+  margin-top: 1.15rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 0.85rem;
+  background: rgba(133, 155, 255, 0.08);
+  border: 1px solid rgba(133, 155, 255, 0.28);
+}
+.req-admin-reply.rejected {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+.req-admin-reply.approved {
+  background: rgba(52, 211, 153, 0.08);
+  border-color: rgba(52, 211, 153, 0.3);
+}
+.req-admin-reply-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.45rem;
+}
+.req-admin-reply-header svg {
+  width: 16px;
+  height: 16px;
+  color: var(--color-primary-400);
+}
+.req-admin-reply.rejected .req-admin-reply-header svg { color: var(--rose); }
+.req-admin-reply.approved .req-admin-reply-header svg { color: var(--emerald); }
+.req-admin-reply p {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.95);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
 
 /* ═══ Админка: структура прежняя, стекло deltaclient ═══ */
 .admin-layout { display: grid; grid-template-columns: 230px 1fr; gap: 1.5rem; align-items: start; }

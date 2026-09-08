@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -118,4 +119,52 @@ func (h *Mod) SubmitDiscord(c *fiber.Ctx) error {
 		"Discord-бан #"+itoa64(id)+" от "+account.Nickname+" ("+offender+")",
 		middleware.GetRealIP(c), c.Get("User-Agent"))
 	return c.JSON(fiber.Map{"success": true, "id": id})
+}
+
+// MyRequests — история заявок модератора (HWID и Discord).
+func (h *Mod) MyRequests(c *fiber.Ctx) error {
+	account, _ := auth.AccountOf(c)
+	rows, err := h.db.SQL.Query(`
+		SELECT 'hwid' as kind, id, uuid as target, proof_type, proof_file, proof_link, reason, status, admin_comment, created_at
+		FROM v2_hwid_requests WHERE account_id = ? OR mod_nickname = ?
+		UNION ALL
+		SELECT 'discord' as kind, id, offender_id as target, proof_type, proof_file, proof_link, reason, status, admin_comment, created_at
+		FROM v2_discord_bans WHERE account_id = ? OR mod_nickname = ?
+		ORDER BY created_at DESC LIMIT 100`, account.ID, account.Nickname, account.ID, account.Nickname)
+	if err != nil {
+		return serverError(c, "Не удалось загрузить заявки")
+	}
+	defer rows.Close()
+
+	type ModReqItem struct {
+		Kind         string `json:"kind"`
+		ID           int64  `json:"id"`
+		Target       string `json:"target"`
+		ProofType    string `json:"proof_type"`
+		ProofFile    string `json:"proof_file"`
+		ProofLink    string `json:"proof_link"`
+		Reason       string `json:"reason"`
+		Status       string `json:"status"`
+		AdminComment string `json:"admin_comment"`
+		CreatedAt    string `json:"created_at"`
+	}
+
+	list := make([]ModReqItem, 0, 16)
+	for rows.Next() {
+		var item ModReqItem
+		var t interface{}
+		if err := rows.Scan(&item.Kind, &item.ID, &item.Target, &item.ProofType, &item.ProofFile,
+			&item.ProofLink, &item.Reason, &item.Status, &item.AdminComment, &t); err == nil {
+			switch val := t.(type) {
+			case time.Time:
+				item.CreatedAt = val.Format(time.RFC3339)
+			case string:
+				item.CreatedAt = val
+			case []byte:
+				item.CreatedAt = string(val)
+			}
+			list = append(list, item)
+		}
+	}
+	return c.JSON(fiber.Map{"success": true, "data": list})
 }

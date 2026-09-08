@@ -124,6 +124,7 @@ func main() {
 	modGroup := api.Group("/mod", auth.Require(authSvc, models.RoleModerator, models.RoleAdmin))
 	modGroup.Post("/hwid", modH.SubmitHWID)
 	modGroup.Post("/discord", modH.SubmitDiscord)
+	modGroup.Get("/requests", modH.MyRequests)
 
 	// ── Кабинет медиа/фримедиа ──
 	maintenanceCheck := func(c *fiber.Ctx) error {
