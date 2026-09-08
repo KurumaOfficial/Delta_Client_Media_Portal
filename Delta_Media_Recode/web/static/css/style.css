@@ -1749,14 +1749,11 @@ body.page-admin .site-footer {
 .version-badge {
   position: fixed;
   bottom: 0.75rem; right: 0.75rem;
-  padding: 0.25rem 0.65rem;
   font-family: var(--font-mono);
   font-size: 0.68rem; font-weight: 500;
-  color: rgba(255, 255, 255, 0.28);
-  background: rgba(17, 18, 22, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 0.35rem;
+  color: rgba(255, 255, 255, 0.25);
+  background: transparent;
+  border: none;
   letter-spacing: 0.04em;
   z-index: 99;
   user-select: none; pointer-events: none;
@@ -1790,7 +1787,7 @@ body.page-admin .site-footer {
   .brand-title { display: none; }
   .brand { padding-right: 0.25rem; }
   .nav { max-width: 46vw; }
-  .version-badge { bottom: 0.5rem; right: 0.5rem; font-size: 0.6rem; padding: 0.2rem 0.5rem; }
+  .version-badge { bottom: 0.5rem; right: 0.5rem; font-size: 0.6rem; padding: 0; }
   .maintenance-countdown {
     width: 100%;
     max-width: 320px;

@@ -229,9 +229,9 @@ func (s *Service) CreateSession(a models.Account, ip, gps, ua string) (string, e
 	return raw, nil
 }
 
-// idleTTL — сессия живёт, пока страница открыта (фронт шлёт heartbeat
-// каждые 25 с). Закрыл вкладку/браузер — через 90 с сессия истекает.
-const idleTTL = 90 * time.Second
+// idleTTL — сессия живёт, пока открыта страница (фронт шлёт heartbeat).
+// При отсутствии активности истекает через 15 минут.
+const idleTTL = 15 * time.Minute
 
 // Session возвращает валидную сессию по сырому токену; попутно
 // обновляет last_seen (не чаще раза в 15 с, чтобы не писать на каждый запрос).

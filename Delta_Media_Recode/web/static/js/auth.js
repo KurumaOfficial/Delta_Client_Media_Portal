@@ -8,6 +8,56 @@ function isStaff() {
   return !!(CURRENT_ACCOUNT && (CURRENT_ACCOUNT.role === "admin" || CURRENT_ACCOUNT.role === "moderator"));
 }
 
+let sessionHeartbeatTimer = null;
+
+function startSessionHeartbeat() {
+  stopSessionHeartbeat();
+  if (!CURRENT_ACCOUNT) return;
+  sessionHeartbeatTimer = setInterval(async () => {
+    if (!CURRENT_ACCOUNT) {
+      stopSessionHeartbeat();
+      return;
+    }
+    try {
+      const res = await POST("/api/session/ping");
+      if (res && res._status === 401) {
+        handleSessionExpired();
+      }
+    } catch (err) {
+      if (err && err._status === 401) {
+        handleSessionExpired();
+      }
+    }
+  }, 20000);
+}
+
+function stopSessionHeartbeat() {
+  if (sessionHeartbeatTimer) {
+    clearInterval(sessionHeartbeatTimer);
+    sessionHeartbeatTimer = null;
+  }
+}
+
+function handleSessionExpired() {
+  if (!CURRENT_ACCOUNT) return;
+  CURRENT_ACCOUNT = null;
+  stopSessionHeartbeat();
+  document.body.classList.remove("user-is-staff");
+  updateCabinetBtn();
+  if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
+  const currentView = document.querySelector("main.view.active")?.id;
+  if (currentView === "view-cabinet" || currentView === "view-admin") {
+    const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
+    if (typeof showView === "function") {
+      showView(isMaint ? "maintenance" : "public", true);
+    }
+    openAuth();
+  }
+}
+window.startSessionHeartbeat = startSessionHeartbeat;
+window.stopSessionHeartbeat = stopSessionHeartbeat;
+window.handleSessionExpired = handleSessionExpired;
+
 async function loadSession() {
   try {
     const res = await GET("/api/me");
@@ -20,11 +70,13 @@ async function loadSession() {
       }
       updateCabinetBtn();
       if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
+      startSessionHeartbeat();
       return CURRENT_ACCOUNT;
     }
   } catch {
     CURRENT_ACCOUNT = null;
   }
+  stopSessionHeartbeat();
   document.body.classList.remove("user-is-staff");
   updateCabinetBtn();
   if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
@@ -211,6 +263,7 @@ function initAuthUI() {
       await POST("/api/logout");
     } catch { /* ignore */ }
     CURRENT_ACCOUNT = null;
+    stopSessionHeartbeat();
     localStorage.removeItem("delta_remember");
     document.body.classList.remove("user-is-staff");
     updateCabinetBtn();

@@ -136,7 +136,7 @@ async function renderOverview() {
           </p>
         </div>
         <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-          ${maintActive ? `<a href="/maintenance" id="previewMaintBtn" class="btn-ghost" style="padding:0.65rem 1.1rem;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);">👁 Страница техработ</a>` : ''}
+          ${maintActive ? `<button type="button" id="previewMaintBtn" class="btn-ghost" style="padding:0.65rem 1.1rem;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);cursor:pointer;">👁 Страница техработ</button>` : ''}
           <button class="btn-ghost" id="toggleMaintenanceBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${maintActive ? 'rgba(248,113,113,0.45)' : 'rgba(251,191,36,0.45)'};background:${maintActive ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)'};color:${maintActive ? 'var(--rose)' : '#fbbf24'};">
             ${maintActive ? '✕ Отключить техработы' : '⚙ Включить техработы'}
           </button>

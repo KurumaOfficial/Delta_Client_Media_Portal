@@ -23,7 +23,14 @@ async function api(method, path, body) {
     data.error = "Ошибка сервера (" + resp.status + ")";
   }
   data._status = resp.status;
-  if (!resp.ok) throw Object.assign(new Error(data.error || "Ошибка"), data);
+  if (!resp.ok) {
+    if (resp.status === 401 && !path.startsWith("/api/auth/") && path !== "/api/me") {
+      if (typeof handleSessionExpired === "function") {
+        handleSessionExpired();
+      }
+    }
+    throw Object.assign(new Error(data.error || "Ошибка"), data);
+  }
   return data;
 }
 

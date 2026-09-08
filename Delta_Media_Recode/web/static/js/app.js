@@ -128,6 +128,11 @@ window.applyMaintenanceAnimations = applyMaintenanceAnimations;
         if (location.pathname !== targetPath && location.pathname !== (targetPath || "/")) {
           history.pushState({ view: "public" }, "", targetPath || "/");
         }
+      } else if (name === "cabinet" || name === "admin") {
+        const targetPath = "/" + (LANG === "ru" ? "" : LANG);
+        if (location.pathname === "/maintenance") {
+          history.pushState({ view: name }, "", targetPath || "/");
+        }
       }
     }
 
@@ -254,11 +259,10 @@ window.applyMaintenanceAnimations = applyMaintenanceAnimations;
         history.replaceState({ view: "maintenance" }, "", "/maintenance");
       }
       showView("maintenance", false);
+    } else if (CURRENT_ACCOUNT) {
+      showView(isMaintRoute ? "maintenance" : "cabinet", false);
     } else if (isMaintRoute) {
       showView("maintenance", false);
-    } else if (CURRENT_ACCOUNT) {
-      showView("cabinet", false);
-      setInterval(() => { POST("/api/session/ping").catch(() => {}); }, 25000);
     } else {
       showView("public", false);
     }
