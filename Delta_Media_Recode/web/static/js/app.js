@@ -34,10 +34,10 @@
     document.body.classList.toggle("page-admin", name === "admin");
     document.body.classList.toggle("page-maintenance", name === "maintenance");
 
-    // Футер отображается только на главной странице
+    // Футер отображается на главной странице и на странице техработ
     const footer = document.querySelector(".site-footer");
     if (footer) {
-      footer.style.display = (name === "public") ? "block" : "none";
+      footer.style.display = (name === "public" || name === "maintenance") ? "block" : "none";
     }
 
     if (pushUrl) {

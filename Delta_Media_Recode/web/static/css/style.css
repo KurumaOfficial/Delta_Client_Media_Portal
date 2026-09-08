@@ -1790,15 +1790,15 @@ body.page-admin .site-footer {
 }
 
 /* ═══ Режим технических работ ═══ */
-body.maintenance-active .island-header .nav,
-body.maintenance-active .island-header .brand {
+body.maintenance-active .island-header .brand,
+body.maintenance-active .island-header .nav-btn[data-view="public"] {
   pointer-events: none !important;
   opacity: 0.35 !important;
   cursor: not-allowed !important;
 }
 
-body.maintenance-active.user-is-staff .island-header .nav,
-body.maintenance-active.user-is-staff .island-header .brand {
+body.maintenance-active.user-is-staff .island-header .brand,
+body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"] {
   pointer-events: auto !important;
   opacity: 1 !important;
   cursor: pointer !important;
@@ -1914,21 +1914,4 @@ body.maintenance-active.user-is-staff .island-header .brand {
   user-select: none;
 }
 
-.maintenance-staff-notice {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.25rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.45);
-  font-family: var(--font-display);
-  font-size: 12px;
-  margin-top: 1rem;
-}
-.maintenance-staff-notice svg {
-  color: rgba(133, 155, 255, 0.7);
-  flex-shrink: 0;
-}
 
