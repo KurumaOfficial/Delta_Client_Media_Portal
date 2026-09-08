@@ -130,7 +130,7 @@ function buildPayoutForm() {
   return `
   <form class="card form-card" id="form-payout">
     <h3>${CABINET_ICONS.payout} Заявка на выплату</h3>
-    <p class="hint">Приём заявок: вторник 01:00 — понедельник 22:00 (МСК). До одной нерассмотренной заявки каждого типа в неделю.</p>
+    <p class="hint">Приём заявок: понедельник 22:00 — вторник 01:00 (МСК).</p>
     <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
     <div class="field"><label>Сколько вы в медиа Delta *</label><input type="text" name="duration" required placeholder="Например: 8 месяцев" maxlength="100"></div>
     <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
