@@ -56,19 +56,21 @@
     redrawHeaderLogo();
     if (name === "cabinet") await loadCabinet();
     if (name === "admin") await renderAdminCategory();
+    if (name === "public") applyHeroTitle();
+    if (name === "maintenance") applyMaintenanceAnimations();
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   document.querySelectorAll("#navTabs .nav-btn[data-view]").forEach((btn) =>
     btn.addEventListener("click", () => showView(btn.dataset.view)));
 
-  // Клик по логотипу и "delta media" в шапке — возврат на главную
+  // Клик по логотипу и "delta media" в шапке — возврат на главную или экран техработ
   const brandLogo = document.getElementById("brandLogo");
   if (brandLogo) {
     brandLogo.addEventListener("click", (e) => {
       e.preventDefault();
       const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
-      const staff = typeof isStaff === "function" && isStaff();
-      if (isMaint && !staff) {
+      if (isMaint) {
+        showView("maintenance");
         return;
       }
       showView("public");
@@ -190,4 +192,64 @@ function applyHeroTitle() {
   }).join("");
   // подсвеченное слово — один спан-обёртка со всеми буквами
   el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
+}
+
+// ═══ Анимации экрана техработ: побуквенный заголовок + печать описания ═══
+let maintTypewriterTimer = null;
+let maintTypewriterInterval = null;
+
+function applyMaintenanceAnimations() {
+  applyMaintenanceTitle();
+  startMaintenanceTypewriter();
+}
+
+function applyMaintenanceTitle() {
+  const el = document.getElementById("maintenanceTitle");
+  if (!el) return;
+  const plain = (typeof t === "function" && t("maintenanceTitle")) || "Технические";
+  const highlight = (typeof t === "function" && t("maintenanceHighlight")) || "работы";
+  let delay = 0;
+  const split = (text) => text.split("").map((ch) => {
+    const span = document.createElement("span");
+    span.className = "ltr";
+    span.style.animationDelay = (delay++ * 0.035) + "s";
+    span.innerHTML = ch === " " ? "&nbsp;" : ch;
+    return span.outerHTML;
+  }).join("");
+  el.innerHTML = split(plain + " ") + `<span class="text-highlight">${split(highlight)}</span>`;
+}
+
+function startMaintenanceTypewriter() {
+  if (maintTypewriterTimer) {
+    clearTimeout(maintTypewriterTimer);
+    maintTypewriterTimer = null;
+  }
+  if (maintTypewriterInterval) {
+    clearInterval(maintTypewriterInterval);
+    maintTypewriterInterval = null;
+  }
+
+  const el = document.getElementById("maintenanceDesc");
+  if (!el) return;
+
+  const fullText = (typeof t === "function" && t("maintenanceDesc")) ||
+    "Мы проводим плановое обновление портала delta media. Скоро вернемся к работе.";
+
+  el.innerHTML = '<span class="typewriter-text"></span><span class="typewriter-cursor">|</span>';
+  const textSpan = el.querySelector(".typewriter-text");
+  const cursor = el.querySelector(".typewriter-cursor");
+
+  let i = 0;
+  maintTypewriterTimer = setTimeout(() => {
+    maintTypewriterInterval = setInterval(() => {
+      if (i < fullText.length) {
+        textSpan.textContent += fullText.charAt(i);
+        i++;
+      } else {
+        clearInterval(maintTypewriterInterval);
+        maintTypewriterInterval = null;
+        if (cursor) cursor.classList.add("cursor-done");
+      }
+    }, 22);
+  }, 350);
 }

@@ -334,6 +334,7 @@ function setLanguage(lang) {
   }
 
   if (typeof applyHeroTitle === "function") applyHeroTitle();
+  if (typeof applyMaintenanceAnimations === "function") applyMaintenanceAnimations();
   if (typeof updateCabinetBtn === "function") updateCabinetBtn();
   
   // Если открыта модалка — обновляем печатающийся слоган

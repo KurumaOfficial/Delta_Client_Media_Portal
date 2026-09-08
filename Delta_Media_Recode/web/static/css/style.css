@@ -1792,14 +1792,12 @@ body.page-admin .site-footer {
 }
 
 /* ═══ Режим технических работ ═══ */
-body.maintenance-active .island-header .brand,
 body.maintenance-active .island-header .nav-btn[data-view="public"] {
   pointer-events: none !important;
   opacity: 0.35 !important;
   cursor: not-allowed !important;
 }
 
-body.maintenance-active.user-is-staff .island-header .brand,
 body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"] {
   pointer-events: auto !important;
   opacity: 1 !important;
@@ -1824,6 +1822,7 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
+  animation: appearanceIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .maintenance-icon-glow {
@@ -1853,10 +1852,24 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   border-color: rgba(251, 191, 36, 0.35);
   background: rgba(251, 191, 36, 0.08);
   box-shadow: 0 8px 32px 0 rgba(251, 191, 36, 0.15);
+  animation: fadeInDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) both 0.1s;
 }
 .hero-pill.maintenance-pill .dot {
   background-color: #fbbf24;
   box-shadow: 0 0 10px rgba(251, 191, 36, 0.9);
+}
+
+#maintenanceTitle {
+  min-height: 2.8rem;
+}
+
+#maintenanceDesc {
+  min-height: 3rem;
+}
+#maintenanceDesc .typewriter-cursor {
+  color: #fbbf24;
+  font-weight: 300;
+  margin-left: 2px;
 }
 
 .maintenance-countdown {
@@ -1866,6 +1879,7 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   gap: 0.85rem;
   margin: 2.25rem 0 2rem;
   flex-wrap: wrap;
+  animation: appearanceIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both 0.35s;
 }
 
 .timer-card {
