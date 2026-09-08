@@ -376,14 +376,46 @@ function drawAppsTable(kind, cfg) {
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const rows = pageRows.map((r) => {
-    if (kind === "media") return `
-      <tr><td class="mono">#${r.id}</td><td class="mono">${esc(r.uid)}</td><td><b>${esc(r.platform)}</b></td>
-      <td><a href="${esc(r.channel_url)}" target="_blank" rel="noopener">${esc(r.channel_url)}</a></td>
-      <td>${esc(r.servers)}</td><td>${esc(r.telegram)}</td>
-      <td>${statusBadge(r.status)}</td>
-      <td>${r.status === "pending" ? `<div class="row-actions">
-        <button class="act" data-decide="approved" data-id="${r.id}">✓ Одобрить</button>
-        <button class="act reject" data-decide="rejected" data-id="${r.id}">✕ Отклонить</button></div>` : "—"}</td></tr>`;
+    if (kind === "media") {
+      const isYT = r.platform === "youtube";
+      const contentInfo = isYT
+        ? (r.videos_per_week ? `<span style="color:var(--color-primary-300);">📹 ${esc(r.videos_per_week)}</span>` : '<span class="hint">—</span>')
+        : (r.collaborations ? `<span style="color:#38bdf8;">🤝 ${esc(r.collaborations)}</span>` : '<span class="hint">—</span>');
+      const exclusiveBadge = r.exclusive === "yes"
+        ? `<span class="badge approved" style="font-size:0.72rem;padding:0.15rem 0.5rem;">Да</span>`
+        : `<span class="badge warning" style="font-size:0.72rem;padding:0.15rem 0.5rem;">Нет</span>`;
+      const whySnippet = esc(r.why_join || "—");
+      const tgClean = (r.telegram || "").replace(/^@/, "");
+      const tgLink = tgClean ? `<a href="https://t.me/${esc(tgClean)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">@${esc(tgClean)}</a>` : '<span class="hint">—</span>';
+      const channelLink = r.channel_url ? `<a href="${esc(r.channel_url)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">${esc(r.channel_url)}</a>` : '<span class="hint">—</span>';
+      const platformBadge = isYT
+        ? `<span style="display:inline-flex;align-items:center;gap:0.3rem;color:#f87171;font-weight:600;"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M23 7.5s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.4 4 12 4 12 4s-4.4 0-7.7.2c-.5.1-1.5.1-2.4 1C1.2 5.9 1 7.5 1 7.5S.8 9.4.8 11.3v1.4c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.5 1 1.8.2 7.6.2 7.6.2s4.4 0 7.7-.3c.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.7v-1.4c0-1.9-.2-3.8-.2-3.8ZM9.7 15.1V8.4l6.4 3.4-6.4 3.3Z"/></svg> YouTube</span>`
+        : `<span style="display:inline-flex;align-items:center;gap:0.3rem;color:#38bdf8;font-weight:600;"><svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;"><path d="M19.6 6.7a5 5 0 0 1-3.5-1.4 5 5 0 0 1-1.4-3.6h-3.3v13.2a2.9 2.9 0 1 1-2.1-2.8V8.6a6.3 6.3 0 0 0-1-.1 6.2 6.2 0 1 0 6.4 6.2V9.9a8.2 8.2 0 0 0 4.9 1.6V8.2c0-.5 0-1-.1-1.5Z"/></svg> TikTok</span>`;
+
+      return `
+        <tr class="clickable-row" data-media-id="${r.id}" style="cursor:pointer;" title="Нажмите для просмотра всей информации по заявке">
+          <td class="mono">#${r.id}</td>
+          <td><span style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap;">${formatDate(r.created_at)}</span></td>
+          <td class="mono">${esc(r.uid)}</td>
+          <td>${platformBadge}</td>
+          <td>${channelLink}</td>
+          <td>${esc(r.servers || "—")}</td>
+          <td>${contentInfo}</td>
+          <td>${exclusiveBadge}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${whySnippet}">${whySnippet}</td>
+          <td>${tgLink}</td>
+          <td>${statusBadge(r.status)}${r.admin_comment ? `<br><small style="color:var(--text-muted);">💬 ${esc(r.admin_comment)}</small>` : ""}</td>
+          <td>
+            <div class="row-actions" onclick="event.stopPropagation()">
+              <button class="act" data-view-media="${r.id}" title="Посмотреть всю анкету">👁</button>
+              ${r.status === "pending" ? `
+                <button class="act" data-decide="approved" data-id="${r.id}" title="Одобрить">✓</button>
+                <button class="act reject" data-decide="rejected" data-id="${r.id}" title="Отклонить">✕</button>
+              ` : ""}
+            </div>
+          </td>
+        </tr>`;
+    }
     if (kind === "hwid") return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.uuid)}</td>
       <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td></tr>`;
@@ -395,11 +427,11 @@ function drawAppsTable(kind, cfg) {
   }).join("");
 
   const theadCols = kind === "media"
-    ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
+    ? "<th>ID</th><th>Дата</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Контент/Опыт</th><th>Эксклюзив</th><th>Мотивация</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
     : kind === "hwid"
     ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
-  const colSpan = kind === "hwid" ? 5 : 8;
+  const colSpan = kind === "media" ? 12 : (kind === "hwid" ? 5 : 7);
 
   const tableBoxHTML = `
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
@@ -425,8 +457,27 @@ function drawAppsTable(kind, cfg) {
 
   renderPager("pager-" + kind, kind, filtered.length, pageSize, () => drawAppsTable(kind, cfg));
 
+  if (kind === "media") {
+    document.querySelectorAll("[data-media-id]").forEach((tr) => {
+      tr.addEventListener("click", () => {
+        const id = parseInt(tr.dataset.mediaId, 10);
+        const app = (adminCache["media"] || []).find((x) => x.id === id);
+        if (app) openMediaAppModal(app);
+      });
+    });
+    document.querySelectorAll("[data-view-media]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.dataset.viewMedia, 10);
+        const app = (adminCache["media"] || []).find((x) => x.id === id);
+        if (app) openMediaAppModal(app);
+      });
+    });
+  }
+
   document.querySelectorAll(`[data-decide]`).forEach((b) =>
-    b.addEventListener("click", async () => {
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
       const id = b.dataset.id, decision = b.dataset.decide;
       const comment = await askComment(
         (decision === "approved" ? "Одобрение" : "Отклонение") + " заявки #" + id, false);
@@ -437,6 +488,154 @@ function drawAppsTable(kind, cfg) {
         renderAppsTable(kind);
       } catch (e) { toast(e.message, "err"); }
     }));
+}
+
+function openMediaAppModal(r) {
+  let modalWrap = document.getElementById("mediaAppModalOverlay");
+  if (!modalWrap) {
+    modalWrap = document.createElement("div");
+    modalWrap.id = "mediaAppModalOverlay";
+    modalWrap.className = "ban-modal-overlay";
+    document.body.appendChild(modalWrap);
+  }
+
+  const isYT = r.platform === "youtube";
+  const tgClean = (r.telegram || "").replace(/^@/, "");
+  const exclusiveLabel = r.exclusive === "yes" ? "Да (только Delta Client)" : "Нет";
+
+  modalWrap.innerHTML = `
+    <div class="media-modal-card">
+      <div class="ban-modal-header">
+        <div class="ban-modal-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+            <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+          </svg>
+          Заявка в медиа #${r.id}
+          ${statusBadge(r.status)}
+        </div>
+        <button type="button" class="ban-modal-close" id="mediaModalCloseBtn">&times;</button>
+      </div>
+
+      <div class="media-info-grid">
+        <div class="media-info-item">
+          <div class="media-info-label">UID заявителя</div>
+          <div class="media-info-value mono" style="color:var(--color-primary-300);">${esc(r.uid)}</div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Telegram</div>
+          <div class="media-info-value">
+            ${tgClean ? `<a href="https://t.me/${esc(tgClean)}" target="_blank" rel="noopener" class="link-chip" style="font-weight:600;">@${esc(tgClean)} ↗</a>` : '<span class="hint">—</span>'}
+          </div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Платформа</div>
+          <div class="media-info-value" style="font-weight:600;">
+            ${isYT ? `<span style="color:#f87171;">YouTube</span>` : `<span style="color:#38bdf8;">TikTok</span>`}
+          </div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Канал / Аккаунт</div>
+          <div class="media-info-value">
+            ${r.channel_url ? `<a href="${esc(r.channel_url)}" target="_blank" rel="noopener" class="link-chip" style="word-break:break-all;">${esc(r.channel_url)} ↗</a>` : '<span class="hint">—</span>'}
+          </div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Серверы</div>
+          <div class="media-info-value">${esc(r.servers || "—")}</div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">${isYT ? "Роликов в неделю" : "Сотрудничества / опыт"}</div>
+          <div class="media-info-value">${esc(isYT ? (r.videos_per_week || "—") : (r.collaborations || "—"))}</div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Эксклюзивный контент</div>
+          <div class="media-info-value">${esc(exclusiveLabel)}</div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Согласие с критериями</div>
+          <div class="media-info-value" style="color:var(--emerald);">✓ Да, согласен</div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Дата подачи</div>
+          <div class="media-info-value" style="color:var(--text-muted);">${formatDate(r.created_at)}</div>
+        </div>
+        <div class="media-info-item">
+          <div class="media-info-label">Язык интерфейса</div>
+          <div class="media-info-value mono">${esc((r.lang || "ru").toUpperCase())}</div>
+        </div>
+      </div>
+
+      <div class="media-motivation-block">
+        <div class="media-info-label" style="margin-bottom:0.5rem;color:rgba(255,255,255,0.7);">Мотивация («Почему именно вы?»)</div>
+        <div class="media-motivation-text">${esc(r.why_join || "—")}</div>
+      </div>
+
+      ${r.admin_comment ? `
+        <div class="media-info-item" style="margin-bottom:1.15rem;border-color:rgba(142,126,255,0.3);background:rgba(142,126,255,0.06);">
+          <div class="media-info-label" style="color:var(--color-primary-300);">Комментарий администратора</div>
+          <div class="media-info-value" style="white-space:pre-wrap;">${esc(r.admin_comment)}</div>
+        </div>
+      ` : ""}
+
+      ${r.status === "pending" ? `
+        <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:1.25rem;">
+          <div style="margin-bottom:0.85rem;">
+            <label style="display:block;font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:0.35rem;">Комментарий к решению (опционально):</label>
+            <input type="text" id="modalMediaComment" placeholder="Причина отказа или приветствие..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.65rem 0.95rem;color:#fff;outline:none;">
+          </div>
+          <div style="display:flex;gap:0.75rem;align-items:center;">
+            <button type="button" id="modalApproveBtn" class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);flex:1;padding:0.75rem;font-weight:600;">✓ Одобрить заявку</button>
+            <button type="button" id="modalRejectBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.3);flex:1;padding:0.75rem;font-weight:600;">✕ Отклонить заявку</button>
+          </div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+
+  void modalWrap.offsetWidth;
+  modalWrap.classList.add("open");
+
+  const closeModal = () => {
+    modalWrap.classList.remove("open");
+  };
+
+  document.getElementById("mediaModalCloseBtn").addEventListener("click", closeModal);
+  modalWrap.addEventListener("click", (e) => {
+    if (e.target === modalWrap) closeModal();
+  });
+
+  const onKeyEsc = (e) => {
+    if (e.key === "Escape") {
+      closeModal();
+      window.removeEventListener("keydown", onKeyEsc);
+    }
+  };
+  window.addEventListener("keydown", onKeyEsc);
+
+  document.getElementById("modalApproveBtn")?.addEventListener("click", async () => {
+    const comment = document.getElementById("modalMediaComment")?.value.trim() || "";
+    try {
+      await APP_TABLES.media.decide(r.id, "approved", comment);
+      toast("Заявка #" + r.id + " одобрена", "ok");
+      closeModal();
+      renderAppsTable("media");
+    } catch (ex) {
+      toast(ex.message, "err");
+    }
+  });
+
+  document.getElementById("modalRejectBtn")?.addEventListener("click", async () => {
+    const comment = document.getElementById("modalMediaComment")?.value.trim() || "";
+    try {
+      await APP_TABLES.media.decide(r.id, "rejected", comment);
+      toast("Заявка #" + r.id + " отклонена", "ok");
+      closeModal();
+      renderAppsTable("media");
+    } catch (ex) {
+      toast(ex.message, "err");
+    }
+  });
 }
 
 function decideButtons(id) {
