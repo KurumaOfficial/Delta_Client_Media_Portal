@@ -79,6 +79,14 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		return badRequest(c, "Некорректные данные формы")
 	}
 
+	if h.isMaintenanceActive() {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"success":     false,
+			"maintenance": true,
+			"error":       "Ведутся технические работы. Подача заявок временно приостановлена.",
+		})
+	}
+
 	if h.db.Setting("apps_open") == "false" {
 		return badRequest(c, "Приём заявок в delta media сейчас закрыт")
 	}
@@ -221,15 +229,51 @@ func (h *Public) LogClientError(c *fiber.Ctx) error {
 // Health — проверка живости + публичный конфиг для фронтенда.
 func (h *Public) Health(c *fiber.Ctx) error {
 	appsOpen := h.db.Setting("apps_open") != "false"
-	return c.JSON(fiber.Map{"success": true, "time": time.Now().Format(time.RFC3339),
-		"turnstile_sitekey": h.cfg.TurnstileSiteKey,
-		"turnstile_enabled": h.cfg.TurnstileSecret != "",
-		"gps_required":      h.cfg.GPSRequired,
-		"bot_username":      strings.TrimPrefix(h.tg.Client().Username(), "@"),
-		"staff_contact":     h.cfg.TGSecretary,
-		"admin_contact":     h.cfg.TGAdminContact,
-		"apps_open":         appsOpen,
+	mEnabled := h.isMaintenanceActive()
+	mUntilStr := h.db.Setting("maintenance_until")
+	mRemainingSec := int64(0)
+	if mEnabled && mUntilStr != "" {
+		if t, err := time.Parse(time.RFC3339, mUntilStr); err == nil {
+			rem := int64(time.Until(t).Seconds())
+			if rem > 0 {
+				mRemainingSec = rem
+			}
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"success":                  true,
+		"time":                     time.Now().Format(time.RFC3339),
+		"turnstile_sitekey":        h.cfg.TurnstileSiteKey,
+		"turnstile_enabled":        h.cfg.TurnstileSecret != "",
+		"gps_required":             h.cfg.GPSRequired,
+		"bot_username":             strings.TrimPrefix(h.tg.Client().Username(), "@"),
+		"staff_contact":            h.cfg.TGSecretary,
+		"admin_contact":            h.cfg.TGAdminContact,
+		"apps_open":                appsOpen,
+		"maintenance_enabled":      mEnabled,
+		"maintenance_until":        mUntilStr,
+		"maintenance_seconds_left": mRemainingSec,
 	})
+}
+
+func (h *Public) isMaintenanceActive() bool {
+	if h.db.Setting("maintenance_enabled") != "true" {
+		return false
+	}
+	untilStr := h.db.Setting("maintenance_until")
+	if untilStr == "" {
+		return true
+	}
+	t, err := time.Parse(time.RFC3339, untilStr)
+	if err != nil {
+		return true
+	}
+	if time.Now().After(t) {
+		_ = h.db.SetSetting("maintenance_enabled", "false")
+		return false
+	}
+	return true
 }
 
 func langOrDefault(lang string) string {

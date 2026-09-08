@@ -5,6 +5,16 @@ let adminCat = "overview";
 let adminCache = {};     // данные таблиц для клиентских фильтров
 let logsPollTimer = null;
 
+function formatDate(iso) {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? String(iso) : d.toLocaleString("ru-RU");
+  } catch {
+    return String(iso);
+  }
+}
+
 // lucide-иконки (та же библиотека, что на deltaclient.xyz)
 const ICONS = {
   payouts: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
@@ -94,21 +104,44 @@ function bindFilterBar(rerender) {
 async function renderOverview() {
   const { stats } = await GET("/api/admin/stats");
   const appsOpen = stats.apps_open !== false;
+  const maintActive = !!stats.maintenance_enabled;
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(false)}
-    <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.25rem;border:1px solid ${appsOpen ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'};background:${appsOpen ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)'};">
-      <div>
-        <div style="display:flex;align-items:center;gap:0.65rem;">
-          <span class="dot" style="width:10px;height:10px;border-radius:9999px;background:${appsOpen ? 'var(--emerald)' : 'var(--rose)'};box-shadow:0 0 12px ${appsOpen ? 'rgba(52,211,153,0.9)' : 'rgba(248,113,113,0.9)'};"></span>
-          <b style="font-size:1.05rem;">Приём медиа-заявок: ${appsOpen ? '<span style="color:var(--emerald)">ОТКРЫТ</span>' : '<span style="color:var(--rose)">ЗАКРЫТ</span>'}</b>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.25rem;margin-bottom:1.25rem;">
+      <!-- Приём заявок -->
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;border:1px solid ${appsOpen ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)'};background:${appsOpen ? 'rgba(52,211,153,0.04)' : 'rgba(248,113,113,0.04)'};">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.65rem;">
+            <span class="dot" style="width:10px;height:10px;border-radius:9999px;background:${appsOpen ? 'var(--emerald)' : 'var(--rose)'};box-shadow:0 0 12px ${appsOpen ? 'rgba(52,211,153,0.9)' : 'rgba(248,113,113,0.9)'};"></span>
+            <b style="font-size:1.05rem;">Приём медиа-заявок: ${appsOpen ? '<span style="color:var(--emerald)">ОТКРЫТ</span>' : '<span style="color:var(--rose)">ЗАКРЫТ</span>'}</b>
+          </div>
+          <p class="hint" style="margin-top:0.35rem;">
+            ${appsOpen ? 'На главной отображается «приём заявок открыт», форма активна.' : 'На главной отображается «приём заявок закрыт», кнопка заблокирована.'}
+          </p>
         </div>
-        <p class="hint" style="margin-top:0.35rem;">
-          ${appsOpen ? 'На главной странице отображается «delta media · приём заявок открыт», форма активна.' : 'На главной странице отображается «delta media · приём заявок закрыт», точка мигает красным, кнопка отправки заблокирована.'}
-        </p>
+        <button class="btn-ghost" id="toggleAppsBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${appsOpen ? 'rgba(248,113,113,0.45)' : 'rgba(52,211,153,0.45)'};background:${appsOpen ? 'rgba(248,113,113,0.12)' : 'rgba(52,211,153,0.12)'};color:${appsOpen ? 'var(--rose)' : 'var(--emerald)'};">
+          ${appsOpen ? '✕ Закрыть набор' : '✓ Открыть набор'}
+        </button>
       </div>
-      <button class="btn-ghost" id="toggleAppsBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${appsOpen ? 'rgba(248,113,113,0.45)' : 'rgba(52,211,153,0.45)'};background:${appsOpen ? 'rgba(248,113,113,0.12)' : 'rgba(52,211,153,0.12)'};color:${appsOpen ? 'var(--rose)' : 'var(--emerald)'};">
-        ${appsOpen ? '✕ Закрыть набор заявок' : '✓ Открыть набор заявок'}
-      </button>
+
+      <!-- Режим техработ -->
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;border:1px solid ${maintActive ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'};background:${maintActive ? 'rgba(251,191,36,0.04)' : 'rgba(255,255,255,0.02)'};">
+        <div>
+          <div style="display:flex;align-items:center;gap:0.65rem;">
+            <span class="dot ${maintActive ? 'animate-blink' : ''}" style="width:10px;height:10px;border-radius:9999px;background:${maintActive ? '#fbbf24' : 'rgba(255,255,255,0.25)'};box-shadow:0 0 12px ${maintActive ? 'rgba(251,191,36,0.9)' : 'none'};"></span>
+            <b style="font-size:1.05rem;">Технические работы: ${maintActive ? '<span style="color:#fbbf24">АКТИВНЫ</span>' : '<span style="color:rgba(255,255,255,0.5)">ВЫКЛЮЧЕНЫ</span>'}</b>
+          </div>
+          <p class="hint" style="margin-top:0.35rem;">
+            ${maintActive ? `Сайт на паузе с таймером. Доступ только персоналу. До: ${formatDate(stats.maintenance_until)}` : 'Сайт открыт для всех посетителей. Таймер отключён.'}
+          </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          ${maintActive ? `<a href="/maintenance" id="previewMaintBtn" class="btn-ghost" style="padding:0.65rem 1.1rem;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);">👁 Страница техработ</a>` : ''}
+          <button class="btn-ghost" id="toggleMaintenanceBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${maintActive ? 'rgba(248,113,113,0.45)' : 'rgba(251,191,36,0.45)'};background:${maintActive ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)'};color:${maintActive ? 'var(--rose)' : '#fbbf24'};">
+            ${maintActive ? '✕ Отключить техработы' : '⚙ Включить техработы'}
+          </button>
+        </div>
+      </div>
     </div>
     <div class="stats-row">
       <div class="stat-card"><b>${stats.media_pending}</b><span>Медиа заявки (в ожидании)</span></div>
@@ -120,6 +153,15 @@ async function renderOverview() {
     <div class="card"><b>${esc(stats.week_label || "—")}</b>
       <p class="hint">${stats.week_open ? "🟢 Приём выплат открыт" : "🔴 Приём выплат закрыт (окно: вт 01:00 — пн 22:00 МСК)"}</p>
     </div>`;
+
+  document.getElementById("previewMaintBtn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (typeof showView === "function") {
+      showView("maintenance");
+    } else {
+      window.location.href = "/maintenance";
+    }
+  });
 
   document.getElementById("toggleAppsBtn")?.addEventListener("click", async () => {
     const res = await POST("/api/admin/toggle-apps", { open: !appsOpen });
@@ -137,8 +179,124 @@ async function renderOverview() {
     }
   });
 
+  document.getElementById("toggleMaintenanceBtn")?.addEventListener("click", async () => {
+    if (maintActive) {
+      const res = await POST("/api/admin/toggle-maintenance", { enabled: false });
+      if (res.success) {
+        toast("Технические работы отключены", "ok");
+        if (typeof SITE_CONFIG !== "undefined" && SITE_CONFIG) {
+          SITE_CONFIG.maintenance_enabled = false;
+          SITE_CONFIG.maintenance_until = "";
+          SITE_CONFIG.maintenance_seconds_left = 0;
+        }
+        if (typeof updateMaintenanceUI === "function") {
+          updateMaintenanceUI();
+        }
+        renderOverview();
+      } else {
+        toast(res.error || "Ошибка", "err");
+      }
+    } else {
+      openMaintenanceModal();
+    }
+  });
+
   bindFilterBar(() => renderOverview());
 }
+
+let selectedMaintMinutes = 60;
+
+function openMaintenanceModal() {
+  selectedMaintMinutes = 60;
+  const modal = document.getElementById("maintenanceModal");
+  if (!modal) return;
+  const customInput = document.getElementById("maintCustomMinutes");
+  if (customInput) customInput.value = "";
+  const errEl = document.getElementById("maintModalError");
+  if (errEl) { errEl.textContent = ""; errEl.classList.add("hidden"); }
+
+  document.querySelectorAll("#maintPresets .maint-preset").forEach((btn) => {
+    const min = parseInt(btn.dataset.min, 10);
+    const isActive = min === 60;
+    btn.style.border = isActive ? "1px solid rgba(133,155,255,0.4)" : "1px solid rgba(255,255,255,0.1)";
+    btn.style.background = isActive ? "rgba(133,155,255,0.1)" : "transparent";
+  });
+
+  openModal("maintenanceModal");
+}
+
+let maintModalInited = false;
+function initMaintenanceModal() {
+  if (maintModalInited) return;
+  maintModalInited = true;
+
+  document.querySelectorAll("#maintPresets .maint-preset").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectedMaintMinutes = parseInt(btn.dataset.min, 10);
+      const customInput = document.getElementById("maintCustomMinutes");
+      if (customInput) customInput.value = "";
+      document.querySelectorAll("#maintPresets .maint-preset").forEach((b) => {
+        const isActive = b === btn;
+        b.style.border = isActive ? "1px solid rgba(133,155,255,0.4)" : "1px solid rgba(255,255,255,0.1)";
+        b.style.background = isActive ? "rgba(133,155,255,0.1)" : "transparent";
+      });
+    });
+  });
+
+  const customInput = document.getElementById("maintCustomMinutes");
+  if (customInput) {
+    customInput.addEventListener("input", () => {
+      const val = parseInt(customInput.value, 10);
+      if (val > 0) {
+        selectedMaintMinutes = val;
+        document.querySelectorAll("#maintPresets .maint-preset").forEach((b) => {
+          b.style.border = "1px solid rgba(255,255,255,0.1)";
+          b.style.background = "transparent";
+        });
+      }
+    });
+  }
+
+  document.getElementById("maintModalOk")?.addEventListener("click", async () => {
+    const mins = selectedMaintMinutes;
+    if (!mins || mins <= 0) {
+      const errEl = document.getElementById("maintModalError");
+      if (errEl) {
+        errEl.textContent = "Укажите корректное время техработ";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+    const res = await POST("/api/admin/toggle-maintenance", { enabled: true, duration_minutes: mins });
+    if (res.success) {
+      closeModal("maintenanceModal");
+      toast("Техработы включены на " + mins + " мин", "ok");
+      if (typeof SITE_CONFIG !== "undefined" && SITE_CONFIG) {
+        SITE_CONFIG.maintenance_enabled = true;
+        SITE_CONFIG.maintenance_until = res.maintenance_until;
+        SITE_CONFIG.maintenance_seconds_left = res.maintenance_seconds_left;
+      }
+      if (typeof updateMaintenanceUI === "function") {
+        updateMaintenanceUI();
+      }
+      // Перенаправляем на отдельный роут техработ /maintenance
+      if (typeof showView === "function") {
+        showView("maintenance");
+      } else {
+        window.location.href = "/maintenance";
+      }
+    } else {
+      const errEl = document.getElementById("maintModalError");
+      if (errEl) {
+        errEl.textContent = res.error || "Не удалось включить техработы";
+        errEl.classList.remove("hidden");
+      }
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initMaintenanceModal);
+initMaintenanceModal();
 
 // ── Заявки media/hwid/discord ──
 const APP_TABLES = {

@@ -17,7 +17,13 @@
     b.addEventListener("click", () => setLanguage(b.dataset.lang)));
 
   // переключение вкладок (общая функция — используется и кнопкой «Кабинет»)
-  window.showView = async (name) => {
+  window.showView = async (name, pushUrl = true) => {
+    const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
+    const staff = typeof isStaff === "function" && isStaff();
+    if (isMaint && !staff && name !== "maintenance") {
+      name = "maintenance";
+    }
+
     document.querySelectorAll("main.view").forEach((v) => v.classList.remove("active"));
     const view = document.getElementById("view-" + name);
     if (!view) return;
@@ -26,11 +32,25 @@
     // Затемняющий блюр 1:1 deltaclient.xyz/docs в кабинете всех ролей и в админке
     document.body.classList.toggle("page-cabinet", name === "cabinet");
     document.body.classList.toggle("page-admin", name === "admin");
+    document.body.classList.toggle("page-maintenance", name === "maintenance");
 
     // Футер отображается только на главной странице
     const footer = document.querySelector(".site-footer");
     if (footer) {
       footer.style.display = (name === "public") ? "block" : "none";
+    }
+
+    if (pushUrl) {
+      if (name === "maintenance") {
+        if (location.pathname !== "/maintenance") {
+          history.pushState({ view: "maintenance" }, "", "/maintenance");
+        }
+      } else if (name === "public") {
+        const targetPath = "/" + (LANG === "ru" ? "" : LANG);
+        if (location.pathname !== targetPath && location.pathname !== (targetPath || "/")) {
+          history.pushState({ view: "public" }, "", targetPath || "/");
+        }
+      }
     }
 
     redrawHeaderLogo();
@@ -46,14 +66,34 @@
   if (brandLogo) {
     brandLogo.addEventListener("click", (e) => {
       e.preventDefault();
+      const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
+      const staff = typeof isStaff === "function" && isStaff();
+      if (isMaint && !staff) {
+        return;
+      }
       showView("public");
       window.scrollTo({ top: 0, behavior: "smooth" });
       const targetPath = "/" + (LANG === "ru" ? "" : LANG);
       if (location.pathname !== targetPath) {
-        history.pushState({}, "", targetPath || "/");
+        history.pushState({ view: "public" }, "", targetPath || "/");
       }
     });
   }
+
+  // История браузера: кнопка назад/вперёд
+  window.addEventListener("popstate", () => {
+    if (location.pathname === "/maintenance") {
+      showView("maintenance", false);
+    } else {
+      const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
+      const staff = typeof isStaff === "function" && isStaff();
+      if (isMaint && !staff) {
+        showView("maintenance", false);
+      } else {
+        showView("public", false);
+      }
+    }
+  });
 
   // Анимация цветного логотипа в футере при прокрутке к нему
   const footerLogo = document.querySelector(".footer-logo");
@@ -74,8 +114,23 @@
   initPublicForm();
   initAdminNav();
 
-  // Turnstile грузим асинхронно только если включён на сервере
-  loadSiteConfig().then(() => {
+  // Инициализация приложения: проверка «Запомнить меня», конфиг и сессия
+  (async () => {
+    // 1. Проверка галочки «Запомнить меня»:
+    // Если пользователь вошёл без галочки «Запомнить меня», то при обновлении страницы (F5)
+    // происходит разлогин и выкидывает из аккаунта
+    const remember = localStorage.getItem("delta_remember") === "1";
+    if (!remember) {
+      try {
+        await POST("/api/logout");
+      } catch { /* ignore */ }
+      CURRENT_ACCOUNT = null;
+      localStorage.removeItem("delta_remember");
+    }
+
+    // 2. Загрузка конфигурации сайта (техработы, приём заявок, turnstile)
+    await loadSiteConfig();
+
     if (SITE_CONFIG && SITE_CONFIG.turnstile_enabled) {
       const s = document.createElement("script");
       s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
@@ -83,17 +138,33 @@
       s.onload = renderTurnstile;
       document.head.appendChild(s);
     }
-  });
 
-  // сессия: после входа сразу открываем кабинет
-  // (админ-панель — вкладка внутри кабинета)
-  loadSession().then(() => {
-    if (CURRENT_ACCOUNT) {
-      showView("cabinet");
-      // heartbeat: пока страница открыта — сессия жива, закрыл — истечёт
-      setInterval(() => { POST("/api/session/ping").catch(() => {}); }, 25000);
+    // 3. Загрузка активной сессии (только если «Запомнить меня» было включено)
+    if (remember) {
+      await loadSession();
+    } else {
+      updateCabinetBtn();
     }
-  });
+
+    // 4. Определение начального экрана и маршрута
+    const isMaintRoute = location.pathname === "/maintenance";
+    const isMaintActive = !!(SITE_CONFIG && SITE_CONFIG.maintenance_enabled);
+    const staff = typeof isStaff === "function" && isStaff();
+
+    if (isMaintActive && !staff) {
+      if (location.pathname !== "/maintenance") {
+        history.replaceState({ view: "maintenance" }, "", "/maintenance");
+      }
+      showView("maintenance", false);
+    } else if (isMaintRoute) {
+      showView("maintenance", false);
+    } else if (CURRENT_ACCOUNT) {
+      showView("cabinet", false);
+      setInterval(() => { POST("/api/session/ping").catch(() => {}); }, 25000);
+    } else {
+      showView("public", false);
+    }
+  })();
 })();
 
 // Логотип в хедере заново «отрисовывается» при каждом переключении вкладки

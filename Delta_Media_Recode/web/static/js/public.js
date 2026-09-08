@@ -20,10 +20,99 @@ async function loadSiteConfig() {
       document.getElementById("loginCaptcha")?.classList.add("hidden");
     }
     updateAppsOpenUI(SITE_CONFIG.apps_open !== false);
+    updateMaintenanceUI();
   } catch {
     SITE_CONFIG = {};
     updateAppsOpenUI(true);
+    updateMaintenanceUI();
   }
+}
+
+let maintenanceTimerInterval = null;
+
+function updateMaintenanceUI() {
+  if (!SITE_CONFIG) return;
+  const isMaint = !!SITE_CONFIG.maintenance_enabled;
+  const staff = typeof isStaff === "function" && isStaff();
+
+  if (isMaint) {
+    document.body.classList.add("maintenance-active");
+    if (staff) {
+      document.body.classList.add("user-is-staff");
+    } else {
+      document.body.classList.remove("user-is-staff");
+      if (typeof showView === "function") {
+        showView("maintenance");
+      }
+    }
+    startMaintenanceCountdown(SITE_CONFIG.maintenance_until, SITE_CONFIG.maintenance_seconds_left);
+  } else {
+    document.body.classList.remove("maintenance-active");
+    document.body.classList.remove("user-is-staff");
+    if (maintenanceTimerInterval) {
+      clearInterval(maintenanceTimerInterval);
+      maintenanceTimerInterval = null;
+    }
+    const maintView = document.getElementById("view-maintenance");
+    if (maintView && maintView.classList.contains("active")) {
+      if (typeof showView === "function") {
+        showView("public");
+      }
+    }
+  }
+}
+
+function startMaintenanceCountdown(untilDateStr, initialSecLeft) {
+  if (maintenanceTimerInterval) {
+    clearInterval(maintenanceTimerInterval);
+    maintenanceTimerInterval = null;
+  }
+
+  let targetTime = 0;
+  if (untilDateStr) {
+    const parsed = new Date(untilDateStr).getTime();
+    if (!isNaN(parsed)) targetTime = parsed;
+  }
+  if (!targetTime && initialSecLeft && initialSecLeft > 0) {
+    targetTime = Date.now() + initialSecLeft * 1000;
+  }
+
+  function tick() {
+    if (!targetTime) {
+      updateTimerDisplay(0, 0, 0);
+      return;
+    }
+    const now = Date.now();
+    let diff = Math.max(0, Math.floor((targetTime - now) / 1000));
+
+    const hours = Math.floor(diff / 3600);
+    const minutes = Math.floor((diff % 3600) / 60);
+    const seconds = diff % 60;
+
+    updateTimerDisplay(hours, minutes, seconds);
+
+    if (diff <= 0) {
+      if (maintenanceTimerInterval) {
+        clearInterval(maintenanceTimerInterval);
+        maintenanceTimerInterval = null;
+      }
+      setTimeout(async () => {
+        await loadSiteConfig();
+      }, 1500);
+    }
+  }
+
+  tick();
+  maintenanceTimerInterval = setInterval(tick, 1000);
+}
+
+function updateTimerDisplay(h, m, s) {
+  const elH = document.getElementById("timerHours");
+  const elM = document.getElementById("timerMinutes");
+  const elS = document.getElementById("timerSeconds");
+  if (elH) elH.textContent = String(h).padStart(2, "0");
+  if (elM) elM.textContent = String(m).padStart(2, "0");
+  if (elS) elS.textContent = String(s).padStart(2, "0");
 }
 
 function updateAppsOpenUI(isOpen) {

@@ -46,6 +46,7 @@ const I18N = {
     authSub: "Личный кабинет медиа-портала",
     authCodeLabel: "код доступа",
     authForgot: "Забыли код?",
+    authRemember: "Запомнить меня",
     authSubmit: "Войти",
     authSubmitLoading: "Вход...",
     authTagline: "Контроль, данные и точность — в одном инструменте.",
@@ -87,6 +88,16 @@ const I18N = {
     footerRefund: "Возврат средств",
     footerData: "Обработка данных",
     footerCopy: "© 2026 delta media portal. Все права защищены.",
+
+    // Техработы
+    maintenancePill: "delta media · технические работы",
+    maintenanceTitle: "Технические",
+    maintenanceHighlight: "работы",
+    maintenanceDesc: "Мы проводим плановое обновление портала delta media. Скоро вернемся к работе.",
+    timerHours: "часов",
+    timerMinutes: "минут",
+    timerSeconds: "секунд",
+    maintenanceStaffHint: "Вход в профиль во время техработ разрешён только администраторам и модераторам.",
   },
   ua: {
     navApply: "Медіа заявка", navCabinet: "Кабінет",
@@ -132,6 +143,7 @@ const I18N = {
     authSub: "Особистий кабінет медіа-порталу",
     authCodeLabel: "код доступу",
     authForgot: "Забули код?",
+    authRemember: "Запам'ятати мене",
     authSubmit: "Увійти",
     authSubmitLoading: "Вхід...",
     authTagline: "Контроль, дані та точність — в одному інструменті.",
@@ -173,6 +185,16 @@ const I18N = {
     footerRefund: "Повернення коштів",
     footerData: "Обробка даних",
     footerCopy: "© 2026 delta media portal. Усі права захищені.",
+
+    // Техроботи
+    maintenancePill: "delta media · технічні роботи",
+    maintenanceTitle: "Технічні",
+    maintenanceHighlight: "роботи",
+    maintenanceDesc: "Ми проводимо планове оновлення порталу delta media. Незабаром повернемося до роботи.",
+    timerHours: "годин",
+    timerMinutes: "хвилин",
+    timerSeconds: "секунд",
+    maintenanceStaffHint: "Вхід у профіль під час техробіт дозволено лише адміністраторам та модераторам.",
   },
   en: {
     navApply: "Media application", navCabinet: "Dashboard",
@@ -218,6 +240,7 @@ const I18N = {
     authSub: "Media portal dashboard",
     authCodeLabel: "access code",
     authForgot: "Forgot code?",
+    authRemember: "Remember me",
     authSubmit: "Sign in",
     authSubmitLoading: "Signing in...",
     authTagline: "Control, intel and precision — in one tool.",
@@ -259,6 +282,16 @@ const I18N = {
     footerRefund: "Refund Policy",
     footerData: "Data Processing",
     footerCopy: "© 2026 delta media portal. All rights reserved.",
+
+    // Maintenance
+    maintenancePill: "delta media · maintenance",
+    maintenanceTitle: "Technical",
+    maintenanceHighlight: "Maintenance",
+    maintenanceDesc: "We are performing scheduled maintenance on the delta media portal. We will be back soon.",
+    timerHours: "hours",
+    timerMinutes: "minutes",
+    timerSeconds: "seconds",
+    maintenanceStaffHint: "Login during maintenance is only permitted for administrators and moderators.",
   },
 };
 

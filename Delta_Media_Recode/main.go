@@ -98,6 +98,7 @@ func main() {
 	app.Get("/ua", renderIndex)
 	app.Get("/uk", renderIndex)
 	app.Get("/en", renderIndex)
+	app.Get("/maintenance", renderIndex)
 
 	api := app.Group("/api")
 
@@ -125,18 +126,40 @@ func main() {
 	modGroup.Post("/discord", modH.SubmitDiscord)
 
 	// ── Кабинет медиа/фримедиа ──
-	mediaGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleFreeMedia, models.RoleAdmin))
+	maintenanceCheck := func(c *fiber.Ctx) error {
+		if db.Setting("maintenance_enabled") == "true" {
+			untilStr := db.Setting("maintenance_until")
+			if untilStr != "" {
+				if t, err := time.Parse(time.RFC3339, untilStr); err == nil && time.Now().After(t) {
+					_ = db.SetSetting("maintenance_enabled", "false")
+					return c.Next()
+				}
+			}
+			account, ok := auth.AccountOf(c)
+			if !ok || (account.Role != models.RoleAdmin && account.Role != models.RoleModerator) {
+				return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+					"success":     false,
+					"maintenance": true,
+					"error":       "Ведутся технические работы. Доступ разрешён только персоналу.",
+				})
+			}
+		}
+		return c.Next()
+	}
+
+	mediaGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleFreeMedia, models.RoleAdmin), maintenanceCheck)
 	mediaGroup.Get("/requests", cabinetH.MyRequests)
-	mediaRole := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleAdmin))
+	mediaRole := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleAdmin), maintenanceCheck)
 	mediaRole.Post("/payout", cabinetH.SubmitPayout)
 	mediaRole.Post("/lot", cabinetH.SubmitLot)
-	freeGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleFreeMedia, models.RoleAdmin))
+	freeGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleFreeMedia, models.RoleAdmin), maintenanceCheck)
 	freeGroup.Post("/subscription", cabinetH.SubmitSubscription)
 
 	// ── Админ-панель ──
 	adminGroup := api.Group("/admin", auth.Require(authSvc, models.RoleAdmin))
 	adminGroup.Get("/stats", adminH.Stats)
 	adminGroup.Post("/toggle-apps", adminH.ToggleApps)
+	adminGroup.Post("/toggle-maintenance", adminH.ToggleMaintenance)
 	adminGroup.Get("/logs", adminH.Logs)
 	adminGroup.Get("/settings", adminH.Settings)
 	adminGroup.Post("/settings", adminH.UpdateSetting)

@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -56,6 +57,17 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 	if account.IsActive != 1 {
 		h.db.RecordAudit("LOGIN", "failed", fmt.Sprintf("Отключённый аккаунт #%d (%s)", account.ID, account.Nickname), ip, ua)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "error": "Аккаунт отключён. Обратитесь к администратору."})
+	}
+
+	// Режим техработ: разрешён вход ТОЛЬКО администраторам и модераторам
+	if h.isMaintenanceActive() && account.Role != models.RoleAdmin && account.Role != models.RoleModerator {
+		h.db.RecordAudit("LOGIN", "maintenance_blocked",
+			fmt.Sprintf("Попытка входа во время техработ: аккаунт #%d (%s, %s)", account.ID, account.Nickname, account.Role), ip, ua)
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"success":     false,
+			"maintenance": true,
+			"error":       "Ведутся технические работы. Вход доступен только администраторам и модераторам.",
+		})
 	}
 
 	// DEV-режим (локальная отладка без Telegram): подтверждаем попытку сразу.
@@ -179,4 +191,23 @@ func maskCode(code string) string {
 		return "****"
 	}
 	return string(runes[:4]) + "****"
+}
+
+func (h *Handler) isMaintenanceActive() bool {
+	if h.db.Setting("maintenance_enabled") != "true" {
+		return false
+	}
+	untilStr := h.db.Setting("maintenance_until")
+	if untilStr == "" {
+		return true
+	}
+	t, err := time.Parse(time.RFC3339, untilStr)
+	if err != nil {
+		return true
+	}
+	if time.Now().After(t) {
+		_ = h.db.SetSetting("maintenance_enabled", "false")
+		return false
+	}
+	return true
 }

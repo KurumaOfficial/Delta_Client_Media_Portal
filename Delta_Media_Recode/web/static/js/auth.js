@@ -4,18 +4,30 @@
 let CURRENT_ACCOUNT = null;
 let authPollInterval = null;
 
+function isStaff() {
+  return !!(CURRENT_ACCOUNT && (CURRENT_ACCOUNT.role === "admin" || CURRENT_ACCOUNT.role === "moderator"));
+}
+
 async function loadSession() {
   try {
     const res = await GET("/api/me");
     if (res && res.success && res.account) {
       CURRENT_ACCOUNT = res.account;
+      if (isStaff()) {
+        document.body.classList.add("user-is-staff");
+      } else {
+        document.body.classList.remove("user-is-staff");
+      }
       updateCabinetBtn();
+      if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
       return CURRENT_ACCOUNT;
     }
   } catch {
     CURRENT_ACCOUNT = null;
   }
+  document.body.classList.remove("user-is-staff");
   updateCabinetBtn();
+  if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
   return null;
 }
 
@@ -83,6 +95,12 @@ function openAuth() {
   // сброс формы и состояния
   const form = document.getElementById("authForm");
   if (form) form.reset();
+
+  const remBox = document.getElementById("authRemember");
+  if (remBox) {
+    remBox.checked = localStorage.getItem("delta_remember") === "1";
+  }
+
   setAuthError("");
   setAuthLoading(false);
   
@@ -188,8 +206,14 @@ function initAuthUI() {
       await POST("/api/logout");
     } catch { /* ignore */ }
     CURRENT_ACCOUNT = null;
+    localStorage.removeItem("delta_remember");
+    document.body.classList.remove("user-is-staff");
     updateCabinetBtn();
-    showView("public");
+    if (typeof updateMaintenanceUI === "function") {
+      updateMaintenanceUI();
+    } else {
+      showView("public");
+    }
     toast(t("authLoggedOut"));
   });
 
@@ -204,6 +228,9 @@ function initAuthUI() {
       setAuthError(t("authEnterCode"));
       return;
     }
+
+    const remBox = document.getElementById("authRemember");
+    const rememberMe = !!(remBox && remBox.checked);
 
     setAuthLoading(true);
 
@@ -239,9 +266,22 @@ function initAuthUI() {
           if (statusRes.status === "approved") {
             clearInterval(authPollInterval);
             authPollInterval = null;
+
+            if (rememberMe) {
+              localStorage.setItem("delta_remember", "1");
+            } else {
+              localStorage.setItem("delta_remember", "0");
+            }
+
             await loadSession();
             closeAuth();
-            showView("cabinet");
+            if (isStaff()) {
+              showView("cabinet");
+            } else if (SITE_CONFIG && SITE_CONFIG.maintenance_enabled) {
+              showView("maintenance");
+            } else {
+              showView("cabinet");
+            }
             toast(t("authSuccess"));
           } else if (statusRes.status === "denied" || statusRes.status === "expired") {
             clearInterval(authPollInterval);

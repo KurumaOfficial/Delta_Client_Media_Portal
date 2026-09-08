@@ -43,16 +43,34 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 	}
 	week, _ := h.pays.CurrentWeek()
 	st := h.pays.Stats(week.ID)
+	mEnabled := h.db.Setting("maintenance_enabled") == "true"
+	mUntilStr := h.db.Setting("maintenance_until")
+	mRemainingSec := int64(0)
+	if mEnabled && mUntilStr != "" {
+		if t, err := time.Parse(time.RFC3339, mUntilStr); err == nil {
+			rem := int64(time.Until(t).Seconds())
+			if rem > 0 {
+				mRemainingSec = rem
+			} else {
+				mEnabled = false
+				_ = h.db.SetSetting("maintenance_enabled", "false")
+			}
+		}
+	}
+
 	return c.JSON(fiber.Map{"success": true, "stats": fiber.Map{
-		"media_pending":   count("v2_media_apps", "WHERE status = 'pending'"),
-		"hwid_pending":    count("v2_hwid_requests", "WHERE status = 'pending'"),
-		"discord_pending": count("v2_discord_bans", "WHERE status = 'pending'"),
-		"accounts_total":  count("v2_accounts", "WHERE is_active = 1"),
-		"payouts_pending": st.Pending,
-		"payouts_total":   st.Total,
-		"week_label":      week.Label,
-		"week_open":       h.pays.WindowOpen(),
-		"apps_open":       h.db.Setting("apps_open") != "false",
+		"media_pending":            count("v2_media_apps", "WHERE status = 'pending'"),
+		"hwid_pending":             count("v2_hwid_requests", "WHERE status = 'pending'"),
+		"discord_pending":          count("v2_discord_bans", "WHERE status = 'pending'"),
+		"accounts_total":           count("v2_accounts", "WHERE is_active = 1"),
+		"payouts_pending":          st.Pending,
+		"payouts_total":            st.Total,
+		"week_label":               week.Label,
+		"week_open":                h.pays.WindowOpen(),
+		"apps_open":                h.db.Setting("apps_open") != "false",
+		"maintenance_enabled":      mEnabled,
+		"maintenance_until":        mUntilStr,
+		"maintenance_seconds_left": mRemainingSec,
 	}})
 }
 
@@ -329,10 +347,67 @@ func (h *Admin) ToggleApps(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "apps_open": nextVal == "true"})
 }
 
+func (h *Admin) ToggleMaintenance(c *fiber.Ctx) error {
+	var body struct {
+		Enabled         *bool  `json:"enabled"`
+		DurationMinutes int    `json:"duration_minutes"`
+		Until           string `json:"until"`
+	}
+	_ = c.BodyParser(&body)
+
+	enabled := false
+	if body.Enabled != nil {
+		enabled = *body.Enabled
+	} else {
+		enabled = h.db.Setting("maintenance_enabled") != "true"
+	}
+
+	var untilStr string
+	if enabled {
+		if body.Until != "" {
+			if t, err := time.Parse(time.RFC3339, body.Until); err == nil {
+				untilStr = t.Format(time.RFC3339)
+			}
+		}
+		if untilStr == "" && body.DurationMinutes > 0 {
+			untilStr = time.Now().Add(time.Duration(body.DurationMinutes) * time.Minute).Format(time.RFC3339)
+		}
+		if untilStr == "" {
+			untilStr = time.Now().Add(2 * time.Hour).Format(time.RFC3339)
+		}
+		_ = h.db.SetSetting("maintenance_enabled", "true")
+		_ = h.db.SetSetting("maintenance_until", untilStr)
+		h.db.RecordAudit("MAINTENANCE", "success", "Включены техработы до "+untilStr,
+			middleware.GetRealIP(c), c.Get("User-Agent"))
+	} else {
+		_ = h.db.SetSetting("maintenance_enabled", "false")
+		_ = h.db.SetSetting("maintenance_until", "")
+		h.db.RecordAudit("MAINTENANCE", "success", "Техработы выключены",
+			middleware.GetRealIP(c), c.Get("User-Agent"))
+	}
+
+	mRemainingSec := int64(0)
+	if enabled && untilStr != "" {
+		if t, err := time.Parse(time.RFC3339, untilStr); err == nil {
+			rem := int64(time.Until(t).Seconds())
+			if rem > 0 {
+				mRemainingSec = rem
+			}
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"success":                  true,
+		"maintenance_enabled":      enabled,
+		"maintenance_until":        untilStr,
+		"maintenance_seconds_left": mRemainingSec,
+	})
+}
+
 func isEditableSetting(key string) bool {
 	switch key {
 	case "payout_paste_template", "payout_funpay_text", "payout_reject_text",
-		"payout_usdt_text", "week_summary_template", "apps_open":
+		"payout_usdt_text", "week_summary_template", "apps_open", "maintenance_enabled", "maintenance_until":
 		return true
 	}
 	return false
