@@ -568,7 +568,10 @@ async function renderPayouts(keepWeek) {
 
 async function renderAccounts() {
   const data = await GET("/api/admin/accounts");
-  const rows = (data.data || []).map((a) => `
+  const filtered = (data.data || []).filter((a) =>
+    applyGlobalFilter((a.nickname + " " + a.telegram + " " + a.role + " " + a.code).toLowerCase(), "")
+  );
+  const rows = filtered.map((a) => `
     <tr>
       <td class="mono">#${a.id}</td>
       <td><b>${esc(a.nickname)}</b></td>
@@ -611,7 +614,7 @@ async function renderAccounts() {
       <div id="adminFilterWrap">${filterBarHTML(false)}</div>
       <div id="adminTableWrap">${accountsBoxHTML}</div>`;
     tableWrap = document.getElementById("adminTableWrap");
-    bindFilterBar(drawAccounts);
+    bindFilterBar(renderAccounts);
   } else {
     tableWrap.innerHTML = accountsBoxHTML;
   }
@@ -660,7 +663,10 @@ function roleBadge(role) {
 async function renderBans() {
   const data = await GET("/api/admin/bans");
   const typeTitles = { ip: "IP", youtube: "YouTube", tiktok: "TikTok", telegram: "Telegram", uid: "UID" };
-  const rows = (data.data || []).map((b) => `
+  const filtered = (data.data || []).filter((b) =>
+    applyGlobalFilter((b.btype + " " + b.value + " " + (b.reason || "") + " " + (b.banned_by || "")).toLowerCase(), "")
+  );
+  const rows = filtered.map((b) => `
     <tr><td class="mono">#${b.id}</td>
     <td><span class="badge pending">${typeTitles[b.btype] || b.btype}</span></td>
     <td class="mono">${esc(b.value)}</td>
@@ -695,7 +701,7 @@ async function renderBans() {
       <div id="adminFilterWrap">${filterBarHTML(false)}</div>
       <div id="adminTableWrap">${bansBoxHTML}</div>`;
     tableWrap = document.getElementById("adminTableWrap");
-    bindFilterBar(drawBans);
+    bindFilterBar(renderBans);
   } else {
     tableWrap.innerHTML = bansBoxHTML;
   }
