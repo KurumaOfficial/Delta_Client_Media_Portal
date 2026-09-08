@@ -767,8 +767,8 @@ async function renderAccounts() {
   const accountsBoxHTML = `
     <div class="table-box">
       <h3>${ICONS.accounts} Аккаунты и коды входа</h3>
-      <div class="card" style="border:none;background:transparent;padding:0 0 14px">
-        <form class="filter-bar" id="accForm">
+      <div class="acc-create-wrap">
+        <form class="acc-create-form" id="accForm">
           <input type="text" name="nickname" placeholder="Никнейм *" required minlength="2">
           <input type="text" name="telegram" placeholder="@telegram *" required>
           <select name="role">

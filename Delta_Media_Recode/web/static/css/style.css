@@ -2431,4 +2431,51 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   box-shadow: 0 0 16px rgba(133, 155, 255, 0.15);
 }
 
+/* ═══ Компактная форма создания аккаунта ═══ */
+.acc-create-wrap {
+  padding: 0 1.25rem 1.15rem 1.25rem;
+  max-width: 720px;
+}
+.acc-create-form {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.acc-create-form input[type="text"] {
+  height: 40px;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.86rem;
+  border-radius: 0.65rem;
+}
+.acc-create-form input[name="nickname"] {
+  width: 200px;
+  flex: 1 1 180px;
+  max-width: 220px;
+}
+.acc-create-form input[name="telegram"] {
+  width: 190px;
+  flex: 1 1 170px;
+  max-width: 210px;
+}
+.acc-create-form select {
+  height: 40px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.86rem;
+  border-radius: 0.65rem;
+  background: var(--glass-bg-solid);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  width: 150px;
+  flex: 0 0 150px;
+}
+.acc-create-form .btn-primary {
+  height: 40px;
+  padding: 0 1.25rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  border-radius: 0.65rem;
+  white-space: nowrap;
+}
+
 
