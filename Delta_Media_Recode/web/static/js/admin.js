@@ -53,8 +53,8 @@ async function renderAdminCategory() {
     else if (adminCat === "payouts") await renderPayouts();
     else if (adminCat === "accounts") await renderAccounts();
     else if (adminCat === "bans") await renderBans();
-    else if (adminCat === "windows") await renderWindows();
-    else if (adminCat === "logs") await renderLogs();
+    else if (adminCat === "windows") { settingsSubTab = "windows"; adminCat = "settings"; await renderSettings(); }
+    else if (adminCat === "logs") { settingsSubTab = "logs"; adminCat = "settings"; await renderSettings(); }
     else if (adminCat === "settings") await renderSettings();
   } catch (e) {
     body.innerHTML = `<div class="card">${esc(e.message)}</div>`;
@@ -868,7 +868,6 @@ async function renderBans() {
       <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem 0.5rem;flex-wrap:wrap;gap:0.75rem;">
         <div>
           <h3 style="padding:0;margin:0;">${ICONS.bans} Заблокированные пользователи <span class="badge pending">${filtered.length}</span></h3>
-          <p class="hint" style="margin:0.25rem 0 0 0;">1 строка = 1 блокировка. Нажмите на любую запись, чтобы изменить или стереть данные.</p>
         </div>
         <button class="btn-primary" id="openAddBanBtn" type="button" style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:0.6rem 1.25rem;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;border:none;cursor:pointer;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -970,9 +969,6 @@ function openBanModal(ban) {
           <label>Причина блокировки</label>
           <input type="text" name="reason" placeholder="Спам, нарушение правил, читы..." value="${esc(reasonVal)}">
         </div>
-        <p class="hint" style="margin: 0.85rem 0 1.25rem 0; font-size: 0.78rem; line-height: 1.4;">
-          Вы можете вписать новые данные или стереть ненужные. Для сохранения блокировки должно оставаться хотя бы одно поле.
-        </p>
         <div class="modal-btn-row">
           <button type="submit" class="btn-primary" style="background:linear-gradient(135deg,#ef4444,#dc2626);">
             ${isEdit ? "Сохранить изменения" : "Заблокировать"}
@@ -1074,9 +1070,138 @@ function openBanModal(ban) {
   });
 }
 
-// ═══ Категория «TG-окна» (24 часа на ответ) ═══
+// ═══ Категория «Настройки» (Тексты, Журнал, TG-окна) ═══
 
-async function renderWindows() {
+let settingsSubTab = "texts"; // "texts" | "logs" | "windows"
+
+async function renderSettings() {
+  clearInterval(logsPollTimer);
+  const body = document.getElementById("adminBody");
+  if (!body) return;
+
+  body.innerHTML = `
+    <div class="settings-subtabs">
+      <button type="button" class="settings-subtab ${settingsSubTab === "texts" ? "active" : ""}" data-settings-tab="texts">
+        ${ICONS.edit} Тексты
+      </button>
+      <button type="button" class="settings-subtab ${settingsSubTab === "logs" ? "active" : ""}" data-settings-tab="logs">
+        ${ICONS.logs} Журнал
+      </button>
+      <button type="button" class="settings-subtab ${settingsSubTab === "windows" ? "active" : ""}" data-settings-tab="windows">
+        ${ICONS.windows} TG-окна
+      </button>
+    </div>
+    <div id="settingsContentWrap"></div>
+  `;
+
+  document.querySelectorAll("[data-settings-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const tab = btn.dataset.settingsTab;
+      if (tab === settingsSubTab) return;
+      settingsSubTab = tab;
+      document.querySelectorAll("[data-settings-tab]").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      clearInterval(logsPollTimer);
+      ADMIN_FILTER.search = "";
+      ADMIN_FILTER.statuses = new Set();
+      ADMIN_FILTER.page = {};
+      renderSettingsSubTab();
+    });
+  });
+
+  await renderSettingsSubTab();
+}
+
+async function renderSettingsSubTab() {
+  const wrap = document.getElementById("settingsContentWrap");
+  if (!wrap) return;
+  wrap.innerHTML = '<p class="hint">Загрузка…</p>';
+
+  if (settingsSubTab === "texts") {
+    await renderSettingsTexts(wrap);
+  } else if (settingsSubTab === "logs") {
+    await renderSettingsLogs(wrap);
+  } else if (settingsSubTab === "windows") {
+    await renderSettingsWindows(wrap);
+  }
+}
+
+// ── Подвкладка «Тексты» ──
+const SETTING_META = [
+  ["payout_paste_template", "Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер сопоставляет строки «Префикс: значение»."],
+  ["payout_usdt_text", "Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} {amount} {nickname} {tx}"],
+  ["payout_funpay_text", "Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} {lot_url} {nickname}"],
+  ["payout_reject_text", "Текст при отклонении выплаты", "Плейсхолдеры: {reason} {id} {nickname}"],
+  ["week_summary_template", "Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}"],
+];
+
+async function renderSettingsTexts(wrap) {
+  const data = await GET("/api/admin/settings");
+  const s = data.data || {};
+  wrap.innerHTML = SETTING_META.map(([key, title, hint]) => `
+    <div class="card">
+      <h3>${title}</h3>
+      <p class="hint">${hint}</p>
+      <textarea id="set-${key}" rows="6" class="mono" style="min-height:110px">${esc(s[key] || "")}</textarea>
+      <button class="btn-primary" data-set="${key}" style="margin-top:1rem;height:40px;padding:0 1.5rem;width:auto;">Сохранить</button>
+    </div>`).join("");
+
+  wrap.querySelectorAll("[data-set]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const key = b.dataset.set;
+      try {
+        await POST("/api/admin/settings", { key, value: document.getElementById("set-" + key).value });
+        toast("Сохранено", "ok");
+      } catch (e) { toast(e.message, "err"); }
+    }));
+}
+
+// ── Подвкладка «Журнал» ──
+async function renderSettingsLogs(wrap) {
+  const data = await GET("/api/admin/logs");
+  drawSettingsLogs(wrap, data.data || []);
+  clearInterval(logsPollTimer);
+  logsPollTimer = setInterval(async () => {
+    if (adminCat !== "settings" || settingsSubTab !== "logs") {
+      clearInterval(logsPollTimer);
+      return;
+    }
+    try {
+      const resp = await GET("/api/admin/logs");
+      const box = document.getElementById("logsBox");
+      if (box) {
+        const filtered = (resp.data || []).filter((l) =>
+          applyGlobalFilter((l.event_type + " " + l.details + " " + l.ip).toLowerCase(), l.status));
+        box.innerHTML = filtered.slice(0, 120).map((l) => `
+          <tr><td class="mono">#${l.id}</td><td>${new Date(l.created_at).toLocaleString("ru-RU")}</td>
+          <td class="mono">${esc(l.event_type)}</td><td>${statusBadge(l.status)}</td>
+          <td>${esc(l.details)}</td><td class="mono">${esc(l.ip)}</td></tr>`).join("");
+      }
+    } catch { /* тихо */ }
+  }, 3000);
+}
+
+function drawSettingsLogs(wrap, list) {
+  const filtered = list.filter((l) =>
+    applyGlobalFilter((l.event_type + " " + l.details + " " + l.ip).toLowerCase(), l.status));
+  const rows = filtered.slice(0, 120).map((l) => `
+    <tr><td class="mono">#${l.id}</td><td>${new Date(l.created_at).toLocaleString("ru-RU")}</td>
+    <td class="mono">${esc(l.event_type)}</td><td>${statusBadge(l.status)}</td>
+    <td>${esc(l.details)}</td><td class="mono">${esc(l.ip)}</td></tr>`).join("");
+
+  wrap.innerHTML = `
+    ${filterBarHTML(false)}
+    <div class="table-box"><h3>${ICONS.logs} Журнал событий <span class="badge success">Live · 3с</span></h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>ID</th><th>Время</th><th>Событие</th><th>Статус</th><th>Детали</th><th>IP</th></tr></thead>
+        <tbody id="logsBox">${rows}</tbody>
+      </table></div>
+    </div>`;
+  bindFilterBar(() => renderSettingsLogs(wrap));
+}
+
+// ── Подвкладка «TG-окна» ──
+async function renderSettingsWindows(wrap) {
   const data = await GET("/api/admin/tg-windows");
   const rows = (data.data || []).map((w) => {
     const rem = w.remaining_sec;
@@ -1086,7 +1211,8 @@ async function renderWindows() {
     return `<tr><td>@${esc(w.username || "—")}</td><td class="mono">${w.tg_user_id}</td>
       <td>${new Date(w.last_incoming_at).toLocaleString("ru-RU")}</td><td>${state}</td></tr>`;
   }).join("");
-  document.getElementById("adminBody").innerHTML = `
+
+  wrap.innerHTML = `
     <div class="table-box"><h3>${ICONS.windows} Telegram-окна ответов (24 ч после сообщения пользователя)
       <span class="badge success">Live</span></h3>
       <p class="hint" style="padding:0 18px">Бот напоминает продлить окно за 5 минут до истечения. Список обновляется автоматически каждые 30 секунд.</p>
@@ -1095,86 +1221,38 @@ async function renderWindows() {
         <tbody id="winBody">${rows || '<tr><td colspan="4" class="hint">Нет переписок</td></tr>'}</tbody>
       </table></div>
     </div>`;
-  clearInterval(logsPollTimer);
-  logsPollTimer = setInterval(refreshWindowsQuiet, 30000);
-}
 
-async function refreshWindowsQuiet() {
-  if (adminCat !== "windows") { clearInterval(logsPollTimer); return; }
-  try {
-    const data = await GET("/api/admin/tg-windows");
-    const body = document.getElementById("winBody");
-    if (!body) return;
-    body.innerHTML = (data.data || []).map((w) => {
-      const rem = w.remaining_sec;
-      const state = rem > 3600 ? `<span class="badge approved">активно ${Math.floor(rem / 3600)} ч</span>`
-        : rem > 0 ? `<span class="badge warning">истекает через ${Math.floor(rem / 60)} мин</span>`
-        : '<span class="badge rejected">истекло</span>';
-      return `<tr><td>@${esc(w.username || "—")}</td><td class="mono">${w.tg_user_id}</td>
-        <td>${new Date(w.last_incoming_at).toLocaleString("ru-RU")}</td><td>${state}</td></tr>`;
-    }).join("");
-  } catch { /* тихо */ }
-}
-
-// ═══ Категория «Журнал» ═══
-
-async function renderLogs() {
-  const data = await GET("/api/admin/logs");
-  drawLogs(data.data || []);
   clearInterval(logsPollTimer);
   logsPollTimer = setInterval(async () => {
-    if (adminCat !== "logs") { clearInterval(logsPollTimer); return; }
-    try { drawLogs((await GET("/api/admin/logs")).data || []); } catch { /* тихо */ }
-  }, 3000);
+    if (adminCat !== "settings" || settingsSubTab !== "windows") {
+      clearInterval(logsPollTimer);
+      return;
+    }
+    try {
+      const resp = await GET("/api/admin/tg-windows");
+      const body = document.getElementById("winBody");
+      if (!body) return;
+      body.innerHTML = (resp.data || []).map((w) => {
+        const rem = w.remaining_sec;
+        const state = rem > 3600 ? `<span class="badge approved">активно ${Math.floor(rem / 3600)} ч</span>`
+          : rem > 0 ? `<span class="badge warning">истекает через ${Math.floor(rem / 60)} мин</span>`
+          : '<span class="badge rejected">истекло</span>';
+        return `<tr><td>@${esc(w.username || "—")}</td><td class="mono">${w.tg_user_id}</td>
+          <td>${new Date(w.last_incoming_at).toLocaleString("ru-RU")}</td><td>${state}</td></tr>`;
+      }).join("");
+    } catch { /* тихо */ }
+  }, 30000);
 }
 
-function drawLogs(list) {
-  const filtered = list.filter((l) =>
-    applyGlobalFilter((l.event_type + " " + l.details + " " + l.ip).toLowerCase(), l.status));
-  const rows = filtered.slice(0, 120).map((l) => `
-    <tr><td class="mono">#${l.id}</td><td>${new Date(l.created_at).toLocaleString("ru-RU")}</td>
-    <td class="mono">${esc(l.event_type)}</td><td>${statusBadge(l.status)}</td>
-    <td>${esc(l.details)}</td><td class="mono">${esc(l.ip)}</td></tr>`).join("");
-  const box = document.getElementById("logsBox");
-  if (box) { box.innerHTML = rows; return; }
-  document.getElementById("adminBody").innerHTML = `
-    ${filterBarHTML(false)}
-    <div class="table-box"><h3>${ICONS.logs} Журнал событий <span class="badge success">Live · 3с</span></h3>
-      <div class="table-scroll"><table>
-        <thead><tr><th>ID</th><th>Время</th><th>Событие</th><th>Статус</th><th>Детали</th><th>IP</th></tr></thead>
-        <tbody id="logsBox">${rows}</tbody>
-      </table></div>
-    </div>`;
-  bindFilterBar(renderLogs);
+// Алиасы на случай прямого вызова
+async function renderWindows() {
+  settingsSubTab = "windows";
+  adminCat = "settings";
+  await renderSettings();
 }
 
-// ═══ Категория «Тексты» (пасты и шаблоны) ═══
-
-const SETTING_META = [
-  ["payout_paste_template", "Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер сопоставляет строки «Префикс: значение»."],
-  ["payout_usdt_text", "Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} {amount} {nickname} {tx}"],
-  ["payout_funpay_text", "Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} {lot_url} {nickname}"],
-  ["payout_reject_text", "Текст при отклонении выплаты", "Плейсхолдеры: {reason} {id} {nickname}"],
-  ["week_summary_template", "Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}"],
-];
-
-async function renderSettings() {
-  const data = await GET("/api/admin/settings");
-  const s = data.data || {};
-  document.getElementById("adminBody").innerHTML = `
-    ${SETTING_META.map(([key, title, hint]) => `
-      <div class="card">
-        <h3>${title}</h3>
-        <p class="hint">${hint}</p>
-        <textarea id="set-${key}" rows="6" class="mono" style="min-height:110px">${esc(s[key] || "")}</textarea>
-        <button class="btn-primary" data-set="${key}">Сохранить</button>
-      </div>`).join("")}`;
-  document.querySelectorAll("[data-set]").forEach((b) =>
-    b.addEventListener("click", async () => {
-      const key = b.dataset.set;
-      try {
-        await POST("/api/admin/settings", { key, value: document.getElementById("set-" + key).value });
-        toast("Сохранено", "ok");
-      } catch (e) { toast(e.message, "err"); }
-    }));
+async function renderLogs() {
+  settingsSubTab = "logs";
+  adminCat = "settings";
+  await renderSettings();
 }
