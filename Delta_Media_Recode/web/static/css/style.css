@@ -177,15 +177,17 @@ select, option { background-color: var(--glass-bg-solid) !important; color: #fff
   border-radius: 9999px;
   font-family: var(--font-display);
   font-size: 13px; font-weight: 500;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.35);
   white-space: nowrap;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.2s;
 }
-.nav-btn svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; transition: color 0.2s; }
+.nav-btn svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.8; }
 #navTabs [data-view="public"] svg { width: 17px; height: 17px; }
-.nav-btn:hover { color: rgba(255, 255, 255, 0.65); background: rgba(255, 255, 255, 0.04); }
+.nav-btn:hover {
+  color: rgba(255, 255, 255, 0.35);
+  background: transparent;
+}
 
 .header-right { display: flex; align-items: center; gap: 0.25rem; }
 
