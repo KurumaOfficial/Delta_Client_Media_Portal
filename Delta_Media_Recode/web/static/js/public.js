@@ -275,11 +275,18 @@ async function submitMediaApp(e) {
     e.target.reset();
     ["platformDrop", "serversDrop", "exclusiveDrop"].forEach((id) => {
       const d = document.getElementById(id);
+      if (!d) return;
       d.dataset.value = "";
-      d.querySelector(".dropdown-value").textContent =
-        id === "platformDrop" ? I18N[LANG].pickPlatform :
-        id === "serversDrop" ? I18N[LANG].pickServers : I18N[LANG].pickVariant;
+      d.classList.remove("has-value");
+      const valSpan = d.querySelector(".dropdown-value");
+      if (valSpan) {
+        if (valSpan.dataset.origI18n) valSpan.setAttribute("data-i18n", valSpan.dataset.origI18n);
+        valSpan.textContent =
+          id === "platformDrop" ? I18N[LANG].pickPlatform :
+          id === "serversDrop" ? I18N[LANG].pickServers : I18N[LANG].pickVariant;
+      }
       d.querySelectorAll("input:checked").forEach((c) => { c.checked = false; });
+      d.querySelectorAll(".dropdown-item").forEach((it) => it.classList.remove("picked"));
     });
     document.getElementById("criteriaChoice").dataset.value = "";
     document.querySelectorAll("#criteriaChoice .choice-card").forEach((b) => b.classList.remove("active"));

@@ -31,16 +31,29 @@ document.addEventListener("click", (e) => {
   }
 });
 
-function dropdownSet(dropId, value, label, iconHtml) {
-  const drop = document.getElementById(dropId);
+function dropdownSet(dropOrId, value, label, iconHtml) {
+  const drop = typeof dropOrId === "string" ? document.getElementById(dropOrId) : dropOrId;
   if (!drop) return;
   drop.dataset.value = value || "";
   const valSpan = drop.querySelector(".dropdown-value");
   if (valSpan) {
-    if (iconHtml) {
-      valSpan.innerHTML = `${iconHtml} <span>${esc(label)}</span>`;
+    if (value) {
+      if (!valSpan.dataset.origI18n && valSpan.getAttribute("data-i18n")) {
+        valSpan.dataset.origI18n = valSpan.getAttribute("data-i18n");
+      }
+      valSpan.removeAttribute("data-i18n");
+      if (iconHtml) {
+        valSpan.innerHTML = `${iconHtml} <span>${esc(label)}</span>`;
+      } else {
+        valSpan.textContent = label;
+      }
     } else {
-      valSpan.textContent = label;
+      if (valSpan.dataset.origI18n) {
+        valSpan.setAttribute("data-i18n", valSpan.dataset.origI18n);
+        valSpan.textContent = (I18N[LANG] && I18N[LANG][valSpan.dataset.origI18n]) || valSpan.dataset.placeholder || label;
+      } else {
+        valSpan.textContent = label;
+      }
     }
   }
   drop.classList.toggle("has-value", !!value);
@@ -48,6 +61,7 @@ function dropdownSet(dropId, value, label, iconHtml) {
     it.classList.toggle("picked", it.dataset.value === value);
   });
   drop.classList.remove("open");
+  drop.dispatchEvent(new CustomEvent("dropdown:change", { detail: { value, label } }));
 }
 
 // single-select: клики по пунктам
@@ -55,9 +69,12 @@ document.addEventListener("click", (e) => {
   const item = e.target.closest(".dropdown:not(.multi) .dropdown-item:not(.check)");
   if (!item) return;
   const drop = item.closest(".dropdown");
+  if (!drop) return;
   const svg = item.querySelector("svg");
   const iconHtml = svg ? svg.outerHTML : "";
-  dropdownSet(drop.id, item.dataset.value, item.textContent.trim(), iconHtml);
+  let label = item.textContent.trim();
+  if (item.dataset.label) label = item.dataset.label;
+  dropdownSet(drop, item.dataset.value, label, iconHtml);
 });
 
 // multi-select: чекбоксы
@@ -67,13 +84,40 @@ document.addEventListener("change", (e) => {
   if (!drop) return;
   const checkedBoxes = [...drop.querySelectorAll("input:checked")];
   const picked = checkedBoxes.map((c) => c.value);
-  const label = drop.querySelector(`input[value="${picked[picked.length - 1]}"]`)?.closest("label")?.textContent.trim();
+
+  // Подсветка активных чекбокс-строк
+  drop.querySelectorAll(".dropdown-item.check").forEach((lbl) => {
+    const input = lbl.querySelector("input[type=checkbox]");
+    lbl.classList.toggle("picked", !!(input && input.checked));
+  });
+
   drop.dataset.value = picked.join(",");
   drop.classList.toggle("has-value", picked.length > 0);
-  const defaultLabel = (I18N[LANG] && I18N[LANG].pickServers) || "Выберите серверы";
+
+  // Специфичные дропдауны (например #fStatus в админке) имеют отдельную логику
+  if (drop.id === "fStatus") return;
+
   const valSpan = drop.querySelector(".dropdown-value");
   if (valSpan) {
-    valSpan.textContent = picked.length ? (picked.length === 1 ? label : picked.join(", ")) : defaultLabel;
+    if (picked.length === 0) {
+      if (valSpan.dataset.origI18n) {
+        valSpan.setAttribute("data-i18n", valSpan.dataset.origI18n);
+        valSpan.textContent = (I18N[LANG] && I18N[LANG][valSpan.dataset.origI18n]) || valSpan.dataset.placeholder || "Выберите…";
+      } else {
+        const ph = valSpan.dataset.placeholder || drop.dataset.placeholder || (I18N[LANG] && I18N[LANG][valSpan.dataset.i18n]) || "Выберите…";
+        valSpan.textContent = ph;
+      }
+    } else {
+      if (!valSpan.dataset.origI18n && valSpan.getAttribute("data-i18n")) {
+        valSpan.dataset.origI18n = valSpan.getAttribute("data-i18n");
+      }
+      valSpan.removeAttribute("data-i18n");
+      const labels = checkedBoxes.map((c) => {
+        const itemLbl = c.closest("label");
+        return itemLbl ? itemLbl.textContent.trim() : c.value;
+      });
+      valSpan.textContent = labels.length <= 2 ? labels.join(", ") : `${labels[0]}, +${labels.length - 1}`;
+    }
   }
 });
 

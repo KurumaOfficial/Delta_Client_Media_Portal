@@ -66,38 +66,88 @@ async function renderAdminCategory() {
 
 // ── Глобальный фильтр-бар (действует на все таблицы) ──
 function filterBarHTML(withStatuses) {
+  const n = ADMIN_FILTER.statuses ? ADMIN_FILTER.statuses.size : 0;
+  let statusText = "Статусы: все";
+  if (n === 1) {
+    if (ADMIN_FILTER.statuses.has("pending")) statusText = "в ожидании";
+    else if (ADMIN_FILTER.statuses.has("approved")) statusText = "одобрено";
+    else if (ADMIN_FILTER.statuses.has("rejected")) statusText = "отклонено";
+  } else if (n > 1) {
+    statusText = `Статусы: ${n}`;
+  }
+  const isPending = ADMIN_FILTER.statuses && ADMIN_FILTER.statuses.has("pending");
+  const isApproved = ADMIN_FILTER.statuses && ADMIN_FILTER.statuses.has("approved");
+  const isRejected = ADMIN_FILTER.statuses && ADMIN_FILTER.statuses.has("rejected");
+
   return `
   <div class="filter-bar">
-    <input type="text" id="fSearch" placeholder="Поиск по всем таблицам…" value="${esc(ADMIN_FILTER.search)}">
+    <input type="text" id="fSearch" placeholder="Поиск по таблице…" value="${esc(ADMIN_FILTER.search || '')}">
     ${withStatuses ? `
-    <div class="dropdown multi" id="fStatus">
-      <button type="button" class="dropdown-head"><span class="dropdown-value">Статусы: все</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
+    <div class="dropdown multi ${n > 0 ? 'has-value' : ''}" id="fStatus" data-placeholder="Статусы: все">
+      <button type="button" class="dropdown-head"><span class="dropdown-value">${statusText}</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
       <div class="dropdown-menu">
-        <label class="dropdown-item check"><input type="checkbox" value="pending"> в ожидании</label>
-        <label class="dropdown-item check"><input type="checkbox" value="approved"> одобрено</label>
-        <label class="dropdown-item check"><input type="checkbox" value="rejected"> отклонено</label>
+        <label class="dropdown-item check ${isPending ? 'picked' : ''}"><input type="checkbox" value="pending" ${isPending ? 'checked' : ''}> в ожидании</label>
+        <label class="dropdown-item check ${isApproved ? 'picked' : ''}"><input type="checkbox" value="approved" ${isApproved ? 'checked' : ''}> одобрено</label>
+        <label class="dropdown-item check ${isRejected ? 'picked' : ''}"><input type="checkbox" value="rejected" ${isRejected ? 'checked' : ''}> отклонено</label>
       </div>
     </div>` : "<span></span>"}
-    <button class="btn-ghost" id="fReset">Сбросить</button>
-    <span class="hint">Новые заявки — внизу таблицы</span>
+    <button class="btn-ghost" id="fReset" type="button">Сбросить</button>
+    <span class="hint" style="align-self:center;margin:0;">Новые заявки — внизу</span>
   </div>`;
 }
 
 function bindFilterBar(rerender) {
   const s = document.getElementById("fSearch");
-  if (s) s.addEventListener("input", () => { ADMIN_FILTER.search = s.value.trim().toLowerCase(); rerender(); });
-  const reset = document.getElementById("fReset");
-  if (reset) reset.addEventListener("click", () => {
-    ADMIN_FILTER.search = ""; ADMIN_FILTER.statuses = new Set(); ADMIN_FILTER.page = {};
-    renderAdminCategory();
-  });
-  document.querySelectorAll("#fStatus input").forEach((c) =>
-    c.addEventListener("change", () => {
-      if (c.checked) ADMIN_FILTER.statuses.add(c.value); else ADMIN_FILTER.statuses.delete(c.value);
-      const n = ADMIN_FILTER.statuses.size;
-      document.querySelector("#fStatus .dropdown-value").textContent = n ? `Статусы: ${n}` : "Статусы: все";
+  if (s && !s.dataset.bound) {
+    s.dataset.bound = "1";
+    s.addEventListener("input", () => {
+      ADMIN_FILTER.search = s.value.trim().toLowerCase();
       rerender();
-    }));
+    });
+  }
+  const reset = document.getElementById("fReset");
+  if (reset && !reset.dataset.bound) {
+    reset.dataset.bound = "1";
+    reset.addEventListener("click", () => {
+      ADMIN_FILTER.search = "";
+      ADMIN_FILTER.statuses = new Set();
+      ADMIN_FILTER.page = {};
+      const searchInput = document.getElementById("fSearch");
+      if (searchInput) searchInput.value = "";
+      document.querySelectorAll("#fStatus input").forEach((c) => {
+        c.checked = false;
+        c.closest(".dropdown-item")?.classList.remove("picked");
+      });
+      const drop = document.getElementById("fStatus");
+      if (drop) drop.classList.remove("has-value");
+      const valEl = document.querySelector("#fStatus .dropdown-value");
+      if (valEl) valEl.textContent = "Статусы: все";
+      rerender();
+    });
+  }
+  document.querySelectorAll("#fStatus input").forEach((c) => {
+    if (c.dataset.bound) return;
+    c.dataset.bound = "1";
+    c.addEventListener("change", () => {
+      if (c.checked) ADMIN_FILTER.statuses.add(c.value);
+      else ADMIN_FILTER.statuses.delete(c.value);
+      c.closest(".dropdown-item")?.classList.toggle("picked", c.checked);
+      const n = ADMIN_FILTER.statuses.size;
+      let statusText = "Статусы: все";
+      if (n === 1) {
+        if (ADMIN_FILTER.statuses.has("pending")) statusText = "в ожидании";
+        else if (ADMIN_FILTER.statuses.has("approved")) statusText = "одобрено";
+        else if (ADMIN_FILTER.statuses.has("rejected")) statusText = "отклонено";
+      } else if (n > 1) {
+        statusText = `Статусы: ${n}`;
+      }
+      const drop = document.getElementById("fStatus");
+      if (drop) drop.classList.toggle("has-value", n > 0);
+      const valEl = document.querySelector("#fStatus .dropdown-value");
+      if (valEl) valEl.textContent = statusText;
+      rerender();
+    });
+  });
 }
 
 // ── Обзор ──
@@ -347,8 +397,7 @@ function drawAppsTable(kind, cfg) {
       <td>${r.status === "pending" ? decideButtons(r.id) : "—"}</td></tr>`;
   }).join("");
 
-  document.getElementById("adminBody").innerHTML = `
-    ${filterBarHTML(true)}
+  const tableBoxHTML = `
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
       <div class="table-scroll"><table>
         <thead><tr>${kind === "media"
@@ -361,8 +410,18 @@ function drawAppsTable(kind, cfg) {
       <div class="pager" id="pager-${kind}"></div>
     </div>`;
 
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap || !document.getElementById("fStatus")) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(true)}</div>
+      <div id="adminTableWrap">${tableBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(() => drawAppsTable(kind, cfg));
+  } else {
+    tableWrap.innerHTML = tableBoxHTML;
+  }
+
   renderPager("pager-" + kind, kind, filtered.length, pageSize, () => drawAppsTable(kind, cfg));
-  bindFilterBar(() => drawAppsTable(kind, cfg));
 
   document.querySelectorAll(`[data-decide]`).forEach((b) =>
     b.addEventListener("click", async () => {
@@ -424,8 +483,7 @@ async function renderPayouts(keepWeek) {
   const weeks = (data.history || []).map((w) =>
     `<option value="${w.id}" ${w.id === payoutsWeekID ? "selected" : ""}>${esc(w.label)}${w.is_current ? " (текущая)" : ""}</option>`).join("");
 
-  document.getElementById("adminBody").innerHTML = `
-    ${filterBarHTML(true)}
+  const payoutsBoxHTML = `
     <div class="table-box">
       <h3>${ICONS.payouts} Медиа выплаты
         <span class="badge ${week.is_current ? "approved" : "frozen"}">${week.is_current ? "приём открыт" : "архив"}</span>
@@ -448,11 +506,21 @@ async function renderPayouts(keepWeek) {
       </div>
     </div>`;
 
-  document.getElementById("weekSelect").addEventListener("change", (e) => {
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap || !document.getElementById("fStatus")) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(true)}</div>
+      <div id="adminTableWrap">${payoutsBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(() => renderPayouts(true));
+  } else {
+    tableWrap.innerHTML = payoutsBoxHTML;
+  }
+
+  document.getElementById("weekSelect")?.addEventListener("change", (e) => {
     payoutsWeekID = +e.target.value;
     renderPayouts(true);
   });
-  bindFilterBar(() => renderPayouts(true));
 
   document.querySelectorAll("[data-pay]").forEach((b) =>
     b.addEventListener("click", async () => {
@@ -515,8 +583,7 @@ async function renderAccounts() {
       </div></td>
     </tr>`).join("");
 
-  document.getElementById("adminBody").innerHTML = `
-    ${filterBarHTML(false)}
+  const accountsBoxHTML = `
     <div class="table-box">
       <h3>${ICONS.accounts} Аккаунты и коды входа</h3>
       <div class="card" style="border:none;background:transparent;padding:0 0 14px">
@@ -537,7 +604,17 @@ async function renderAccounts() {
         <tbody>${rows}</tbody>
       </table></div>
     </div>`;
-  bindFilterBar(renderAccounts);
+
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(false)}</div>
+      <div id="adminTableWrap">${accountsBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(drawAccounts);
+  } else {
+    tableWrap.innerHTML = accountsBoxHTML;
+  }
 
   document.getElementById("accForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -591,8 +668,7 @@ async function renderBans() {
     <td>${esc(b.banned_by || "admin")}</td>
     <td><button class="act reject" data-unban="${b.id}">Снять</button></td></tr>`).join("");
 
-  document.getElementById("adminBody").innerHTML = `
-    ${filterBarHTML(false)}
+  const bansBoxHTML = `
     <div class="table-box">
       <h3>${ICONS.bans} Банлист — IP, ссылки YouTube/TikTok/Telegram, UID</h3>
       <form class="filter-bar" id="banForm">
@@ -612,7 +688,17 @@ async function renderBans() {
         <tbody>${rows || '<tr><td colspan="6" class="hint">Банлист пуст</td></tr>'}</tbody>
       </table></div>
     </div>`;
-  bindFilterBar(renderBans);
+
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(false)}</div>
+      <div id="adminTableWrap">${bansBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(drawBans);
+  } else {
+    tableWrap.innerHTML = bansBoxHTML;
+  }
 
   document.getElementById("banForm").addEventListener("submit", async (e) => {
     e.preventDefault();
