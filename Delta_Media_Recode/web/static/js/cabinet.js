@@ -3,6 +3,24 @@
 
 let cabinetActiveTab = null;
 
+// Lucide SVG-иконки для вкладок и заголовков личного кабинета (вместо эмодзи)
+const CABINET_ICONS = {
+  hwid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>',
+  discord: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/></svg>',
+  payout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
+  lot: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>',
+  sub: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
+  my: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  adminpanel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>'
+};
+
+function formatFileSize(bytes) {
+  if (!bytes || bytes <= 0) return "0 Б";
+  const units = ["Б", "КБ", "МБ", "ГБ"];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + " " + units[i];
+}
+
 async function switchCabinetTab(tab) {
   cabinetActiveTab = tab;
   document.querySelectorAll("#cabinetTabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
@@ -43,7 +61,7 @@ async function loadCabinet() {
   document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || t("cabinetTitle");
   const tabs = cabinetTabsForRole(CURRENT_ACCOUNT.role);
   document.getElementById("cabinetTabs").innerHTML =
-    tabs.map(([id, label]) => `<button data-tab="${id}">${label}</button>`).join("");
+    tabs.map(([id, label]) => `<button type="button" data-tab="${id}">${CABINET_ICONS[id] || ""}<span>${label}</span></button>`).join("");
   document.querySelectorAll("#cabinetTabs button").forEach((b) =>
     b.addEventListener("click", () => switchCabinetTab(b.dataset.tab)));
   const initial = tabs.find((t) => t[0] !== "adminpanel") || tabs[0];
@@ -54,20 +72,40 @@ async function loadCabinet() {
 function buildProofForm(kind, title, targetLabel, targetName) {
   return `
   <form class="card form-card" id="form-${kind}">
-    <h3>${title}</h3>
-    <div class="field"><label>${targetLabel} *</label><input type="text" name="${targetName}" maxlength="64"></div>
-    <div class="field"><label>Доказательства (файлы и/или ссылка) *</label>
-      <input type="file" id="proof-${kind}" accept="image/*,video/*" multiple>
-      <div class="hint mono" id="files-${kind}"></div>
-      <input type="url" name="proof_link" placeholder="https://... — ссылка на доказательство">
+    <h3>${CABINET_ICONS[kind] || ""} ${title}</h3>
+    <div class="field"><label>${targetLabel} *</label><input type="text" name="${targetName}" required maxlength="64" placeholder="${targetLabel}"></div>
+    <div class="field">
+      <label>Доказательства (файлы и/или ссылка) *</label>
+      <div class="proof-dropzone" id="dropzone-${kind}">
+        <input type="file" id="proof-${kind}" accept="image/*,video/*" multiple class="proof-dropzone-input">
+        <div class="proof-dropzone-inner">
+          <div class="proof-dropzone-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="proof-dropzone-title">Перетащите файлы сюда или <span>выберите на устройстве</span></div>
+          <div class="proof-dropzone-sub">Скриншоты и видео (PNG, JPG, MP4, WebM) · Можно выбрать несколько файлов сразу</div>
+        </div>
+      </div>
+      <div class="proof-files-list" id="filesList-${kind}"></div>
+      <div class="proof-upload-progress" id="uploadProgress-${kind}" style="display:none;">
+        <div class="proof-progress-bar"><div class="proof-progress-fill" id="progressFill-${kind}"></div></div>
+        <div class="proof-progress-label" id="progressLabel-${kind}"></div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <input type="url" name="proof_link" placeholder="https://... — ссылка на доказательство (необязательно, если прикреплены файлы)">
+      </div>
     </div>
-    <div class="field"><label>Причина *</label><textarea name="reason" maxlength="500" rows="3"></textarea></div>
-    <button type="submit" class="btn-primary">Отправить</button>
+    <div class="field"><label>Причина *</label><textarea name="reason" required maxlength="500" rows="3" placeholder="Укажите причину..."></textarea></div>
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить</button>
   </form>`;
 }
 
 // ── Чанковая загрузка файла → путь на сервере ──
-async function uploadFileBig(file, progressEl) {
+async function uploadFileBig(file, onProgress) {
   const init = await POST("/api/upload/init", { file_name: file.name, file_size: file.size });
   const total = init.total_chunks, size = init.chunk_size;
   for (let i = 0; i < total; i++) {
@@ -79,7 +117,9 @@ async function uploadFileBig(file, progressEl) {
     fd.append("file_name", file.name);
     fd.append("chunk", chunk);
     const res = await POST("/api/upload/chunk", fd);
-    if (progressEl) progressEl.textContent = `Загрузка ${i + 1}/${total} (${file.name})`;
+    if (typeof onProgress === "function") {
+      onProgress(i + 1, total, file.name);
+    }
     if (i === total - 1) return res.file_path;
   }
   return "";
@@ -89,11 +129,11 @@ async function uploadFileBig(file, progressEl) {
 function buildPayoutForm() {
   return `
   <form class="card form-card" id="form-payout">
-    <h3>💸 Заявка на выплату</h3>
-    <p class="hint">Приём заявок: вторник 01:00 — понедельник 22:00 (МСК). О одной нерассмотренной заявке каждого типа в неделю.</p>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" maxlength="64"></div>
-    <div class="field"><label>Сколько вы в медиа Delta *</label><input type="text" name="duration" placeholder="Например: 8 месяцев" maxlength="100"></div>
-    <div class="field"><label>Что хотите получить *</label><textarea name="want" maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
+    <h3>${CABINET_ICONS.payout} Заявка на выплату</h3>
+    <p class="hint">Приём заявок: вторник 01:00 — понедельник 22:00 (МСК). До одной нерассмотренной заявки каждого типа в неделю.</p>
+    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
+    <div class="field"><label>Сколько вы в медиа Delta *</label><input type="text" name="duration" required placeholder="Например: 8 месяцев" maxlength="100"></div>
+    <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
     <div class="field"><label>Способ выплаты *</label>
       <div class="dropdown" id="payMethod">
         <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите способ</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
@@ -105,7 +145,7 @@ function buildPayoutForm() {
     </div>
     <div class="field hidden" id="rowAmount"><label>Сумма USDT *</label><input type="text" name="amount" placeholder="Например: 25.5"></div>
     <div class="field hidden" id="rowLot"><label>Ссылка на лот FunPay *</label><input type="url" name="lot_url" placeholder="https://funpay.com/lots/..."></div>
-    <button type="submit" class="btn-primary">Отправить заявку</button>
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
   </form>`;
 }
 
@@ -113,8 +153,8 @@ function buildPayoutForm() {
 function buildLotForm() {
   return `
   <form class="card form-card" id="form-lot">
-    <h3>🏷️ Заявка на лот</h3>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" maxlength="64"></div>
+    <h3>${CABINET_ICONS.lot} Заявка на лот</h3>
+    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
     <div class="field"><label>Платформа *</label>
       <div class="dropdown" id="lotPlatform">
         <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите платформу</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
@@ -127,8 +167,8 @@ function buildLotForm() {
     </div>
     <div class="field" id="rowChannel"><label>Ссылка на ваш канал *</label><input type="url" name="channel_url" placeholder="https://youtube.com/@..."></div>
     <div class="field hidden" id="rowLotLink"><label>Ссылка на лот FunPay *</label><input type="url" name="lot_url" placeholder="https://funpay.com/lots/..."></div>
-    <div class="field"><label>Что хотите получить *</label><textarea name="want" maxlength="300" rows="2"></textarea></div>
-    <button type="submit" class="btn-primary">Отправить</button>
+    <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2"></textarea></div>
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
   </form>`;
 }
 
@@ -136,11 +176,11 @@ function buildLotForm() {
 function buildSubForm() {
   return `
   <form class="card form-card" id="form-sub">
-    <h3>📺 Запрос подписки</h3>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" maxlength="64"></div>
+    <h3>${CABINET_ICONS.sub} Запрос подписки</h3>
+    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
     <div class="field"><label>Ссылка на ваш канал</label><input type="url" name="channel_url" placeholder="https://... (необязательно)"></div>
-    <div class="field"><label>Какую подписку хотите получить *</label><textarea name="want" maxlength="300" rows="2"></textarea></div>
-    <button type="submit" class="btn-primary">Отправить запрос</button>
+    <div class="field"><label>Какую подписку хотите получить *</label><textarea name="want" required maxlength="300" rows="2"></textarea></div>
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить запрос</button>
   </form>`;
 }
 
@@ -156,13 +196,13 @@ async function renderMyRequests() {
       <b>#${r.id}</b>
       <div class="grow"><b>${kindTitle[r.kind] || r.kind}</b> — ${esc(r.want || r.amount || "")}
         <br><small>${esc(r.week || "")} · ${r.source === "telegram" ? "из Telegram" : "с сайта"} · ${new Date(r.created_at).toLocaleString("ru-RU")}</small>
-        ${r.decision_comment ? `<br><small>💬 ${esc(r.decision_comment)}</small>` : ""}
+        ${r.decision_comment ? `<br><small>Ответ: ${esc(r.decision_comment)}</small>` : ""}
       </div>
       ${statusBadge(r.status)}
     </div>`).join("");
   const windowNote = data.window_open
     ? `Текущая неделя: ${esc(data.week)} — приём открыт`
-    : `⚠️ Приём заявок закрыт до вторника 01:00 (МСК)`;
+    : `Приём заявок закрыт до вторника 01:00 (МСК)`;
   document.getElementById("cabinetBody").innerHTML = `
     <p class="hint" style="text-align:center">${windowNote}</p>
     <div class="request-list">${items || '<p class="hint" style="text-align:center">Заявок пока нет</p>'}</div>`;
@@ -200,37 +240,140 @@ function formToJSON(form) {
 async function bindProofForm(kind) {
   const form = document.getElementById("form-" + kind);
   if (!form) return;
+  const dropzone = document.getElementById("dropzone-" + kind);
   const filesInput = document.getElementById("proof-" + kind);
+  const filesList = document.getElementById("filesList-" + kind);
+  const progressWrap = document.getElementById("uploadProgress-" + kind);
+  const progressFill = document.getElementById("progressFill-" + kind);
+  const progressLabel = document.getElementById("progressLabel-" + kind);
+
   let picked = [];
-  if (filesInput) filesInput.addEventListener("change", () => {
-    picked = picked.concat([...filesInput.files]);
-    filesInput.value = "";
-    const box = document.getElementById("files-" + kind);
-    box.innerHTML = picked.map((f, i) =>
-      `${i + 1}. ${esc(f.name)} (${(f.size / 1073741824).toFixed(2)} ГБ)`).join("<br>") || "";
-  });
+
+  function renderList() {
+    if (!filesList) return;
+    if (picked.length === 0) {
+      filesList.innerHTML = "";
+      return;
+    }
+    filesList.innerHTML = picked.map((f, i) => {
+      const isVid = f.type.startsWith("video/") || /\.(mp4|webm|mov|avi)$/i.test(f.name);
+      const ico = isVid
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+      return `
+        <div class="proof-file-card">
+          <div class="proof-file-ico">${ico}</div>
+          <div class="proof-file-info">
+            <span class="proof-file-name" title="${esc(f.name)}">${esc(f.name)}</span>
+            <span class="proof-file-size">${formatFileSize(f.size)}</span>
+          </div>
+          <button type="button" class="proof-file-remove" data-del="${i}" title="Удалить файл">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>`;
+    }).join("");
+
+    filesList.querySelectorAll("[data-del]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = +btn.dataset.del;
+        picked.splice(idx, 1);
+        renderList();
+      });
+    });
+  }
+
+  function addFiles(fileList) {
+    if (!fileList) return;
+    for (const f of fileList) {
+      if (!picked.some((p) => p.name === f.name && p.size === f.size)) {
+        picked.push(f);
+      }
+    }
+    renderList();
+  }
+
+  if (filesInput) {
+    filesInput.addEventListener("change", () => {
+      addFiles(filesInput.files);
+      filesInput.value = "";
+    });
+  }
+
+  if (dropzone) {
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("dragend", () => {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer && e.dataTransfer.files) {
+        addFiles(e.dataTransfer.files);
+      }
+    });
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    const linkVal = (form.querySelector('[name="proof_link"]')?.value || "").trim();
+    if (picked.length === 0 && !linkVal) {
+      toast("Приложите доказательства: выберите файл(ы) или укажите ссылку", "err");
+      return;
+    }
     const btn = form.querySelector("button[type=submit]");
-    buttonState(btn, "", "Отправляем…");
+    buttonState(btn, "", "Отправка…");
+    if (progressWrap) progressWrap.style.display = "flex";
+
     try {
+      const paths = [];
+      for (let i = 0; i < picked.length; i++) {
+        const file = picked[i];
+        if (progressLabel) {
+          progressLabel.textContent = `Загрузка файла ${i + 1} из ${picked.length} (${file.name})…`;
+        }
+        const filePath = await uploadFileBig(file, (currChunk, totalChunks) => {
+          if (progressFill) {
+            const fileBasePct = (i / picked.length) * 100;
+            const chunkPct = (currChunk / totalChunks) * (100 / picked.length);
+            progressFill.style.width = Math.min(100, Math.round(fileBasePct + chunkPct)) + "%";
+          }
+        });
+        if (filePath) paths.push(filePath);
+      }
+
+      if (progressFill) progressFill.style.width = "100%";
+      if (progressLabel) progressLabel.textContent = "Сохранение заявки…";
+
       const fd = new FormData(form);
-      if (picked.length) {
-        const paths = [];
-        for (const f of picked) paths.push(await uploadFileBig(f, document.getElementById("files-" + kind)));
+      fd.delete("proof");
+      fd.delete("file");
+      if (paths.length) {
         fd.append("proof_file_paths", paths.join(","));
       }
+
       const resp = await fetch("/api/mod/" + (kind === "hwid" ? "hwid" : "discord"), {
         method: "POST", body: fd, credentials: "same-origin",
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Ошибка");
-      buttonState(btn, "ok", "Заявка отправлена! ✅", 3500);
-      form.reset(); picked = [];
-      if (document.getElementById("files-" + kind)) document.getElementById("files-" + kind).textContent = "";
+      buttonState(btn, "ok", "Заявка отправлена", 3500);
+      toast("Заявка успешно отправлена", "ok");
+      form.reset();
+      picked = [];
+      renderList();
+      if (progressWrap) progressWrap.style.display = "none";
+      if (progressFill) progressFill.style.width = "0%";
     } catch (ex) {
-      buttonState(btn, "err", ex.message, 3500);
+      buttonState(btn, "err", ex.message, 4000);
+      toast(ex.message, "err");
+      if (progressWrap) progressWrap.style.display = "none";
     }
   });
 }
@@ -245,15 +388,17 @@ async function bindSimpleForm(kind) {
     const body = formToJSON(form);
     if (kind === "payout") body.method = (document.getElementById("payMethod").dataset.value || "").toLowerCase();
     if (kind === "lot") body.platform = (document.getElementById("lotPlatform").dataset.value || "").toLowerCase();
-    buttonState(btn, "", "Отправляем…");
+    buttonState(btn, "", "Отправка…");
     try {
       const resp = await POST(endpoint, body);
-      buttonState(btn, "ok", `Заявка №${resp.id} принята ✅`, 3500);
+      buttonState(btn, "ok", `Заявка №${resp.id} принята`, 3500);
+      toast(`Заявка №${resp.id} успешно принята`, "ok");
       form.reset();
       if (kind === "payout") { document.getElementById("rowAmount").classList.add("hidden"); document.getElementById("rowLot").classList.add("hidden"); }
       if (kind === "lot") { document.getElementById("rowLotLink").classList.add("hidden"); document.getElementById("rowChannel").classList.remove("hidden"); }
     } catch (ex) {
       buttonState(btn, "err", ex.message, 4000);
+      toast(ex.message, "err");
     }
   });
 }

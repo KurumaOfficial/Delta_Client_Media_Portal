@@ -623,10 +623,18 @@ function decideButtons(id) {
 
 function proofLinks(files, link) {
   const parts = [];
-  (files || "").split(",").filter(Boolean).forEach((p, i) =>
-    parts.push(`<a href="${esc(p)}" target="_blank" rel="noopener">Файл ${i + 1}</a>`));
-  if (link) parts.push(`<a href="${esc(link)}" target="_blank" rel="noopener">Ссылка</a>`);
-  return parts.join(", ") || "—";
+  (files || "").split(",").filter(Boolean).forEach((p, i) => {
+    const ext = p.split(".").pop().toLowerCase();
+    const isVid = ["mp4", "webm", "mov", "avi"].includes(ext);
+    const ico = isVid
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+    parts.push(`<a href="${esc(p)}" target="_blank" rel="noopener" class="proof-chip">${ico}<span>Файл ${i + 1}</span></a>`);
+  });
+  if (link) {
+    parts.push(`<a href="${esc(link)}" target="_blank" rel="noopener" class="proof-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Ссылка</span></a>`);
+  }
+  return parts.length ? `<div class="proof-chips-wrap">${parts.join("")}</div>` : "—";
 }
 
 // ═══ Категория «Медиа выплаты» ═══
