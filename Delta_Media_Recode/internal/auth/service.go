@@ -48,8 +48,11 @@ func GenerateCode() string {
 	return "DLT-" + string(out)
 }
 
-func (s *Service) CreateAccount(role, nickname, telegram string) (models.Account, error) {
-	code := GenerateCode()
+func (s *Service) CreateAccount(role, nickname, telegram, customCode string) (models.Account, error) {
+	code := strings.ToUpper(strings.TrimSpace(customCode))
+	if code == "" {
+		code = GenerateCode()
+	}
 	id, err := s.db.InsertReturningID(
 		`INSERT INTO v2_accounts (code, role, nickname, telegram) VALUES (?, ?, ?, ?)`,
 		code, role, nickname, telegram,

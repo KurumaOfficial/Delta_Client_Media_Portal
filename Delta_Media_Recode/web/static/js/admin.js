@@ -39,6 +39,10 @@ function initAdminNav() {
 }
 
 async function renderAdminCategory() {
+  const isOverview = (adminCat === "overview");
+  document.documentElement.classList.toggle("admin-overview-page", isOverview);
+  document.body.classList.toggle("admin-overview-page", isOverview);
+
   const body = document.getElementById("adminBody");
   if (!body) return;
   body.classList.remove("tab-fade-in");
@@ -91,8 +95,10 @@ function filterBarHTML(withStatuses) {
         <label class="dropdown-item check ${isRejected ? 'picked' : ''}"><input type="checkbox" value="rejected" ${isRejected ? 'checked' : ''}> отклонено</label>
       </div>
     </div>` : "<span></span>"}
-    <button class="btn-ghost" id="fReset" type="button">Сбросить</button>
-    <span class="hint" style="align-self:center;margin:0;">Новые заявки — внизу</span>
+    <button class="btn-ghost admin-logout-btn" id="adminLogoutBtn" type="button">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+      <span data-i18n="logout">${typeof t === "function" ? t("logout") : "Выйти из аккаунта"}</span>
+    </button>
   </div>`;
 }
 
@@ -105,24 +111,15 @@ function bindFilterBar(rerender) {
       rerender();
     });
   }
-  const reset = document.getElementById("fReset");
-  if (reset && !reset.dataset.bound) {
-    reset.dataset.bound = "1";
-    reset.addEventListener("click", () => {
-      ADMIN_FILTER.search = "";
-      ADMIN_FILTER.statuses = new Set();
-      ADMIN_FILTER.page = {};
-      const searchInput = document.getElementById("fSearch");
-      if (searchInput) searchInput.value = "";
-      document.querySelectorAll("#fStatus input").forEach((c) => {
-        c.checked = false;
-        c.closest(".dropdown-item")?.classList.remove("picked");
-      });
-      const drop = document.getElementById("fStatus");
-      if (drop) drop.classList.remove("has-value");
-      const valEl = document.querySelector("#fStatus .dropdown-value");
-      if (valEl) valEl.textContent = "Статусы: все";
-      rerender();
+  const logout = document.getElementById("adminLogoutBtn");
+  if (logout && !logout.dataset.bound) {
+    logout.dataset.bound = "1";
+    logout.addEventListener("click", () => {
+      if (typeof doUserLogout === "function") {
+        doUserLogout();
+      } else {
+        document.getElementById("cabinetLogout")?.click();
+      }
     });
   }
   document.querySelectorAll("#fStatus input").forEach((c) => {
@@ -150,58 +147,204 @@ function bindFilterBar(rerender) {
   });
 }
 
+let overviewChartPeriod = "week";
+let overviewChartCache = null;
+
+function formatWeekRangeHTML(label) {
+  if (!label) return '<b class="week-dates-val">—</b>';
+  const m = String(label).match(/с\s+([^\s]+)\s+(?:до|по)\s+([^\s]+)/i);
+  if (m) {
+    return `
+      <div class="week-range-list">
+        <div class="week-range-item">
+          <span class="week-range-prep">с</span>
+          <b class="week-range-date">${esc(m[1])}</b>
+        </div>
+        <div class="week-range-item">
+          <span class="week-range-prep">до</span>
+          <b class="week-range-date">${esc(m[2])}</b>
+        </div>
+      </div>`;
+  }
+  return `<b class="week-dates-val">${esc(label)}</b>`;
+}
+
 // ── Обзор ──
 async function renderOverview() {
-  const { stats } = await GET("/api/admin/stats");
+  const [{ stats }, chartResp] = await Promise.all([
+    GET("/api/admin/stats"),
+    GET("/api/admin/stats/chart").catch(() => ({ success: false, chart: null })),
+  ]);
   const appsOpen = stats.apps_open !== false;
   const maintActive = !!stats.maintenance_enabled;
   document.getElementById("adminBody").innerHTML = `
     ${filterBarHTML(false)}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.25rem;margin-bottom:1.25rem;">
-      <!-- Приём заявок -->
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;">
-        <div>
-          <div style="display:flex;align-items:center;gap:0.65rem;">
-            <span class="dot" style="width:8px;height:8px;border-radius:9999px;background:${appsOpen ? 'var(--emerald)' : 'var(--rose)'};"></span>
-            <b style="font-size:1.05rem;">Приём медиа-заявок: <span class="badge ${appsOpen ? 'approved' : 'rejected'}">${appsOpen ? 'ОТКРЫТ' : 'ЗАКРЫТ'}</span></b>
+
+    <!-- 1. Динамика подачи заявок (верхний ряд) -->
+    <div class="card chart-card" id="overviewChartWrap">
+      <div class="chart-header">
+        <div class="chart-header-left">
+          <div class="chart-title-wrap">
+            <div class="chart-badge-title">
+              <svg class="chart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              <span class="chart-title">Динамика подачи заявок</span>
+            </div>
+            <div class="chart-period-desc" id="chartPeriodSubtitle">Загрузка...</div>
           </div>
-          <p class="hint" style="margin-top:0.35rem;">
-            ${appsOpen ? 'На главной отображается «приём заявок открыт», форма активна.' : 'На главной отображается «приём заявок закрыт», кнопка заблокирована.'}
-          </p>
+          <div class="chart-total-pill">
+            <span class="chart-total-label">Подано:</span>
+            <b class="chart-total-count" id="chartTotalCount">—</b>
+          </div>
         </div>
-        <button class="btn-ghost" id="toggleAppsBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.85);">
-          ${appsOpen ? '✕ Закрыть набор' : '✓ Открыть набор'}
-        </button>
+        <div class="chart-period-tabs" id="chartPeriodTabs">
+          <button type="button" class="chart-tab ${overviewChartPeriod === 'day' ? 'active' : ''}" data-period="day">День</button>
+          <button type="button" class="chart-tab ${overviewChartPeriod === 'week' ? 'active' : ''}" data-period="week">Неделя</button>
+          <button type="button" class="chart-tab ${overviewChartPeriod === 'month' ? 'active' : ''}" data-period="month">Месяц</button>
+          <button type="button" class="chart-tab ${overviewChartPeriod === 'year' ? 'active' : ''}" data-period="year">Год</button>
+          <button type="button" class="chart-tab ${overviewChartPeriod === 'all' ? 'active' : ''}" data-period="all">Всё время</button>
+        </div>
+      </div>
+      <div class="chart-svg-wrap" id="chartSvgWrap">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.3);font-family:var(--font-display);font-size:0.86rem;">Загрузка графика...</div>
+      </div>
+    </div>
+
+    <!-- 2. Рабочий ряд: 3 блока (Неделя, Управление, Блок информации) -->
+    <div class="overview-3blocks-row">
+      <!-- Блок 1: Неделя с какой по какую прием выплат -->
+      <div class="card block-week">
+        <div class="block-head">
+          <svg class="block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="block-title">Период выплат</span>
+        </div>
+        <div class="week-main-content">
+          <div class="week-dates-box">
+            <span class="week-dates-sub">Расчётная неделя</span>
+            ${formatWeekRangeHTML(stats.week_label)}
+          </div>
+          <div class="week-status-wrap">
+            <div class="week-status-pill ${stats.week_open ? 'open' : 'closed'}">
+              <span class="pulse-dot ${stats.week_open ? '' : 'closed'}"></span>
+              <span>${stats.week_open ? 'Приём выплат открыт' : 'Приём выплат закрыт'}</span>
+            </div>
+            <div class="week-time-sub">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>окно: пн 00:00 — вт 22:00 МСК</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Режим техработ -->
-      <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:1.25rem;flex-wrap:wrap;border:1px solid ${maintActive ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.08)'};background:${maintActive ? 'rgba(251,191,36,0.04)' : 'rgba(255,255,255,0.02)'};">
-        <div>
-          <div style="display:flex;align-items:center;gap:0.65rem;">
-            <span class="dot ${maintActive ? 'animate-blink' : ''}" style="width:10px;height:10px;border-radius:9999px;background:${maintActive ? '#fbbf24' : 'rgba(255,255,255,0.25)'};box-shadow:0 0 12px ${maintActive ? 'rgba(251,191,36,0.9)' : 'none'};"></span>
-            <b style="font-size:1.05rem;">Технические работы: ${maintActive ? '<span style="color:#fbbf24">АКТИВНЫ</span>' : '<span style="color:rgba(255,255,255,0.5)">ВЫКЛЮЧЕНЫ</span>'}</b>
-          </div>
-          <p class="hint" style="margin-top:0.35rem;">
-            ${maintActive ? `Сайт на паузе с таймером. Доступ только персоналу. До: ${formatDate(stats.maintenance_until)}` : 'Сайт открыт для всех посетителей. Таймер отключён.'}
-          </p>
+      <!-- Блок 2: Включение/выключение техработ и подачи заявок -->
+      <div class="card block-controls">
+        <div class="block-head">
+          <svg class="block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span class="block-title">Управление</span>
         </div>
-        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-          ${maintActive ? `<button type="button" id="previewMaintBtn" class="btn-ghost" style="padding:0.65rem 1.1rem;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);cursor:pointer;">👁 Страница техработ</button>` : ''}
-          <button class="btn-ghost" id="toggleMaintenanceBtn" style="padding:0.65rem 1.35rem;font-weight:600;border:1px solid ${maintActive ? 'rgba(248,113,113,0.45)' : 'rgba(251,191,36,0.45)'};background:${maintActive ? 'rgba(248,113,113,0.12)' : 'rgba(251,191,36,0.12)'};color:${maintActive ? 'var(--rose)' : '#fbbf24'};">
-            ${maintActive ? '✕ Отключить техработы' : '⚙ Включить техработы'}
-          </button>
+
+        <div class="controls-vertical-wrap">
+          <!-- Подача заявок -->
+          <div class="ctrl-group">
+            <div class="ctrl-status-row">
+              <div class="ctrl-status-label">
+                <span class="status-indicator-dot ${appsOpen ? 'open' : 'closed'}"></span>
+                <span>Приём заявок:</span>
+              </div>
+              <span class="badge ${appsOpen ? 'approved' : 'rejected'}">${appsOpen ? 'ОТКРЫТ' : 'ЗАКРЫТ'}</span>
+            </div>
+            <button type="button" class="btn-ghost ctrl-btn-block" id="toggleAppsBtn">
+              ${appsOpen ? '✕ Закрыть набор' : '✓ Открыть набор'}
+            </button>
+          </div>
+
+          <div class="ctrl-separator"></div>
+
+          <!-- Технические работы -->
+          <div class="ctrl-group">
+            <div class="ctrl-status-row">
+              <div class="ctrl-status-label">
+                <span class="status-indicator-dot ${maintActive ? 'maint-on animate-blink' : 'maint-off'}"></span>
+                <span>Техработы:</span>
+              </div>
+              ${maintActive ? '<span style="color:#fbbf24;font-family:var(--font-mono);font-size:0.76rem;font-weight:600;">АКТИВНЫ</span>' : '<span class="ctrl-off-lbl">ВЫКЛЮЧЕНЫ</span>'}
+            </div>
+            <div class="ctrl-btn-block-wrap" style="display:flex;gap:0.4rem;">
+              ${maintActive ? `<button type="button" id="previewMaintBtn" class="btn-ghost ctrl-btn-block" style="padding:0.45rem 0.5rem;font-size:11px;flex:1;">👁 Страница</button>` : ''}
+              <button type="button" class="btn-ghost ctrl-btn-block ${maintActive ? 'btn-maint-off' : 'btn-maint'}" id="toggleMaintenanceBtn" style="${maintActive ? 'flex:1;' : ''}">
+                ${maintActive ? '✕ Отключить' : '⚙ Включить техработы'}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="stats-row">
-      <div class="stat-card"><b>${stats.media_pending}</b><span>Медиа заявки (в ожидании)</span></div>
-      <div class="stat-card"><b>${stats.discord_pending}</b><span>Discord баны</span></div>
-      <div class="stat-card"><b>${stats.payouts_pending}</b><span>Выплаты (неделя)</span></div>
-      <div class="stat-card"><b>${stats.accounts_total}</b><span>Активные аккаунты</span></div>
-    </div>
-    <div class="card"><b>${esc(stats.week_label || "—")}</b>
-      <p class="hint">${stats.week_open ? "🟢 Приём выплат открыт" : "🔴 Приём выплат закрыт (окно: вт 01:00 — пн 22:00 МСК)"}</p>
+
+      <!-- Блок 3: Самый большой — блок информации -->
+      <div class="card block-info">
+        <div class="block-head">
+          <svg class="block-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+          </svg>
+          <span class="block-title">Информация</span>
+        </div>
+
+        <div class="info-metrics-grid">
+          <!-- 1. Медиа заявки -->
+          <div class="info-metric-card" data-jump="media" title="Перейти в раздел Медиа заявки">
+            <b class="info-metric-num">${stats.media_pending}</b>
+            <span class="info-metric-lbl">Медиа заявки (в ожидании)</span>
+          </div>
+
+          <!-- 2. Выплаты -->
+          <div class="info-metric-card" data-jump="payouts" title="Перейти в раздел Медиа выплаты">
+            <b class="info-metric-num">${stats.payouts_pending}</b>
+            <span class="info-metric-lbl">Выплаты (неделя)</span>
+          </div>
+
+          <!-- 3. Discord баны -->
+          <div class="info-metric-card" data-jump="discord" title="Перейти в раздел Discord баны">
+            <b class="info-metric-num">${stats.discord_pending}</b>
+            <span class="info-metric-lbl">Discord баны</span>
+          </div>
+
+          <!-- 4. Активные аккаунты -->
+          <div class="info-metric-card" data-jump="accounts" title="Перейти в раздел Аккаунты">
+            <b class="info-metric-num">${stats.accounts_total}</b>
+            <span class="info-metric-lbl">Активные аккаунты</span>
+          </div>
+        </div>
+      </div>
     </div>`;
+
+  // Клик по карточкам метрик переводит в соответствующий раздел
+  document.querySelectorAll(".info-metric-card[data-jump]").forEach((st) => {
+    st.addEventListener("click", () => {
+      const cat = st.dataset.jump;
+      const btn = document.querySelector(`.side-btn[data-cat="${cat}"]`);
+      if (btn) btn.click();
+    });
+  });
+
+  // Инициализация графика
+  renderOverviewChart(chartResp?.chart);
+
+  document.querySelectorAll("#chartPeriodTabs .chart-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      overviewChartPeriod = tab.dataset.period;
+      renderOverviewChart();
+    });
+  });
 
   document.getElementById("previewMaintBtn")?.addEventListener("click", (e) => {
     e.preventDefault();
@@ -251,6 +394,275 @@ async function renderOverview() {
   });
 
   bindFilterBar(() => renderOverview());
+}
+
+function declApps(n) {
+  const abs = Math.abs(n) % 100;
+  const rem = abs % 10;
+  if (abs > 10 && abs < 20) return `${n} заявок`;
+  if (rem > 1 && rem < 5) return `${n} заявки`;
+  if (rem === 1) return `${n} заявка`;
+  return `${n} заявок`;
+}
+
+function renderOverviewChart(chartData) {
+  if (chartData) {
+    overviewChartCache = chartData;
+  }
+  const data = overviewChartCache;
+  if (!data) return;
+
+  const currentPeriod = overviewChartPeriod || "week";
+  const series = data[currentPeriod] || data.week || { labels: [], values: [], total: 0, title: "" };
+
+  // Обновляем активность табов
+  document.querySelectorAll("#chartPeriodTabs .chart-tab").forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.period === currentPeriod);
+  });
+
+  // Подзаголовок и общий счетчик
+  const subEl = document.getElementById("chartPeriodSubtitle");
+  if (subEl) subEl.textContent = series.title || "Динамика заявок";
+  const totalEl = document.getElementById("chartTotalCount");
+  if (totalEl) totalEl.textContent = series.total ?? 0;
+
+  const wrap = document.getElementById("chartSvgWrap");
+  if (!wrap) return;
+
+  const labels = series.labels || [];
+  const values = series.values || [];
+  const count = values.length;
+
+  if (count === 0) {
+    wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.35);font-family:var(--font-display);font-size:0.86rem;">Нет данных для отображения</div>`;
+    return;
+  }
+
+  const rect = wrap.getBoundingClientRect();
+  const svgW = Math.max(600, Math.round(rect.width) || 900);
+  const svgH = 195;
+  const padLeft = 44;
+  const padRight = 28;
+  const padTop = 22;
+  const padBottom = 32;
+  const plotW = svgW - padLeft - padRight;
+  const plotH = svgH - padTop - padBottom;
+  const baselineY = padTop + plotH;
+
+  const rawMax = Math.max(...values, 0);
+  let maxVal = rawMax <= 0 ? 4 : rawMax;
+  if (maxVal <= 4) maxVal = 4;
+  else if (maxVal <= 10) maxVal = Math.ceil(maxVal / 2) * 2;
+  else if (maxVal <= 30) maxVal = Math.ceil(maxVal / 5) * 5;
+  else maxVal = Math.ceil(maxVal / 10) * 10;
+
+  // Горизонтальная сетка (4 деления)
+  const gridSteps = 4;
+  let gridHTML = "";
+  for (let s = 0; s <= gridSteps; s++) {
+    const yVal = Math.round((s / gridSteps) * maxVal);
+    const yPos = baselineY - (s / gridSteps) * plotH;
+    gridHTML += `
+      <line x1="${padLeft}" y1="${yPos.toFixed(1)}" x2="${svgW - padRight}" y2="${yPos.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4 4" stroke-width="1" />
+      <text x="${padLeft - 10}" y="${(yPos + 3.5).toFixed(1)}" text-anchor="end" fill="rgba(255,255,255,0.35)" font-size="10" font-family="var(--font-mono)">${yVal}</text>`;
+  }
+
+  // Расчет точек
+  const pts = [];
+  for (let i = 0; i < count; i++) {
+    const x = count > 1 ? padLeft + (i / (count - 1)) * plotW : padLeft + plotW / 2;
+    const y = baselineY - (values[i] / maxVal) * plotH;
+    pts.push({ x, y, val: values[i], label: labels[i] });
+  }
+
+  // Мягкий монотонный сплайн Безье (плавный S-переход без натянутости и заломов)
+  let lineD = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  if (count === 1) {
+    lineD += ` L ${(pts[0].x + 20).toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  } else {
+    for (let i = 0; i < count - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[Math.min(count - 1, i + 2)];
+
+      const dx = p2.x - p1.x;
+      let s1 = (p2.y - p0.y) / (p2.x - p0.x || 1);
+      let s2 = (p3.y - p1.y) / (p3.x - p1.x || 1);
+
+      if (p1.val === 0) s1 = 0;
+      if (p2.val === 0) s2 = 0;
+      if ((p1.y - p0.y) * (p2.y - p1.y) <= 0) s1 = 0;
+      if ((p2.y - p1.y) * (p3.y - p2.y) <= 0) s2 = 0;
+
+      const curvature = 0.4;
+      const cp1x = p1.x + dx * curvature;
+      const cp1y = Math.min(baselineY, Math.max(padTop, p1.y + s1 * dx * curvature));
+      const cp2x = p2.x - dx * curvature;
+      const cp2y = Math.min(baselineY, Math.max(padTop, p2.y - s2 * dx * curvature));
+
+      lineD += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+    }
+  }
+  const areaD = `${lineD} L ${pts[count - 1].x.toFixed(1)} ${baselineY.toFixed(1)} L ${pts[0].x.toFixed(1)} ${baselineY.toFixed(1)} Z`;
+
+  // Подписи по оси X
+  let labelsHTML = "";
+  let step = 1;
+  if (currentPeriod === "day") step = 3;
+  else if (currentPeriod === "month") step = 5;
+  else if (currentPeriod === "all" && count > 12) step = Math.ceil(count / 8);
+
+  for (let i = 0; i < count; i++) {
+    const isEdge = i === 0 || i === count - 1;
+    const isStep = i % step === 0;
+    if (isStep || (isEdge && currentPeriod !== "month")) {
+      labelsHTML += `<text x="${pts[i].x.toFixed(1)}" y="${(baselineY + 22).toFixed(1)}" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="11" font-family="var(--font-display)">${esc(pts[i].label)}</text>`;
+    }
+  }
+
+  // Интерактивные точки (статичные, без анимации появления)
+  const dotR = count > 15 ? 2.5 : 3.8;
+  let dotsHTML = "";
+  pts.forEach((p, idx) => {
+    dotsHTML += `<circle class="chart-point" data-idx="${idx}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="#859bff" stroke="#111216" stroke-width="2" />`;
+  });
+
+  const svgHTML = `
+    <svg viewBox="0 0 ${svgW} ${svgH}" id="overviewChartSvg" style="width:100%;height:${svgH}px;display:block;">
+      <defs>
+        <clipPath id="chartAreaClip">
+          <rect id="chartAreaClipRect" x="0" y="0" width="0" height="${svgH + 20}" />
+        </clipPath>
+        <linearGradient id="chartAreaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#859bff" stop-opacity="0.32" />
+          <stop offset="75%" stop-color="#859bff" stop-opacity="0.05" />
+          <stop offset="100%" stop-color="#859bff" stop-opacity="0" />
+        </linearGradient>
+        <linearGradient id="chartStrokeGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#859bff" />
+          <stop offset="50%" stop-color="#a5b4fc" />
+          <stop offset="100%" stop-color="#c7d2fe" />
+        </linearGradient>
+        <filter id="chartGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+      <g class="chart-grid">${gridHTML}</g>
+      <path class="chart-area-fill" d="${areaD}" fill="url(#chartAreaGrad)" clip-path="url(#chartAreaClip)" />
+      <path class="chart-line-curve" d="${lineD}" fill="none" stroke="url(#chartStrokeGrad)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" filter="url(#chartGlow)" />
+      <g class="chart-dots">${dotsHTML}</g>
+      <g class="chart-labels">${labelsHTML}</g>
+      <line id="chartHoverLine" x1="0" y1="${padTop}" x2="0" y2="${baselineY}" stroke="rgba(133,155,255,0.45)" stroke-width="1.2" stroke-dasharray="3 3" style="display:none;" />
+      <circle id="chartHoverDot" cx="0" cy="0" r="5.5" fill="#859bff" stroke="#fff" stroke-width="2.5" filter="url(#chartGlow)" style="display:none;" />
+    </svg>
+    <div class="chart-tooltip" id="chartTooltip" style="display:none;"></div>
+  `;
+
+  wrap.innerHTML = svgHTML;
+
+  // Плавная анимация прорисовки только самой кривой
+  const pathEl = wrap.querySelector(".chart-line-curve");
+  const clipRect = wrap.querySelector("#chartAreaClipRect");
+  const animDuration = 1200;
+
+  if (pathEl) {
+    const totalLen = Math.ceil(pathEl.getTotalLength() || 1000);
+    pathEl.style.strokeDasharray = `${totalLen} ${totalLen}`;
+    pathEl.style.strokeDashoffset = `${totalLen}`;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        pathEl.style.transition = `stroke-dashoffset ${animDuration}ms cubic-bezier(0.25, 1, 0.5, 1)`;
+        pathEl.style.strokeDashoffset = "0";
+
+        if (clipRect) {
+          clipRect.style.transition = `width ${animDuration}ms cubic-bezier(0.25, 1, 0.5, 1)`;
+          clipRect.setAttribute("width", String(svgW + 10));
+        }
+      });
+    });
+  }
+
+  if (!window._overviewChartResizeBound) {
+    window._overviewChartResizeBound = true;
+    let resizeTimer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (document.getElementById("overviewChartWrap")) {
+          renderOverviewChart();
+        }
+      }, 150);
+    });
+  }
+
+  const svgEl = document.getElementById("overviewChartSvg");
+  const hoverLine = document.getElementById("chartHoverLine");
+  const hoverDot = document.getElementById("chartHoverDot");
+  const tooltip = document.getElementById("chartTooltip");
+
+  function getClosestPoint(clientX, svgRect) {
+    const scaleX = svgW / svgRect.width;
+    const svgX = (clientX - svgRect.left) * scaleX;
+    let closest = pts[0];
+    let minDiff = Infinity;
+    for (const p of pts) {
+      const diff = Math.abs(p.x - svgX);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = p;
+      }
+    }
+    return closest;
+  }
+
+  function handleMove(e) {
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    const p = getClosestPoint(e.clientX, rect);
+    if (!p) return;
+
+    if (hoverLine) {
+      hoverLine.setAttribute("x1", p.x.toFixed(1));
+      hoverLine.setAttribute("x2", p.x.toFixed(1));
+      hoverLine.style.display = "block";
+    }
+    if (hoverDot) {
+      hoverDot.setAttribute("cx", p.x.toFixed(1));
+      hoverDot.setAttribute("cy", p.y.toFixed(1));
+      hoverDot.style.display = "block";
+    }
+
+    if (tooltip) {
+      const scaleX = rect.width / svgW;
+      const scaleY = rect.height / svgH;
+      const clientX = p.x * scaleX;
+      const clientY = p.y * scaleY;
+
+      tooltip.innerHTML = `
+        <div class="chart-tooltip-time">${esc(p.label)}</div>
+        <div class="chart-tooltip-val">Подано: <b>${declApps(p.val)}</b></div>
+      `;
+      tooltip.style.left = `${clientX}px`;
+      tooltip.style.top = `${clientY}px`;
+      tooltip.style.display = "block";
+    }
+  }
+
+  function handleLeave() {
+    if (hoverLine) hoverLine.style.display = "none";
+    if (hoverDot) hoverDot.style.display = "none";
+    if (tooltip) tooltip.style.display = "none";
+  }
+
+  wrap.addEventListener("mousemove", handleMove);
+  wrap.addEventListener("mouseleave", handleLeave);
+  wrap.addEventListener("touchmove", (e) => {
+    if (e.touches && e.touches[0]) handleMove(e.touches[0]);
+  }, { passive: true });
+  wrap.addEventListener("touchend", handleLeave);
 }
 
 let selectedMaintMinutes = 60;
@@ -779,6 +1191,7 @@ async function renderAccounts() {
         <form class="acc-create-form" id="accForm">
           <input type="text" name="nickname" placeholder="Никнейм *" required minlength="2">
           <input type="text" name="telegram" placeholder="@telegram *" required>
+          <input type="text" name="code" placeholder="Свой ключ (опционально)" class="mono" style="text-transform:uppercase;">
           <select name="role">
             <option value="media">Медиа</option>
             <option value="freemedia">Фримедиа</option>
@@ -810,7 +1223,10 @@ async function renderAccounts() {
     const fd = new FormData(e.target);
     try {
       const resp = await POST("/api/admin/accounts", {
-        nickname: fd.get("nickname"), telegram: fd.get("telegram"), role: fd.get("role"),
+        nickname: fd.get("nickname"),
+        telegram: fd.get("telegram"),
+        role: fd.get("role"),
+        code: (fd.get("code") || "").trim(),
       });
       toast(`Код создан: ${resp.account.code} — скопируйте и выдайте`, "ok");
       renderAccounts();
@@ -1135,24 +1551,68 @@ async function renderSettingsSubTab() {
 }
 
 // ── Подвкладка «Тексты» ──
-const SETTING_META = [
-  ["payout_paste_template", "Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер сопоставляет строки «Префикс: значение»."],
-  ["payout_usdt_text", "Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} {amount} {nickname} {tx}"],
-  ["payout_funpay_text", "Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} {lot_url} {nickname}"],
-  ["payout_reject_text", "Текст при отклонении выплаты", "Плейсхолдеры: {reason} {id} {nickname}"],
-  ["week_summary_template", "Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}"],
+const SETTING_GROUPS = [
+  {
+    title: "Медиа-заявки (Telegram-вердикты)",
+    desc: "Автоматические сообщения, которые бот отправляет кандидатам в Telegram при одобрении или отклонении заявки",
+    items: [
+      ["media_approve_text", "Текст при одобрении медиа-заявки", "Отправляется ботом кандидату при одобрении. Плейсхолдеры: {id} — номер заявки, {comment} — ссылка на беседу / комментарий куратора."],
+      ["media_reject_text", "Текст при отклонении медиа-заявки", "Отправляется ботом кандидату при отказе. Плейсхолдеры: {id} — номер заявки, {reason} — указанная причина отказа."],
+    ]
+  },
+  {
+    title: "Выплаты и отчёты",
+    desc: "Шаблоны паст подачи заявок и тексты уведомлений о переводах средств",
+    items: [
+      ["payout_paste_template", "Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер бота сопоставляет строки вида «Префикс: значение»."],
+      ["payout_usdt_text", "Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} — номер, {amount} — сумма USDT, {nickname} — ник, {tx} — хэш или ссылка на перевод."],
+      ["payout_funpay_text", "Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} — номер, {lot_url} — ссылка на лот, {nickname} — ник."],
+      ["payout_reject_text", "Текст при отклонении выплаты", "Плейсхолдеры: {reason} — причина отказа, {id} — номер, {nickname} — ник."],
+      ["week_summary_template", "Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}."],
+    ]
+  },
+  {
+    title: "Модерация (HWID и Discord)",
+    desc: "Уведомления модераторам в Telegram о статусе рассмотрения их запросов",
+    items: [
+      ["hwid_approve_text", "Текст при одобрении сброса HWID", "Отправляется модератору в Telegram при одобрении сброса. Плейсхолдеры: {id} — номер, {comment} — комментарий / UID."],
+      ["hwid_reject_text", "Текст при отклонении сброса HWID", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
+      ["discord_approve_text", "Текст при одобрении Discord-бана", "Отправляется модератору в Telegram при одобрении бана. Плейсхолдеры: {id} — номер, {comment} — заблокированный ID."],
+      ["discord_reject_text", "Текст при отклонении Discord-бана", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
+    ]
+  },
+  {
+    title: "Telegram-бот и Business",
+    desc: "Общие сообщения от имени бота и Telegram Business",
+    items: [
+      ["tg_window_nudge_text", "Напоминание о 24-часовом окне Telegram", "Отправляется ботом за 5 минут до закрытия 24-часового окна Telegram Business для продления возможности переписки."],
+      ["tg_bot_start_text", "Приветствие бота (/start)", "Отправляется в ЛС боту при команде /start. Плейсхолдеры: {name} — имя пользователя."],
+    ]
+  }
 ];
 
 async function renderSettingsTexts(wrap) {
   const data = await GET("/api/admin/settings");
   const s = data.data || {};
-  wrap.innerHTML = SETTING_META.map(([key, title, hint]) => `
-    <div class="card">
-      <h3>${title}</h3>
-      <p class="hint">${hint}</p>
-      <textarea id="set-${key}" rows="6" class="mono" style="min-height:110px">${esc(s[key] || "")}</textarea>
-      <button class="btn-primary" data-set="${key}" style="margin-top:1rem;height:40px;padding:0 1.5rem;width:auto;">Сохранить</button>
-    </div>`).join("");
+
+  wrap.innerHTML = SETTING_GROUPS.map((group) => `
+    <div class="settings-group">
+      <div class="settings-group-header">
+        <h2 class="settings-group-title">${group.title}</h2>
+        <p class="settings-group-desc">${group.desc}</p>
+      </div>
+      <div class="settings-group-cards">
+        ${group.items.map(([key, title, hint]) => `
+          <div class="card">
+            <h3>${title}</h3>
+            <p class="hint">${hint}</p>
+            <textarea id="set-${key}" rows="5" class="mono" style="min-height:100px">${esc(s[key] || "")}</textarea>
+            <button class="btn-primary" data-set="${key}" style="margin-top:0.35rem;height:40px;padding:0 1.5rem;width:auto;">Сохранить</button>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `).join("");
 
   wrap.querySelectorAll("[data-set]").forEach((b) =>
     b.addEventListener("click", async () => {

@@ -49,7 +49,7 @@ func main() {
 			fmt.Printf("  %-10s %-12s код: %s (уже существует)\n", d.role, d.nick, code)
 			continue
 		}
-		acc, err := authSvc.CreateAccount(d.role, d.nick, d.tg)
+		acc, err := authSvc.CreateAccount(d.role, d.nick, d.tg, "")
 		if err != nil {
 			log.Fatalf("аккаунт %s: %v", d.nick, err)
 		}

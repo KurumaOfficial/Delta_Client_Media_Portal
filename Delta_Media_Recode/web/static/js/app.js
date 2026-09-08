@@ -112,6 +112,10 @@ window.applyMaintenanceAnimations = applyMaintenanceAnimations;
     document.body.classList.toggle("page-admin", name === "admin");
     document.body.classList.toggle("page-maintenance", name === "maintenance");
 
+    const isOverview = (name === "admin" && typeof adminCat !== "undefined" && adminCat === "overview");
+    document.documentElement.classList.toggle("admin-overview-page", isOverview);
+    document.body.classList.toggle("admin-overview-page", isOverview);
+
     // Футер отображается на главной странице и на странице техработ
     const footer = document.querySelector(".site-footer");
     if (footer) {

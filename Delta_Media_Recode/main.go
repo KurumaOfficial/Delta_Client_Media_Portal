@@ -159,6 +159,7 @@ func main() {
 	// ── Админ-панель ──
 	adminGroup := api.Group("/admin", auth.Require(authSvc, models.RoleAdmin))
 	adminGroup.Get("/stats", adminH.Stats)
+	adminGroup.Get("/stats/chart", adminH.StatsChart)
 	adminGroup.Post("/toggle-apps", adminH.ToggleApps)
 	adminGroup.Post("/toggle-maintenance", adminH.ToggleMaintenance)
 	adminGroup.Get("/logs", adminH.Logs)

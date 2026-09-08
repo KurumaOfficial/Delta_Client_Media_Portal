@@ -15,7 +15,7 @@ import (
 func (s *Service) Create(r models.Request) (int64, error) {
 	week, err := s.EnsureCurrentWeek()
 	if err != nil {
-		return 0, fmt.Errorf("приём заявок закрыт (окно: вт 01:00 — пн 22:00)")
+		return 0, fmt.Errorf("приём заявок закрыт (окно: пн 00:00 — вт 22:00)")
 	}
 
 	// одна незакрытая заявка этого вида на аккаунт за неделю

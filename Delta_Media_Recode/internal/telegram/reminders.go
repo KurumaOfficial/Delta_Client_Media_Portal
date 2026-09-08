@@ -58,8 +58,11 @@ func (s *Service) checkWindows() {
 			continue // уже напоминали после последнего сообщения
 		}
 		log.Printf("[TG Window] напоминание @%s: 24h-окно истекает", r.username)
-		if err := s.cl.SendBusiness(biz, r.chatID,
-			"⏳ Напоминание: окно для ответов скоро закроется. Напиши любое сообщение, чтобы продлить его на 24 часа."); err == nil {
+		nudgeText := s.db.Setting("tg_window_nudge_text")
+		if nudgeText == "" {
+			nudgeText = "⏳ Напоминание: окно для ответов скоро закроется. Напиши любое сообщение, чтобы продлить его на 24 часа."
+		}
+		if err := s.cl.SendBusiness(biz, r.chatID, nudgeText); err == nil {
 			_, _ = s.db.Exec(`UPDATE v2_tg_users SET last_nudge_at = ? WHERE tg_user_id = ?`, now, r.tgUserID)
 		}
 	}

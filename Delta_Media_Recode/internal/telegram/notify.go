@@ -3,6 +3,7 @@ package telegram
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"dmr/internal/models"
@@ -138,31 +139,81 @@ func (s *Service) chatIDByUsername(username string) int64 {
 	return id
 }
 
-// SendVerdict — вердикт по медиа-заявке (тексты куратора сохранены из V1).
+func renderTemplate(tpl string, vars map[string]string) string {
+	pairs := make([]string, 0, len(vars)*2)
+	for k, v := range vars {
+		pairs = append(pairs, k, v)
+	}
+	return strings.NewReplacer(pairs...).Replace(tpl)
+}
+
+// SendVerdict — вердикт по заявке (тексты настраиваются через админ-панель).
 func (s *Service) SendVerdict(telegram, kind string, id int64, approve bool, comment string) {
 	chatID := s.chatIDByUsername(telegram)
 	if chatID == 0 {
 		return
 	}
+	idStr := strconv.FormatInt(id, 10)
 	var text string
 	switch kind {
 	case "media":
+		vars := map[string]string{
+			"{id}":      idStr,
+			"{comment}": comment,
+			"{reason}":  comment,
+		}
 		if approve {
-			text = fmt.Sprintf("Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № %d и одобрил её!\n\nСсылка на конфу медиа - %s\nОбязательно прочитай все каналы чтобы понять всю суть.", id, comment)
+			tpl := s.db.Setting("media_approve_text")
+			if tpl == "" {
+				tpl = "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и одобрил её!\n\nСсылка на конфу медиа - {comment}\nОбязательно прочитай все каналы чтобы понять всю суть."
+			}
+			text = renderTemplate(tpl, vars)
 		} else {
-			text = fmt.Sprintf("Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № %d и вынужден её отклонить.\n\nПричина: %s\nПопробуй больше активничать и чаще выкладывать видео — тогда у тебя всё обязательно получится. Когда улучшишь статистику аккаунта, подавай новую заявку.", id, comment)
+			tpl := s.db.Setting("media_reject_text")
+			if tpl == "" {
+				tpl = "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и вынужден её отклонить.\n\nПричина: {reason}\nПопробуй больше активничать и чаще выкладывать видео — тогда у тебя всё обязательно получится. Когда улучшишь статистику аккаунта, подавай новую заявку."
+			}
+			text = renderTemplate(tpl, vars)
 		}
 	case "hwid":
+		vars := map[string]string{
+			"{id}":      idStr,
+			"{comment}": comment,
+			"{reason}":  comment,
+			"{uid}":     comment,
+		}
 		if approve {
-			text = fmt.Sprintf("Хвид пользователя %s успешно сброшен.", comment)
+			tpl := s.db.Setting("hwid_approve_text")
+			if tpl == "" {
+				tpl = "Хвид пользователя {comment} успешно сброшен."
+			}
+			text = renderTemplate(tpl, vars)
 		} else {
-			text = fmt.Sprintf("Заявка на сброс HWID была отклонена.\n\nПричина — %s", comment)
+			tpl := s.db.Setting("hwid_reject_text")
+			if tpl == "" {
+				tpl = "Заявка на сброс HWID была отклонена.\n\nПричина — {reason}"
+			}
+			text = renderTemplate(tpl, vars)
 		}
 	case "discord":
+		vars := map[string]string{
+			"{id}":       idStr,
+			"{comment}":  comment,
+			"{reason}":   comment,
+			"{offender}": comment,
+		}
 		if approve {
-			text = fmt.Sprintf("Аккаунт в дискорде %s успешно заблокирован.", comment)
+			tpl := s.db.Setting("discord_approve_text")
+			if tpl == "" {
+				tpl = "Аккаунт в дискорде {comment} успешно заблокирован."
+			}
+			text = renderTemplate(tpl, vars)
 		} else {
-			text = fmt.Sprintf("Блокировка аккаунта %s была отклонена.\n\nПричина — %s", comment, comment)
+			tpl := s.db.Setting("discord_reject_text")
+			if tpl == "" {
+				tpl = "Блокировка аккаунта {comment} была отклонена.\n\nПричина — {reason}"
+			}
+			text = renderTemplate(tpl, vars)
 		}
 	default:
 		return

@@ -257,8 +257,8 @@ function initAuthUI() {
     }
   });
 
-  // Кнопка выхода из кабинета
-  document.getElementById("cabinetLogout")?.addEventListener("click", async () => {
+  // Функция выхода из аккаунта
+  async function doUserLogout() {
     try {
       await POST("/api/logout");
     } catch { /* ignore */ }
@@ -273,7 +273,11 @@ function initAuthUI() {
       showView("public");
     }
     toast(t("authLoggedOut"));
-  });
+  }
+  window.doUserLogout = doUserLogout;
+
+  // Кнопка выхода из кабинета
+  document.getElementById("cabinetLogout")?.addEventListener("click", doUserLogout);
 
   // Отправка формы входа
   document.getElementById("authForm")?.addEventListener("submit", async (e) => {

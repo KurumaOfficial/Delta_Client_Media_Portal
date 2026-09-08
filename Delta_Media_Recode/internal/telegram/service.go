@@ -168,9 +168,12 @@ func (s *Service) handleDirect(msg *Message) {
 
 	switch {
 	case strings.HasPrefix(lower, "/start"):
-		_ = s.cl.SendMessage(msg.Chat.ID, fmt.Sprintf(
-			"🤖 <b>Delta Media Bot</b>\n\nПривет, %s!\nЧерез меня приходит подтверждение входа на сайт и статусы заявок.\n\n"+
-				"📋 Шаблон заявки на выплату: /template", escapeHTML(msg.From.FirstName)))
+		startTpl := s.db.Setting("tg_bot_start_text")
+		if startTpl == "" {
+			startTpl = "🤖 <b>Delta Media Bot</b>\n\nПривет, {name}!\nЧерез меня приходит подтверждение входа на сайт и статусы заявок.\n\n📋 Шаблон заявки на выплату: /template"
+		}
+		text := strings.ReplaceAll(startTpl, "{name}", escapeHTML(msg.From.FirstName))
+		_ = s.cl.SendMessage(msg.Chat.ID, text)
 		return
 	case strings.HasPrefix(lower, "/template"):
 		_ = s.cl.SendMessage(msg.Chat.ID, "<pre>"+escapeHTML(s.db.Setting("payout_paste_template"))+"</pre>")

@@ -19,8 +19,16 @@ const I18N = {
     qServers: "Серверы *", pickServers: "Выберите серверы", other: "Прочие",
     qWhy: "Почему вы? *", qExclusive: "Эксклюзивный контент? *", pickVariant: "Выберите вариант",
     qTg: "Telegram *",
-    tgVerifyDesc: "Перед отправкой напишите нашему сотруднику — это защита от спама:",
+    tgVerifyBadge: "Защита от спама",
+    tgVerifyTitle: "Обязательная верификация Telegram",
+    tgVerifyDesc: "Перед отправкой напишите нашему сотруднику. Не нужно ждать ответа или одобрения, просто отправьте любое сообщение и подавайте заявку:",
     tgVerifyBtn: "Написать сотруднику",
+    tgVerifyStep1: "Нажмите кнопку и отправьте любое сообщение",
+    tgVerifyStep2: "Подавайте заполненную заявку на медиа",
+    tgStatusIdle: "Ожидание ввода Telegram...",
+    tgStatusChecking: "Проверка диалога в системе...",
+    tgStatusOk: "Telegram подтверждён — можно отправлять заявку",
+    tgStatusErr: "Диалог не найден — сначала напишите сотруднику!",
     sendApp: "Отправить заявку",
     sendAppClosed: "Приём заявок закрыт",
     bugTitle: "Нашли ошибку или баг?", bugDesc: "Сообщите нам в Telegram — быстро всё исправим",
@@ -116,8 +124,16 @@ const I18N = {
     qServers: "Сервери *", pickServers: "Оберіть сервери", other: "Інші",
     qWhy: "Чому ви? *", qExclusive: "Ексклюзивний контент? *", pickVariant: "Оберіть варіант",
     qTg: "Telegram *",
-    tgVerifyDesc: "Перед відправкою напишіть нашому співробітнику — це захист від спаму:",
+    tgVerifyBadge: "Захист від спаму",
+    tgVerifyTitle: "Обов'язкова верифікація Telegram",
+    tgVerifyDesc: "Перед відправкою напишіть нашому співробітнику. Не потрібно чекати на відповідь або схвалення, просто надішліть будь-яке повідомлення та подавайте заявку:",
     tgVerifyBtn: "Написати співробітнику",
+    tgVerifyStep1: "Натисніть кнопку та надішліть будь-яке повідомлення",
+    tgVerifyStep2: "Подавайте заповнену заявку на медіа",
+    tgStatusIdle: "Очікування введення Telegram...",
+    tgStatusChecking: "Перевірка діалогу в системі...",
+    tgStatusOk: "Telegram підтверджено — можна надсилати заявку",
+    tgStatusErr: "Діалог не знайдено — спочатку напишіть співробітнику!",
     sendApp: "Надіслати заявку",
     sendAppClosed: "Прийом заявок закрито",
     bugTitle: "Знайшли помилку чи баг?", bugDesc: "Повідомте нам у Telegram — швидко все виправимо",
@@ -213,8 +229,16 @@ const I18N = {
     qServers: "Servers *", pickServers: "Choose servers", other: "Other",
     qWhy: "Why you? *", qExclusive: "Exclusive content? *", pickVariant: "Choose an option",
     qTg: "Telegram *",
-    tgVerifyDesc: "Before submitting, message our staff member — spam protection:",
-    tgVerifyBtn: "Message the staff",
+    tgVerifyBadge: "Anti-Spam Shield",
+    tgVerifyTitle: "Required Telegram Verification",
+    tgVerifyDesc: "Before submitting, message our staff member. No need to wait for a reply or approval, just send any message and submit your application:",
+    tgVerifyBtn: "Message Staff",
+    tgVerifyStep1: "Tap the button and send any message",
+    tgVerifyStep2: "Submit your completed media application",
+    tgStatusIdle: "Waiting for Telegram handle...",
+    tgStatusChecking: "Verifying dialogue in system...",
+    tgStatusOk: "Telegram verified — ready to submit application",
+    tgStatusErr: "Dialogue not found — please message our staff first!",
     sendApp: "Submit application",
     sendAppClosed: "Applications closed",
     bugTitle: "Found a bug?", bugDesc: "Tell us on Telegram — we fix things fast",
@@ -353,5 +377,10 @@ function setLanguage(lang) {
   if (typeof updateAppsOpenUI === "function" && typeof SITE_CONFIG !== "undefined" && SITE_CONFIG && SITE_CONFIG.apps_open !== undefined) {
     updateAppsOpenUI(SITE_CONFIG.apps_open);
   }
+
+  // Обновляем статус верификации Telegram
+  try {
+    if (typeof refreshTgVerifyUI === "function") refreshTgVerifyUI();
+  } catch (e) { /* ignore */ }
 }
 

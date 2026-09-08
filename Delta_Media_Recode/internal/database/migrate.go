@@ -273,15 +273,23 @@ func (db *DB) Migrate() error {
 	return nil
 }
 
-// defaultSettings — редактируемые в админке тексты (пасты, шаблоны).
+// defaultSettings — редактируемые в админке тексты (пасты, шаблоны, вердикты).
 func defaultSettings() map[string]string {
 	return map[string]string{
 		"apps_open":             "true",
+		"media_approve_text":    "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и одобрил её!\n\nСсылка на конфу медиа - {comment}\nОбязательно прочитай все каналы чтобы понять всю суть.",
+		"media_reject_text":     "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и вынужден её отклонить.\n\nПричина: {reason}\nПопробуй больше активничать и чаще выкладывать видео — тогда у тебя всё обязательно получится. Когда улучшишь статистику аккаунта, подавай новую заявку.",
 		"payout_paste_template": "📋 Заявка на выплату Delta Media\nUID: {uid}\nВ медиа: {duration}\nЧто хочу получить: {want}\nСумма (USDT): {amount}\nСпособ выплаты: {method}\nСсылка на лот (FunPay): {lot_url}",
 		"payout_funpay_text":    "✅ Твоя заявка на выплату №{id} одобрена!\nОплата через FunPay: {lot_url}\nЕсли появились вопросы — пиши администратору.",
 		"payout_reject_text":    "❌ Выплата была отклонена.\nПричина: {reason}",
 		"payout_usdt_text":      "💸 Выплата №{id} одобрена: {amount} USDT отправлены через CryptoBot (@crypto_bot).\nПроверь чек в боте. Если что-то не так — пиши администратору.",
 		"week_summary_template": "📊 Итоги недели {week}:\nЗаявок подано: {total}\nОдобрено: {approved} | Отклонено: {rejected} | В ожидании: {pending}\nВыплачено USDT: {usdt_total}\nFunPay-выплат: {funpay_count}",
+		"hwid_approve_text":     "Хвид пользователя {comment} успешно сброшен.",
+		"hwid_reject_text":      "Заявка на сброс HWID была отклонена.\n\nПричина — {reason}",
+		"discord_approve_text":  "Аккаунт в дискорде {comment} успешно заблокирован.",
+		"discord_reject_text":   "Блокировка аккаунта {comment} была отклонена.\n\nПричина — {reason}",
+		"tg_window_nudge_text":  "⏳ Напоминание: окно для ответов скоро закроется. Напиши любое сообщение, чтобы продлить его на 24 часа.",
+		"tg_bot_start_text":     "🤖 <b>Delta Media Bot</b>\n\nПривет, {name}!\nЧерез меня приходит подтверждение входа на сайт и статусы заявок.\n\n📋 Шаблон заявки на выплату: /template",
 	}
 }
 

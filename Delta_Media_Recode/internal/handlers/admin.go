@@ -74,6 +74,193 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 	}})
 }
 
+// StatsChart — динамика подачи заявок (день, неделя, месяц, год, всё время) для графика-кривой.
+func (h *Admin) StatsChart(c *fiber.Ctx) error {
+	rows, err := h.db.SQL.Query(`SELECT created_at FROM v2_media_apps ORDER BY created_at ASC`)
+	if err != nil {
+		return serverError(c, "Ошибка чтения статистики")
+	}
+	defer rows.Close()
+
+	var timestamps []time.Time
+	for rows.Next() {
+		var raw interface{}
+		if err := rows.Scan(&raw); err == nil {
+			switch v := raw.(type) {
+			case time.Time:
+				timestamps = append(timestamps, v)
+			case string:
+				for _, layout := range []string{
+					"2006-01-02 15:04:05",
+					time.RFC3339,
+					"2006-01-02T15:04:05Z07:00",
+					"2006-01-02",
+				} {
+					if t, err := time.Parse(layout, v); err == nil {
+						timestamps = append(timestamps, t)
+						break
+					}
+				}
+			case []byte:
+				str := string(v)
+				for _, layout := range []string{
+					"2006-01-02 15:04:05",
+					time.RFC3339,
+					"2006-01-02T15:04:05Z07:00",
+					"2006-01-02",
+				} {
+					if t, err := time.Parse(layout, str); err == nil {
+						timestamps = append(timestamps, t)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	now := time.Now()
+
+	// 1. День (24 часа)
+	dayLabels := make([]string, 24)
+	dayValues := make([]int, 24)
+	dayTotal := 0
+	hourStart := now.Truncate(time.Hour).Add(-23 * time.Hour)
+	for i := 0; i < 24; i++ {
+		bStart := hourStart.Add(time.Duration(i) * time.Hour)
+		bEnd := bStart.Add(time.Hour)
+		dayLabels[i] = bStart.Format("15:04")
+		for _, ts := range timestamps {
+			if !ts.Before(bStart) && ts.Before(bEnd) {
+				dayValues[i]++
+				dayTotal++
+			}
+		}
+	}
+
+	// 2. Неделя (7 дней)
+	weekLabels := make([]string, 7)
+	weekValues := make([]int, 7)
+	weekTotal := 0
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	for i := 0; i < 7; i++ {
+		bStart := todayStart.AddDate(0, 0, -6+i)
+		bEnd := bStart.AddDate(0, 0, 1)
+		weekLabels[i] = bStart.Format("02.01")
+		for _, ts := range timestamps {
+			if !ts.Before(bStart) && ts.Before(bEnd) {
+				weekValues[i]++
+				weekTotal++
+			}
+		}
+	}
+
+	// 3. Месяц (30 дней)
+	monthLabels := make([]string, 30)
+	monthValues := make([]int, 30)
+	monthTotal := 0
+	for i := 0; i < 30; i++ {
+		bStart := todayStart.AddDate(0, 0, -29+i)
+		bEnd := bStart.AddDate(0, 0, 1)
+		monthLabels[i] = bStart.Format("02.01")
+		for _, ts := range timestamps {
+			if !ts.Before(bStart) && ts.Before(bEnd) {
+				monthValues[i]++
+				monthTotal++
+			}
+		}
+	}
+
+	// 4. Год (12 месяцев)
+	ruMonths := []string{"", "Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"}
+	yearLabels := make([]string, 12)
+	yearValues := make([]int, 12)
+	yearTotal := 0
+	curMonthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	for i := 0; i < 12; i++ {
+		bStart := curMonthStart.AddDate(0, -11+i, 0)
+		bEnd := bStart.AddDate(0, 1, 0)
+		yearLabels[i] = ruMonths[int(bStart.Month())]
+		for _, ts := range timestamps {
+			if !ts.Before(bStart) && ts.Before(bEnd) {
+				yearValues[i]++
+				yearTotal++
+			}
+		}
+	}
+
+	// 5. Всё время (All time)
+	allLabels := []string{}
+	allValues := []int{}
+	allTotal := len(timestamps)
+	if len(timestamps) > 0 {
+		first := timestamps[0]
+		firstMonth := time.Date(first.Year(), first.Month(), 1, 0, 0, 0, 0, now.Location())
+		if curMonthStart.Sub(firstMonth) < 5*30*24*time.Hour {
+			firstMonth = curMonthStart.AddDate(0, -5, 0)
+		}
+		cursor := firstMonth
+		for !cursor.After(curMonthStart) {
+			bEnd := cursor.AddDate(0, 1, 0)
+			lbl := ruMonths[int(cursor.Month())]
+			if cursor.Year() != now.Year() {
+				lbl += " '" + strconv.Itoa(cursor.Year()%100)
+			}
+			allLabels = append(allLabels, lbl)
+			cnt := 0
+			for _, ts := range timestamps {
+				if !ts.Before(cursor) && ts.Before(bEnd) {
+					cnt++
+				}
+			}
+			allValues = append(allValues, cnt)
+			cursor = cursor.AddDate(0, 1, 0)
+		}
+	} else {
+		for i := 5; i >= 0; i-- {
+			m := curMonthStart.AddDate(0, -i, 0)
+			allLabels = append(allLabels, ruMonths[int(m.Month())])
+			allValues = append(allValues, 0)
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"chart": fiber.Map{
+			"day": fiber.Map{
+				"labels": dayLabels,
+				"values": dayValues,
+				"total":  dayTotal,
+				"title":  "За последние 24 часа",
+			},
+			"week": fiber.Map{
+				"labels": weekLabels,
+				"values": weekValues,
+				"total":  weekTotal,
+				"title":  "За последнюю неделю",
+			},
+			"month": fiber.Map{
+				"labels": monthLabels,
+				"values": monthValues,
+				"total":  monthTotal,
+				"title":  "За последние 30 дней",
+			},
+			"year": fiber.Map{
+				"labels": yearLabels,
+				"values": yearValues,
+				"total":  yearTotal,
+				"title":  "За последние 12 месяцев",
+			},
+			"all": fiber.Map{
+				"labels": allLabels,
+				"values": allValues,
+				"total":  allTotal,
+				"title":  "За всё время",
+			},
+		},
+		"total_apps": allTotal,
+	})
+}
+
 // ── Заявки: списки (новые внизу — ASC) ──────────────────────
 
 func (h *Admin) MediaApps(c *fiber.Ctx) error {
@@ -407,7 +594,11 @@ func (h *Admin) ToggleMaintenance(c *fiber.Ctx) error {
 func isEditableSetting(key string) bool {
 	switch key {
 	case "payout_paste_template", "payout_funpay_text", "payout_reject_text",
-		"payout_usdt_text", "week_summary_template", "apps_open", "maintenance_enabled", "maintenance_until":
+		"payout_usdt_text", "week_summary_template", "apps_open", "maintenance_enabled", "maintenance_until",
+		"media_approve_text", "media_reject_text",
+		"hwid_approve_text", "hwid_reject_text",
+		"discord_approve_text", "discord_reject_text",
+		"tg_window_nudge_text", "tg_bot_start_text":
 		return true
 	}
 	return false

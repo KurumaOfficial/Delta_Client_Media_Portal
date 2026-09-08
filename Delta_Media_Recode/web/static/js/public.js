@@ -167,6 +167,51 @@ function getTurnstileToken() {
   return window.turnstile.getResponse(turnstileWidgetId);
 }
 
+let currentTgVerifyState = "idle";
+
+function setTgVerifyState(state) {
+  currentTgVerifyState = state;
+  const st = document.getElementById("tgVerifyStatus");
+  const ping = document.getElementById("tgVerifyPing");
+  const block = document.getElementById("tgVerifyBlock");
+  if (!st) return;
+
+  if (block) {
+    block.classList.toggle("ok", state === "ok");
+    if (state === "ok") block.classList.remove("flash");
+  }
+
+  if (state === "idle" || !state) {
+    st.className = "tg-verify-status-box hidden";
+    st.innerHTML = "";
+    if (ping) ping.className = "tg-verify-ping";
+    return;
+  }
+
+  st.className = "tg-verify-status-box " + state;
+  if (ping) ping.className = "tg-verify-ping " + state;
+
+  let iconSvg = "";
+  let text = "";
+
+  if (state === "ok") {
+    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    text = t("tgStatusOk");
+  } else if (state === "err") {
+    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    text = t("tgStatusErr");
+  } else if (state === "checking") {
+    iconSvg = '<span class="tg-status-spinner"></span>';
+    text = t("tgStatusChecking");
+  }
+
+  st.innerHTML = `<span class="tg-status-icon">${iconSvg}</span><span class="tg-status-text">${text}</span>`;
+}
+
+function refreshTgVerifyUI() {
+  setTgVerifyState(currentTgVerifyState);
+}
+
 function initPublicForm() {
   const uidInput = document.getElementById("mediaUid");
   uidInput.addEventListener("input", () => {
@@ -199,25 +244,29 @@ function initPublicForm() {
   const why = document.getElementById("whyJoin");
   why.addEventListener("input", () => { document.getElementById("whyCount").textContent = why.value.length; });
 
+
+
   // проверка «написал сотруднику»
   const tgInput = document.getElementById("mediaTg");
   let tgCheckTimer = null;
   tgInput.addEventListener("input", () => {
     clearTimeout(tgCheckTimer);
     const v = tgInput.value.trim();
+    if (!v) {
+      setTgVerifyState("idle");
+      return;
+    }
     if (!/^@?[a-zA-Z0-9_]{4,32}$/.test(v)) return;
+    setTgVerifyState("checking");
     tgCheckTimer = setTimeout(async () => {
       try {
         const r = await POST("/api/check-tg-verified", { telegram: v });
-        const st = document.getElementById("tgVerifyStatus");
         const block = document.getElementById("tgVerifyBlock");
         if (r.verified) {
-          st.textContent = "✅ Вы написали сотруднику — можно отправлять заявку";
-          st.className = "tg-status ok";
-          block.classList.remove("flash");
+          setTgVerifyState("ok");
+          if (block) block.classList.remove("flash");
         } else {
-          st.textContent = "⚠️ Вы ещё не написали сотруднику. Нажмите кнопку выше!";
-          st.className = "tg-status err";
+          setTgVerifyState("err");
         }
       } catch { /* тихо */ }
     }, 700);
@@ -292,7 +341,7 @@ async function submitMediaApp(e) {
     document.querySelectorAll("#criteriaChoice .choice-card").forEach((b) => b.classList.remove("active"));
     ["ytBlock", "ttBlock", "commonBlock"].forEach((id) => document.getElementById(id).classList.add("hidden"));
     document.getElementById("whyCount").textContent = "0";
-    document.getElementById("tgVerifyStatus").textContent = "";
+    setTgVerifyState("idle");
     if (turnstileWidgetId !== null && window.turnstile) window.turnstile.reset(turnstileWidgetId);
   } catch (ex) {
     if (ex.tg_required) { err(ex.error || "Сначала напишите сотруднику"); return; }
@@ -303,7 +352,9 @@ async function submitMediaApp(e) {
 
 function flashTGBlock() {
   const block = document.getElementById("tgVerifyBlock");
+  if (!block) return;
   block.classList.add("flash");
+  setTgVerifyState("err");
   block.scrollIntoView({ behavior: "smooth", block: "center" });
   setTimeout(() => block.classList.remove("flash"), 4000);
 }

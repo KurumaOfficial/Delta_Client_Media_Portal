@@ -32,6 +32,7 @@ func (h *Admin) CreateAccount(c *fiber.Ctx) error {
 		Role     string `json:"role"`
 		Nickname string `json:"nickname"`
 		Telegram string `json:"telegram"`
+		Code     string `json:"code"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректный запрос")
@@ -48,9 +49,21 @@ func (h *Admin) CreateAccount(c *fiber.Ctx) error {
 		return badRequest(c, "Укажите Telegram @username владельца (нужен для 2FA)")
 	}
 
-	account, err := h.auth.CreateAccount(body.Role, nickname, tg)
+	customCode := strings.ToUpper(strings.TrimSpace(body.Code))
+	if customCode != "" {
+		if len(customCode) < 4 || len(customCode) > 64 {
+			return badRequest(c, "Код должен содержать от 4 до 64 символов")
+		}
+		var exists int
+		_ = h.db.QueryRow(`SELECT COUNT(*) FROM v2_accounts WHERE UPPER(code) = ?`, customCode).Scan(&exists)
+		if exists > 0 {
+			return badRequest(c, "Аккаунт с таким кодом уже существует")
+		}
+	}
+
+	account, err := h.auth.CreateAccount(body.Role, nickname, tg, customCode)
 	if err != nil {
-		return serverError(c, "Не удалось создать код")
+		return serverError(c, "Не удалось создать код: "+err.Error())
 	}
 	h.db.RecordAudit("ACCOUNT_CREATE", "success",
 		"Код "+account.Code+" ("+account.Role+") для "+nickname+" "+tg,
