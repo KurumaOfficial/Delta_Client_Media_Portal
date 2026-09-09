@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"dmr/internal/database"
 )
@@ -63,6 +64,9 @@ func main() {
 	_, _ = db.Exec(`DELETE FROM v2_login_attempts WHERE token LIKE 'e2e-%'`)
 	_, _ = db.Exec(`DELETE FROM v2_requests WHERE account_id IN (SELECT id FROM v2_accounts WHERE nickname = 'TestMedia')`)
 	_, _ = db.Exec(`DELETE FROM v2_accounts WHERE nickname = 'TestMedia'`)
+	_, _ = db.Exec(`UPDATE v2_weeks SET is_current = 0`)
+	_, _ = db.Exec(`INSERT INTO v2_weeks (label, opens_at, closes_at, is_current) VALUES ('неделя e2e', ?, ?, 1)`,
+		time.Now().Add(-1*time.Hour), time.Now().Add(24*time.Hour))
 
 	// 1. Маппинг TG-юзера для админ-аккаунта (как будто @notyxx написал /start)
 	_, _ = db.Exec(`INSERT INTO v2_tg_users (tg_user_id, username, chat_id) VALUES (5972044002, 'notyxx', 5972044002)
@@ -73,8 +77,14 @@ func main() {
 	code, resp := call("POST", "/api/auth/login", map[string]string{"code": "DELTA-ROOT-0001", "gps": "55.75,37.61"}, nil)
 	assert(code == 500 && strings.Contains(fmt.Sprint(resp["error"]), "Telegram"), "логин без токена бота возвращает ошибку доставки", resp)
 
+	var adminAccID int64
+	_ = db.QueryRow(`SELECT id FROM v2_accounts WHERE role = 'admin' LIMIT 1`).Scan(&adminAccID)
+	if adminAccID == 0 {
+		adminAccID = 1
+	}
+
 	attemptToken := "e2e-attempt-token-0001"
-	_, err = db.Exec(`INSERT INTO v2_login_attempts (token, account_id, ip, gps, status) VALUES (?, 1, '127.0.0.1', '55.75,37.61', 'pending')`, attemptToken)
+	_, err = db.Exec(`INSERT INTO v2_login_attempts (token, account_id, ip, gps, status) VALUES (?, ?, '127.0.0.1', '55.75,37.61', 'pending')`, attemptToken, adminAccID)
 	assert(err == nil, "попытка входа вставлена", err)
 
 	// 3. Подтверждение 2FA (как будто нажата кнопка в TG) → сессия
@@ -139,7 +149,11 @@ func main() {
 	assert(code == 200, "лот одобрен", resp)
 
 	// 10. Итоговый текст недели
-	weekID := int64(1)
+	var weekID int64
+	_ = db.QueryRow(`SELECT id FROM v2_weeks ORDER BY id DESC LIMIT 1`).Scan(&weekID)
+	if weekID == 0 {
+		weekID = 1
+	}
 	code, resp = call("POST", "/api/admin/week-summary", map[string]any{"week_id": weekID, "text": "итог недели e2e"}, &adminCookie)
 	assert(code == 200, "итоговый текст недели сохранён", resp)
 

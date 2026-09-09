@@ -778,7 +778,7 @@ async function renderAppsTable(kind) {
 function drawAppsTable(kind, cfg) {
   const all = adminCache[kind] || [];
   const filtered = all.filter((r) => applyGlobalFilter(
-    JSON.stringify(r).toLowerCase(), kind === "hwid" ? "" : r.status));
+    JSON.stringify(r).toLowerCase(), r.status));
 
   // пагинация: новые внизу (ASC), срез текущей страницы
   const pageSize = cfg.pageSize;
@@ -807,7 +807,9 @@ function drawAppsTable(kind, cfg) {
     }
     if (kind === "hwid") return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.uuid)}</td>
-      <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td></tr>`;
+      <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${r.status === "pending" ? decideButtons(r.id) : "—"}</td></tr>`;
     return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.offender_id)}</td>
       <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
@@ -818,9 +820,9 @@ function drawAppsTable(kind, cfg) {
   const theadCols = kind === "media"
     ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
     : kind === "hwid"
-    ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
+    ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
-  const colSpan = kind === "hwid" ? 5 : (kind === "media" ? 8 : 7);
+  const colSpan = kind === "media" ? 8 : 7;
 
   const tableBoxHTML = `
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
@@ -831,7 +833,7 @@ function drawAppsTable(kind, cfg) {
       <div class="pager" id="pager-${kind}"></div>
     </div>`;
 
-  const withStatuses = kind !== "hwid";
+  const withStatuses = true;
   let tableWrap = document.getElementById("adminTableWrap");
   const hasStatusFilter = !!document.getElementById("fStatus");
   if (!tableWrap || (withStatuses !== hasStatusFilter)) {

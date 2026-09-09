@@ -138,15 +138,21 @@ function toast(msg, type) {
 
 // ── Кнопка-состояние ──
 function buttonState(btn, state, text, revertMs) {
+  if (!btn) return;
+  if (btn._revertTimer) {
+    clearTimeout(btn._revertTimer);
+    btn._revertTimer = null;
+  }
   const original = btn.dataset.originalText || btn.textContent;
   btn.dataset.originalText = original;
   btn.classList.remove("err", "ok");
   if (state) btn.classList.add(state);
   btn.textContent = text;
   if (revertMs) {
-    setTimeout(() => {
+    btn._revertTimer = setTimeout(() => {
       btn.classList.remove("err", "ok");
       btn.textContent = btn.dataset.originalText;
+      btn._revertTimer = null;
     }, revertMs);
   }
 }

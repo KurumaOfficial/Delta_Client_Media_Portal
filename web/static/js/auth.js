@@ -269,8 +269,10 @@ function initAuthUI() {
     updateCabinetBtn();
     if (typeof updateMaintenanceUI === "function") {
       updateMaintenanceUI();
-    } else {
-      showView("public");
+    }
+    const isMaint = SITE_CONFIG && SITE_CONFIG.maintenance_enabled;
+    if (typeof showView === "function") {
+      showView(isMaint ? "maintenance" : "public");
     }
     toast(t("authLoggedOut"));
   }

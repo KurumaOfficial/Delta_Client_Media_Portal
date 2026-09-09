@@ -92,9 +92,12 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 	}
 
 	// ── Валидация всех текстов ──
-	uid, ok := validation.UID(body.UID)
+	if strings.TrimSpace(body.UID) == "" {
+		return badRequest(c, "Укажите UID")
+	}
+	uid, ok := validation.NumericUID(body.UID)
 	if !ok {
-		return badRequest(c, "Укажите корректный UID (3–64 символа: буквы, цифры, - и _)")
+		return badRequest(c, "В поле UID разрешены только цифры")
 	}
 	if !body.CriteriaAgreed {
 		return badRequest(c, "Подтвердите соответствие критериям")
@@ -169,7 +172,7 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 	if !h.IsTGVerified(tg) {
 		return c.Status(400).JSON(fiber.Map{
 			"success": false, "tg_required": true,
-			"error": "Сначала напишите нашему сотруднику в Telegram, затем отправьте заявку",
+			"error": "Диалог не найден — сначала напишите сотруднику!",
 		})
 	}
 

@@ -200,7 +200,7 @@ func (s *Service) handleBusiness(bm *BusinessMessage) {
 	if s.tryPayoutPaste(bm.From, bm.Chat.ID, strings.TrimSpace(bm.Text), bm.BusinessConnectionID) {
 		return
 	}
-	s.secretaryAutoReply(bm)
+	go s.secretaryAutoReply(bm)
 }
 
 // tryPayoutPaste пробует распарсить пасту выплаты от активного медиа.
@@ -213,7 +213,7 @@ func (s *Service) tryPayoutPaste(from User, chatID int64, text, bizID string) bo
 		return false // «папка медиа выплаты»: принимаем только действующих медиа
 	}
 	if !s.pays.WindowOpen() {
-		_ = s.reply(chatID, bizID, "⏳ Приём заявок на выплату закрыт. Окно: вторник 01:00 — понедельник 22:00 (МСК).")
+		_ = s.reply(chatID, bizID, "⏳ Приём заявок на выплату закрыт. Окно: пн 00:00 — вт 22:00 (МСК).")
 		return true
 	}
 	id, _, err := s.pays.HandlePaste(account.Nickname, account.Telegram, account.TGUserID, text)

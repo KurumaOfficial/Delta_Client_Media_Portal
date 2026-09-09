@@ -94,5 +94,12 @@ func (db *DB) QueryRow(query string, args ...any) *sql.Row {
 	return db.SQL.QueryRow(db.Rebind(query), args...)
 }
 
+// Query — Rebind-обёртка для выборок на обоих драйверах.
+func (db *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	return db.SQL.Query(db.Rebind(query), args...)
+}
+
 // IsPostgres — истинно для прод-режима.
 func (db *DB) IsPostgres() bool { return db.Driver == "postgres" }
+
+

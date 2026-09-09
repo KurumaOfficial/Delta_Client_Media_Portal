@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -132,12 +133,12 @@ func (h *Admin) ResetCode(c *fiber.Ctx) error {
 
 func paramID(c *fiber.Ctx) (int64, error) {
 	idStr := strings.TrimSpace(c.Params("id"))
-	var id int64
-	for _, r := range idStr {
-		if r < '0' || r > '9' {
-			return 0, simpleErr("Некорректный id")
-		}
-		id = id*10 + int64(r-'0')
+	if idStr == "" {
+		return 0, simpleErr("Некорректный id")
+	}
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, simpleErr("Некорректный id")
 	}
 	return id, nil
 }

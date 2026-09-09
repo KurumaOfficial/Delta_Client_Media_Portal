@@ -27,13 +27,13 @@ func NewService(db *database.DB, tz *time.Location) *Service {
 	return &Service{db: db, tz: tz}
 }
 
-// currentWindow: последний вторник 01:00 <= now; закрытие — пн 22:00.
+// currentWindow: последний понедельник 00:00 <= now; закрытие — вт 22:00.
 func (s *Service) currentWindow(now time.Time) (time.Time, time.Time, bool) {
 	now = now.In(s.tz)
-	candidate := time.Date(now.Year(), now.Month(), now.Day(), 1, 0, 0, 0, s.tz)
+	candidate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, s.tz)
 	for i := 0; i < 9; i++ {
-		if candidate.Weekday() == time.Tuesday && !candidate.After(now) {
-			closes := candidate.Add(6*24*time.Hour + 21*time.Hour)
+		if candidate.Weekday() == time.Monday && !candidate.After(now) {
+			closes := candidate.AddDate(0, 0, 1).Add(22 * time.Hour)
 			return candidate, closes, now.Before(closes)
 		}
 		candidate = candidate.AddDate(0, 0, -1)
@@ -53,12 +53,19 @@ func (s *Service) scanWeek(row *sql.Row) (models.Week, error) {
 
 // EnsureCurrentWeek возвращает строку текущей недели, создавая её при необходимости.
 func (s *Service) EnsureCurrentWeek() (models.Week, error) {
+	// Сначала проверяем, есть ли активная неделя в БД
+	w, err := s.scanWeek(s.db.QueryRow(
+		`SELECT id, label, opens_at, closes_at, is_current FROM v2_weeks WHERE is_current = 1 AND closes_at > ? ORDER BY id DESC LIMIT 1`, time.Now()))
+	if err == nil {
+		return w, nil
+	}
+
 	opens, closes, open := s.currentWindow(time.Now())
 	if !open {
 		s.CloseDue()
 		return models.Week{}, sql.ErrNoRows
 	}
-	w, err := s.scanWeek(s.db.QueryRow(
+	w, err = s.scanWeek(s.db.QueryRow(
 		`SELECT id, label, opens_at, closes_at, is_current FROM v2_weeks WHERE opens_at = ?`, opens))
 	if err == nil {
 		if !w.IsCurrent {
@@ -97,7 +104,7 @@ func (s *Service) WeekLabel() string {
 
 // CloseDue закрывает просроченные недели и генерирует отчёты.
 func (s *Service) CloseDue() {
-	rows, err := s.db.SQL.Query(
+	rows, err := s.db.Query(
 		`SELECT id, label FROM v2_weeks WHERE is_current = 1 AND closes_at <= ?`, time.Now())
 	if err != nil {
 		return
@@ -136,7 +143,7 @@ type Stats struct {
 }
 
 func (s *Service) Stats(weekID int64) Stats {
-	rows, err := s.db.SQL.Query(
+	rows, err := s.db.Query(
 		`SELECT status, method, amount FROM v2_requests WHERE week_id = ?`, weekID)
 	if err != nil {
 		return Stats{}

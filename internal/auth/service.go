@@ -81,7 +81,7 @@ func (s *Service) scanAccount(row *sql.Row) (models.Account, error) {
 }
 
 func (s *Service) ListAccounts() ([]models.Account, error) {
-	rows, err := s.db.SQL.Query(
+	rows, err := s.db.Query(
 		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active, created_at
 		 FROM v2_accounts ORDER BY id ASC`)
 	if err != nil {

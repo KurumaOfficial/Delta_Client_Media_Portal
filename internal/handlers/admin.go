@@ -76,7 +76,7 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 
 // StatsChart — динамика подачи заявок (день, неделя, месяц, год, всё время) для графика-кривой.
 func (h *Admin) StatsChart(c *fiber.Ctx) error {
-	rows, err := h.db.SQL.Query(`SELECT created_at FROM v2_media_apps ORDER BY created_at ASC`)
+	rows, err := h.db.Query(`SELECT created_at FROM v2_media_apps ORDER BY created_at ASC`)
 	if err != nil {
 		return serverError(c, "Ошибка чтения статистики")
 	}
@@ -264,7 +264,7 @@ func (h *Admin) StatsChart(c *fiber.Ctx) error {
 // ── Заявки: списки (новые внизу — ASC) ──────────────────────
 
 func (h *Admin) MediaApps(c *fiber.Ctx) error {
-	rows, err := h.db.SQL.Query(`
+	rows, err := h.db.Query(`
 		SELECT id, lang, uid, criteria_agreed, platform, channel_url, servers,
 		       videos_per_week, collaborations, why_join, exclusive, telegram,
 		       status, admin_comment, created_at, updated_at
@@ -288,7 +288,7 @@ func (h *Admin) MediaApps(c *fiber.Ctx) error {
 }
 
 func (h *Admin) HWIDRequests(c *fiber.Ctx) error {
-	rows, err := h.db.SQL.Query(`
+	rows, err := h.db.Query(`
 		SELECT id, mod_nickname, uuid, proof_type, proof_file, proof_link, reason,
 		       status, admin_comment, created_at
 		FROM v2_hwid_requests ORDER BY id ASC`)
@@ -308,7 +308,7 @@ func (h *Admin) HWIDRequests(c *fiber.Ctx) error {
 }
 
 func (h *Admin) DiscordBans(c *fiber.Ctx) error {
-	rows, err := h.db.SQL.Query(`
+	rows, err := h.db.Query(`
 		SELECT id, mod_nickname, offender_id, proof_type, proof_file, proof_link, reason,
 		       status, admin_comment, created_at
 		FROM v2_discord_bans ORDER BY id ASC`)
@@ -462,7 +462,7 @@ func (h *Admin) DecideFromTelegram(kind string, id int64, approve bool) error {
 // ── Журнал ───────────────────────────────────────────────────
 
 func (h *Admin) Logs(c *fiber.Ctx) error {
-	rows, err := h.db.SQL.Query(`
+	rows, err := h.db.Query(`
 		SELECT id, event_type, status, details, ip, user_agent, created_at
 		FROM v2_audit_logs ORDER BY id DESC LIMIT 200`)
 	if err != nil {

@@ -103,7 +103,11 @@ func main() {
 	api := app.Group("/api")
 
 	// ── Авторизация ──
-	api.Post("/auth/login", middleware.RateLimiter(5, time.Minute), authHandler.Login)
+	loginLimit := 5
+	if cfg.DevAutoApprove2FA {
+		loginLimit = 60
+	}
+	api.Post("/auth/login", middleware.RateLimiter(loginLimit, time.Minute), authHandler.Login)
 	api.Get("/auth/attempt/:token", authHandler.AttemptStatus)
 	api.Get("/me", authHandler.Me)
 	api.Post("/logout", authHandler.Logout)

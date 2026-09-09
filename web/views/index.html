@@ -71,13 +71,17 @@
   <section class="hero">
     <div class="hero-pill"><span class="dot animate-blink"></span><span data-i18n="heroPill">delta media · приём заявок открыт</span></div>
     <h1 id="heroTitle" data-i18n-title="heroTitle">Стань частью <span class="text-highlight">delta&nbsp;media</span></h1>
-    <p class="hero-desc" data-i18n="heroDesc">Заполни заявку — куратор рассмотрит её и ответит в Telegram. Контроль, скорость и поддержка — всё уже внутри.</p>
+    <p class="hero-desc" data-i18n="heroDesc">Заполните форму ниже для вступления в delta media. Перед отправкой внимательно проверьте все указанные данные.</p>
   </section>
 
   <form class="card form-card" id="mediaForm" novalidate>
     <div class="field">
       <label data-i18n="qUid">UID *</label>
-      <input type="text" id="mediaUid" placeholder="Ваш UID в Delta Client" data-i18n-ph="phUid" maxlength="64">
+      <input type="text" id="mediaUid" placeholder="Ваш UID в Delta Client" data-i18n-ph="phUid" inputmode="numeric" pattern="[0-9]*" maxlength="64" autocomplete="off">
+      <p class="field-error-text hidden" id="uidErrorText">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span data-i18n="uidDigitsOnly">В поле UID разрешены только цифры</span>
+      </p>
     </div>
 
     <div class="field">
@@ -143,7 +147,7 @@
         <p class="hint mono"><span id="whyCount">0</span> / 500</p>
       </div>
       <div class="field">
-        <label data-i18n="qExclusive">Эксклюзивный контент? *</label>
+        <label data-i18n="qExclusive">Вы готовы снимать только с Delta Client?</label>
         <div class="dropdown" id="exclusiveDrop" data-placeholder="Выберите вариант">
           <button type="button" class="dropdown-head"><span class="dropdown-value" data-i18n="pickVariant" data-placeholder="Выберите вариант">Выберите вариант</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
           <div class="dropdown-menu">

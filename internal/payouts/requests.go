@@ -139,7 +139,7 @@ func (s *Service) HandlePaste(nickname, telegram string, tgUserID int64, text st
 
 // ListByWeek — заявки недели для админ-таблицы (новые внизу = ASC).
 func (s *Service) ListByWeek(weekID int64) ([]models.Request, error) {
-	rows, err := s.db.SQL.Query(`
+	rows, err := s.db.Query(`
 		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
 		       uid, duration, want, amount, method, platform, channel_url, lot_url,
 		       status, decision_comment, tx_ref, created_at, decided_at
@@ -153,7 +153,7 @@ func (s *Service) ListByWeek(weekID int64) ([]models.Request, error) {
 
 // MyRequests — история заявок аккаунта (для кабинета).
 func (s *Service) MyRequests(accountID int64) ([]models.Request, error) {
-	rows, err := s.db.SQL.Query(`
+	rows, err := s.db.Query(`
 		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
 		       uid, duration, want, amount, method, platform, channel_url, lot_url,
 		       status, decision_comment, tx_ref, created_at, decided_at
@@ -215,11 +215,20 @@ func (s *Service) Decide(id int64, approve bool, reason, txRef string) error {
 // CurrentWeek для панели (с итоговым текстом).
 func (s *Service) CurrentWeek() (models.Week, bool) {
 	w, err := s.EnsureCurrentWeek()
+	if err == nil {
+		_ = s.db.QueryRow(`SELECT summary_text FROM v2_weeks WHERE id = ?`, w.ID).Scan(&w.SummaryText)
+		return w, true
+	}
+	// Если окно приёма закрыто, возвращаем последнюю созданную неделю для админки
+	var last models.Week
+	err = s.db.QueryRow(
+		`SELECT id, label, opens_at, closes_at, is_current, summary_text
+		 FROM v2_weeks ORDER BY id DESC LIMIT 1`,
+	).Scan(&last.ID, &last.Label, &last.OpensAt, &last.ClosesAt, &last.IsCurrent, &last.SummaryText)
 	if err != nil {
 		return models.Week{}, false
 	}
-	_ = s.db.QueryRow(`SELECT summary_text FROM v2_weeks WHERE id = ?`, w.ID).Scan(&w.SummaryText)
-	return w, true
+	return last, true
 }
 
 func (s *Service) WeekByID(id int64) (models.Week, error) {
@@ -238,7 +247,7 @@ func (s *Service) SetSummary(weekID int64, text string) error {
 
 // HistoryWeeks — прошедшие недели (для просмотра архивов).
 func (s *Service) HistoryWeeks() ([]models.Week, error) {
-	rows, err := s.db.SQL.Query(
+	rows, err := s.db.Query(
 		`SELECT id, label, opens_at, closes_at, is_current, summary_text
 		 FROM v2_weeks ORDER BY opens_at DESC LIMIT 30`)
 	if err != nil {

@@ -126,8 +126,13 @@ type BusinessConn struct {
 
 // ── Отправка ─────────────────────────────────────────────────
 
-type kb struct {
-	InlineKeyboard [][][2]string `json:"inline_keyboard"` // [[text, callbackData], ...]
+type InlineKeyboardButton struct {
+	Text         string `json:"text"`
+	CallbackData string `json:"callback_data,omitempty"`
+}
+
+type InlineKeyboardMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
 }
 
 // SendMessage отправляет текст (опционально HTML + inline-кнопки).
@@ -137,7 +142,15 @@ func (cl *Client) SendMessage(chatID int64, text string, buttons ...[][2]string)
 		"link_preview_options": map[string]any{"is_disabled": true},
 	}
 	if len(buttons) > 0 {
-		payload["reply_markup"] = kb{InlineKeyboard: buttons}
+		var keyboard [][]InlineKeyboardButton
+		for _, row := range buttons {
+			var r []InlineKeyboardButton
+			for _, btn := range row {
+				r = append(r, InlineKeyboardButton{Text: btn[0], CallbackData: btn[1]})
+			}
+			keyboard = append(keyboard, r)
+		}
+		payload["reply_markup"] = InlineKeyboardMarkup{InlineKeyboard: keyboard}
 	}
 	_, err := cl.call("sendMessage", payload)
 	return err

@@ -124,7 +124,7 @@ func (h *Mod) SubmitDiscord(c *fiber.Ctx) error {
 // MyRequests — история заявок модератора (HWID и Discord).
 func (h *Mod) MyRequests(c *fiber.Ctx) error {
 	account, _ := auth.AccountOf(c)
-	rows, err := h.db.SQL.Query(`
+	rows, err := h.db.Query(`
 		SELECT 'hwid' as kind, id, uuid as target, proof_type, proof_file, proof_link, reason, status, admin_comment, created_at
 		FROM v2_hwid_requests WHERE account_id = ? OR mod_nickname = ?
 		UNION ALL

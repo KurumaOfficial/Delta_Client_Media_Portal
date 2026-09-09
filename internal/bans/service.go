@@ -70,7 +70,7 @@ func normalizeIP(raw string) string {
 }
 
 func (s *Service) Reload() error {
-	rows, err := s.db.SQL.Query(`
+	rows, err := s.db.Query(`
 		SELECT id, channel, uid, telegram, discord, ip, reason, banned_by, created_at, updated_at
 		FROM v2_bans ORDER BY id DESC
 	`)

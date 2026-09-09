@@ -224,16 +224,17 @@ window.applyMaintenanceAnimations = applyMaintenanceAnimations;
   // 5. Инициализация приложения: проверка «Запомнить меня», конфиг и сессия
   (async () => {
     // Проверка галочки «Запомнить меня»:
-    // Если пользователь вошёл без галочки «Запомнить меня», то при обновлении страницы (F5)
+    // Если пользователь вошёл без галочки «Запомнить меня» (delta_remember === "0"), то при обновлении страницы (F5)
     // происходит разлогин и выкидывает из аккаунта
-    const remember = localStorage.getItem("delta_remember") === "1";
-    if (!remember) {
+    const remVal = localStorage.getItem("delta_remember");
+    if (remVal === "0") {
       try {
         await POST("/api/logout");
       } catch { /* ignore */ }
       CURRENT_ACCOUNT = null;
       localStorage.removeItem("delta_remember");
     }
+    const remember = remVal === "1";
 
     // Загрузка конфигурации сайта (техработы, приём заявок, turnstile)
     await loadSiteConfig();

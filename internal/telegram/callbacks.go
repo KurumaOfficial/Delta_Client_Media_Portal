@@ -9,6 +9,17 @@ import (
 // handleCallback — inline-кнопки: 2FA-подтверждение и админ-решения.
 func (s *Service) handleCallback(cb *CallbackQuery) {
 	parts := strings.Split(cb.Data, ":")
+	if len(parts) == 4 && parts[0] == "adm" {
+		kind, idStr, verb := parts[1], parts[2], parts[3]
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			s.cl.AnswerCallback(cb.ID, "Неверный запрос")
+			return
+		}
+		s.callbackAdmin(cb, kind, id, verb)
+		return
+	}
+
 	if len(parts) != 3 {
 		s.cl.AnswerCallback(cb.ID, "")
 		return
@@ -23,8 +34,8 @@ func (s *Service) handleCallback(cb *CallbackQuery) {
 	switch action {
 	case "2fa":
 		s.callback2FA(cb, id, verb)
-	case "adm", "pay":
-		s.callbackAdmin(cb, action, id, verb)
+	case "pay":
+		s.callbackAdmin(cb, "pay", id, verb)
 	default:
 		s.cl.AnswerCallback(cb.ID, "")
 	}
@@ -66,7 +77,7 @@ func (s *Service) callback2FA(cb *CallbackQuery, attemptID int64, verb string) {
 }
 
 // callbackAdmin — кнопки «принять/отклонить» у админа.
-func (s *Service) callbackAdmin(cb *CallbackQuery, action string, id int64, verb string) {
+func (s *Service) callbackAdmin(cb *CallbackQuery, kind string, id int64, verb string) {
 	if !s.isOwner(cb.From) {
 		s.cl.AnswerCallback(cb.ID, "Недостаточно прав")
 		s.db.RecordAudit("TG_SECURITY", "warning",
@@ -78,10 +89,6 @@ func (s *Service) callbackAdmin(cb *CallbackQuery, action string, id int64, verb
 		return
 	}
 	approve := verb == "approve"
-	kind := strings.TrimPrefix(action, "adm")
-	if action == "pay" {
-		kind = "pay"
-	}
 	if err := s.decide(kind, id, approve); err != nil {
 		s.cl.AnswerCallback(cb.ID, "Ошибка: "+err.Error())
 		return

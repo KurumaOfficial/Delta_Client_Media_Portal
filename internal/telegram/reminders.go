@@ -21,7 +21,7 @@ func (s *Service) WindowWatcher() {
 }
 
 func (s *Service) checkWindows() {
-	rows, err := s.db.SQL.Query(`
+	rows, err := s.db.Query(`
 		SELECT tg_user_id, username, business_chat_id, last_incoming_at, last_nudge_at
 		FROM v2_tg_users
 		WHERE business_chat_id != 0 AND last_incoming_at IS NOT NULL`)
@@ -79,7 +79,7 @@ type WindowState struct {
 
 // WindowStates — список состояний окон (админка подстраивается под таймеры).
 func (s *Service) WindowStates() []WindowState {
-	rows, err := s.db.SQL.Query(`
+	rows, err := s.db.Query(`
 		SELECT username, tg_user_id, last_incoming_at, last_nudge_at
 		FROM v2_tg_users WHERE business_chat_id != 0 AND last_incoming_at IS NOT NULL
 		ORDER BY last_incoming_at DESC LIMIT 100`)

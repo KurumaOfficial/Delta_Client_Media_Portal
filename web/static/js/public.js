@@ -174,38 +174,37 @@ function setTgVerifyState(state) {
   const st = document.getElementById("tgVerifyStatus");
   const ping = document.getElementById("tgVerifyPing");
   const block = document.getElementById("tgVerifyBlock");
+  const staffBtn = document.getElementById("staffContactBtn");
+  const btnLabel = staffBtn ? staffBtn.querySelector(".tg-btn-label") : null;
   if (!st) return;
+
+  // На кнопке связи с сотрудником ВСЕГДА пишется только «Написать сотруднику»
+  if (btnLabel) btnLabel.textContent = t("tgVerifyBtn");
+  if (staffBtn) staffBtn.classList.remove("err");
 
   if (block) {
     block.classList.toggle("ok", state === "ok");
     if (state === "ok") block.classList.remove("flash");
   }
 
-  if (state === "idle" || !state) {
+  if (state === "idle" || !state || state === "err") {
     st.className = "tg-verify-status-box hidden";
     st.innerHTML = "";
     if (ping) ping.className = "tg-verify-ping";
     return;
   }
 
-  st.className = "tg-verify-status-box " + state;
-  if (ping) ping.className = "tg-verify-ping " + state;
-
-  let iconSvg = "";
-  let text = "";
-
   if (state === "ok") {
-    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-    text = t("tgStatusOk");
-  } else if (state === "err") {
-    iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-    text = t("tgStatusErr");
+    st.className = "tg-verify-status-box ok";
+    if (ping) ping.className = "tg-verify-ping ok";
+    const iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    st.innerHTML = `<span class="tg-status-icon">${iconSvg}</span><span class="tg-status-text">${t("tgStatusOk")}</span>`;
   } else if (state === "checking") {
-    iconSvg = '<span class="tg-status-spinner"></span>';
-    text = t("tgStatusChecking");
+    st.className = "tg-verify-status-box checking";
+    if (ping) ping.className = "tg-verify-ping checking";
+    const iconSvg = '<span class="tg-status-spinner"></span>';
+    st.innerHTML = `<span class="tg-status-icon">${iconSvg}</span><span class="tg-status-text">${t("tgStatusChecking")}</span>`;
   }
-
-  st.innerHTML = `<span class="tg-status-icon">${iconSvg}</span><span class="tg-status-text">${text}</span>`;
 }
 
 function refreshTgVerifyUI() {
@@ -214,12 +213,44 @@ function refreshTgVerifyUI() {
 
 function initPublicForm() {
   const uidInput = document.getElementById("mediaUid");
-  uidInput.addEventListener("input", () => {
+  const uidError = document.getElementById("uidErrorText");
+
+  function validateUidDigits() {
+    if (!uidInput) return true;
     const v = uidInput.value.trim();
-    if (v.length >= 8 && /^DLT-/i.test(v)) {
-      toast("Это код аккаунта — нажмите «Войти» справа вверху", "ok");
+    if (!v) {
+      uidInput.classList.remove("uid-error");
+      if (uidError) uidError.classList.add("hidden");
+      return true;
     }
-  });
+    if (/\D/.test(v)) {
+      uidInput.classList.add("uid-error");
+      if (uidError) uidError.classList.remove("hidden");
+      return false;
+    }
+    uidInput.classList.remove("uid-error");
+    if (uidError) uidError.classList.add("hidden");
+    return true;
+  }
+
+  if (uidInput) {
+    uidInput.addEventListener("input", () => {
+      validateUidDigits();
+      const v = uidInput.value.trim();
+      if (v.length >= 8 && /^DLT-/i.test(v)) {
+        toast("Это код аккаунта — нажмите «Войти» справа вверху", "ok");
+      }
+    });
+
+    uidInput.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (["Backspace", "Delete", "Tab", "Enter", "Escape", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+      if (!/^\d$/.test(e.key)) {
+        uidInput.classList.add("uid-error");
+        if (uidError) uidError.classList.remove("hidden");
+      }
+    });
+  }
 
   // критерии: yes/no карточки
   document.querySelectorAll("#criteriaChoice .choice-card").forEach((btn) =>
@@ -304,7 +335,25 @@ async function submitMediaApp(e) {
   };
 
   // клиентская валидация (зеркалит серверную)
-  if (!body.uid) return err("Укажите UID");
+  if (!body.uid) {
+    const uidEl = document.getElementById("mediaUid");
+    if (uidEl) {
+      uidEl.focus();
+      uidEl.classList.add("uid-error");
+    }
+    return err("Укажите UID");
+  }
+  if (/\D/.test(body.uid)) {
+    const uidEl = document.getElementById("mediaUid");
+    if (uidEl) {
+      uidEl.classList.add("uid-error");
+      uidEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      uidEl.focus();
+    }
+    const uidErr = document.getElementById("uidErrorText");
+    if (uidErr) uidErr.classList.remove("hidden");
+    return err(t("uidDigitsOnly") || "В поле UID разрешены только цифры");
+  }
   if (!body.criteria_agreed) return err("Подтвердите критерии (Да)");
   if (!platform) return err("Выберите платформу");
   if (!body.channel_url) return err("Укажите ссылку на канал");
@@ -312,8 +361,22 @@ async function submitMediaApp(e) {
   if (platform === "tiktok" && !body.collaborations) return err("Укажите сотрудничества");
   if (!servers.length) return err("Выберите серверы");
   if (body.why_join.length < 10) return err("Мотивация — минимум 10 символов");
-  if (!body.exclusive) return err("Укажите эксклюзивность");
+  if (!body.exclusive) return err("Укажите готовность снимать с Delta Client");
   if (!body.telegram) return err("Укажите Telegram");
+  if (currentTgVerifyState !== "ok") {
+    buttonState(btn, "", "Проверка…");
+    try {
+      const r = await POST("/api/check-tg-verified", { telegram: body.telegram });
+      if (r && r.verified) {
+        setTgVerifyState("ok");
+      } else {
+        currentTgVerifyState = "err";
+        return err(t("tgStatusErr"));
+      }
+    } catch {
+      // при ошибке сети проверит бэкенд
+    }
+  }
   if (SITE_CONFIG && SITE_CONFIG.turnstile_enabled && !body.turnstile_token && !CURRENT_ACCOUNT)
     return err("Пройдите капчу");
 
@@ -344,7 +407,7 @@ async function submitMediaApp(e) {
     setTgVerifyState("idle");
     if (turnstileWidgetId !== null && window.turnstile) window.turnstile.reset(turnstileWidgetId);
   } catch (ex) {
-    if (ex.tg_required) { err(ex.error || "Сначала напишите сотруднику"); return; }
+    if (ex.tg_required) { err(ex.error || t("tgStatusErr")); return; }
     if (ex.banned) { buttonState(btn, "err", ex.error, 6000); return; }
     err(ex.message || "Ошибка отправки");
   }
@@ -354,7 +417,6 @@ function flashTGBlock() {
   const block = document.getElementById("tgVerifyBlock");
   if (!block) return;
   block.classList.add("flash");
-  setTgVerifyState("err");
   block.scrollIntoView({ behavior: "smooth", block: "center" });
   setTimeout(() => block.classList.remove("flash"), 4000);
 }

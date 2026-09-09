@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 
 	"dmr/internal/middleware"
@@ -29,9 +31,35 @@ func (h *Admin) AddBan(c *fiber.Ctx) error {
 		Discord  string `json:"discord"`
 		IP       string `json:"ip"`
 		Reason   string `json:"reason"`
+		BType    string `json:"btype"`
+		Value    string `json:"value"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректный запрос")
+	}
+	if body.BType != "" && body.Value != "" {
+		switch strings.ToLower(body.BType) {
+		case "channel", "youtube", "tiktok":
+			if body.Channel == "" {
+				body.Channel = body.Value
+			}
+		case "uid":
+			if body.UID == "" {
+				body.UID = body.Value
+			}
+		case "telegram", "tg":
+			if body.Telegram == "" {
+				body.Telegram = body.Value
+			}
+		case "discord", "ds":
+			if body.Discord == "" {
+				body.Discord = body.Value
+			}
+		case "ip":
+			if body.IP == "" {
+				body.IP = body.Value
+			}
+		}
 	}
 	ban := models.Ban{
 		Channel:  validation.Clean(body.Channel, 300),
@@ -63,9 +91,35 @@ func (h *Admin) UpdateBan(c *fiber.Ctx) error {
 		Discord  string `json:"discord"`
 		IP       string `json:"ip"`
 		Reason   string `json:"reason"`
+		BType    string `json:"btype"`
+		Value    string `json:"value"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректный запрос")
+	}
+	if body.BType != "" && body.Value != "" {
+		switch strings.ToLower(body.BType) {
+		case "channel", "youtube", "tiktok":
+			if body.Channel == "" {
+				body.Channel = body.Value
+			}
+		case "uid":
+			if body.UID == "" {
+				body.UID = body.Value
+			}
+		case "telegram", "tg":
+			if body.Telegram == "" {
+				body.Telegram = body.Value
+			}
+		case "discord", "ds":
+			if body.Discord == "" {
+				body.Discord = body.Value
+			}
+		case "ip":
+			if body.IP == "" {
+				body.IP = body.Value
+			}
+		}
 	}
 	ban := models.Ban{
 		ID:       id,

@@ -12,9 +12,10 @@ var (
 	reTelegram = regexp.MustCompile(`^@?[a-zA-Z0-9_]{4,32}$`)
 	reYouTube  = regexp.MustCompile(`^https?://(www\.|m\.)?youtube\.com/(@[a-zA-Z0-9_.\-]+|channel/[a-zA-Z0-9_\-]+|c/[a-zA-Z0-9_\-]+|user/[a-zA-Z0-9_\-]+)/?$`)
 	reTikTok   = regexp.MustCompile(`^https?://(www\.)?tiktok\.com/@[a-zA-Z0-9_.]+/?$`)
-	reFunPay   = regexp.MustCompile(`^https?://(www\.)?funpay\.com/(lots|chat|users|lots/offer)/[a-zA-Z0-9]+`)
-	reUID      = regexp.MustCompile(`^[a-zA-Z0-9\-_]{3,64}$`)
-	reDiscord  = regexp.MustCompile(`^[0-9]{5,20}$|^@?[a-zA-Z0-9._]{2,32}$`)
+	reFunPay     = regexp.MustCompile(`^https?://(www\.)?funpay\.com/(lots|chat|users|lots/offer)/[a-zA-Z0-9]+`)
+	reUID        = regexp.MustCompile(`^[a-zA-Z0-9\-_]{3,64}$`)
+	reNumericUID = regexp.MustCompile(`^[0-9]{1,64}$`)
+	reDiscord    = regexp.MustCompile(`^[0-9]{5,20}$|^@?[a-zA-Z0-9._]{2,32}$`)
 )
 
 // Clean нормализует строку: trim, удаление управляющих символов.
@@ -26,11 +27,11 @@ func Clean(s string, maxLen int) string {
 			b.WriteRune(r)
 		}
 	}
-	out := b.String()
-	if maxLen > 0 && len(out) > maxLen {
-		out = out[:maxLen]
+	runes := []rune(b.String())
+	if maxLen > 0 && len(runes) > maxLen {
+		runes = runes[:maxLen]
 	}
-	return out
+	return string(runes)
 }
 
 // MultiLine — как Clean, но сохраняет переводы строк (для паст и причин).
@@ -42,11 +43,11 @@ func MultiLine(s string, maxLen int) string {
 			b.WriteRune(r)
 		}
 	}
-	out := b.String()
-	if maxLen > 0 && len(out) > maxLen {
-		out = out[:maxLen]
+	runes := []rune(b.String())
+	if maxLen > 0 && len(runes) > maxLen {
+		runes = runes[:maxLen]
 	}
-	return out
+	return string(runes)
 }
 
 func NotEmpty(s string) bool { return strings.TrimSpace(s) != "" }
@@ -97,6 +98,14 @@ func AnyURL(raw string) (string, bool) {
 func UID(raw string) (string, bool) {
 	u := Clean(raw, 64)
 	if !reUID.MatchString(u) {
+		return "", false
+	}
+	return u, true
+}
+
+func NumericUID(raw string) (string, bool) {
+	u := Clean(raw, 64)
+	if !reNumericUID.MatchString(u) {
 		return "", false
 	}
 	return u, true
