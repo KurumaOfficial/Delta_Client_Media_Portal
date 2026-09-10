@@ -82,7 +82,7 @@ func Load() *Config {
 		UploadDir:          getEnv("UPLOAD_DIR", "./uploads"),
 		MaxUploadGB:        maxUploadGB,
 		TurnstileSiteKey:   getEnv("TURNSTILE_SITEKEY", "1x00000000000000000000AA"),
-		TurnstileSecret:    getEnv("TURNSTILE_SECRET", ""),
+		TurnstileSecret:    getEnv("TURNSTILE_SECRET", "1x0000000000000000000000000000000AA"),
 	}
 	cfg.TGOwnerIDs = parseIDList(getEnv("TELEGRAM_OWNER_IDS", ""))
 	if len(cfg.TGOwnerIDs) == 0 {

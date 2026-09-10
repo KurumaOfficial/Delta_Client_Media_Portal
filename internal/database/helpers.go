@@ -2,6 +2,7 @@ package database
 
 import (
 	"log"
+	"time"
 )
 
 // RecordAudit — неблокирующая запись в журнал событий (ошибки не роняют запрос).
@@ -13,6 +14,17 @@ func (db *DB) RecordAudit(eventType, status, details, ip, userAgent string) {
 	if err != nil {
 		log.Printf("[Audit] write failed: %v", err)
 	}
+}
+
+// FailedLoginsInWindow возвращает количество неудачных попыток входа с указанного IP за заданный период.
+func (db *DB) FailedLoginsInWindow(ip string, window time.Duration) int {
+	var count int
+	since := time.Now().Add(-window)
+	_ = db.QueryRow(
+		`SELECT COUNT(*) FROM v2_audit_logs WHERE event_type = 'LOGIN' AND status = 'failed' AND ip = ? AND created_at >= ?`,
+		ip, since,
+	).Scan(&count)
+	return count
 }
 
 // Setting читает значение из v2_settings (пусто, если нет ключа).

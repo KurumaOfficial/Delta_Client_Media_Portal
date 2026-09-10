@@ -151,6 +151,8 @@ func main() {
 	}
 
 	// Журнал аудита
+	_, _ = db.Exec("DELETE FROM v2_audit_logs WHERE event_type = 'LOGIN' AND status = 'failed';")
+	_, _ = db.Exec("DELETE FROM v2_audit_logs WHERE details LIKE '%INVALID-CODE%';")
 	_, _ = db.Exec(`INSERT INTO v2_audit_logs (event_type, status, details, ip) VALUES
 		('SEED', 'success', 'Инициализация тестовых данных для локальной разработки', '127.0.0.1'),
 		('LOGIN', 'success', 'Авторизован аккаунт DemoMedia (роль media)', '127.0.0.1')`)

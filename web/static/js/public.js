@@ -2,7 +2,8 @@
 "use strict";
 
 let SITE_CONFIG = null;
-let turnstileWidgetId = null;
+let mediaTurnstileWidgetId = null;
+let loginTurnstileWidgetId = null;
 
 async function loadSiteConfig() {
   try {
@@ -18,6 +19,10 @@ async function loadSiteConfig() {
     if (!SITE_CONFIG.turnstile_enabled) {
       document.getElementById("captchaField")?.classList.add("hidden");
       document.getElementById("loginCaptcha")?.classList.add("hidden");
+    } else {
+      document.getElementById("captchaField")?.classList.remove("hidden");
+      document.getElementById("loginCaptcha")?.classList.remove("hidden");
+      if (typeof renderTurnstile === "function") renderTurnstile();
     }
     updateAppsOpenUI(SITE_CONFIG.apps_open !== false);
     updateMaintenanceUI();
@@ -149,23 +154,68 @@ function updateAppsOpenUI(isOpen) {
 
 function renderTurnstile() {
   if (!SITE_CONFIG || !SITE_CONFIG.turnstile_enabled || !window.turnstile) return;
-  if (turnstileWidgetId === null && document.getElementById("turnstileBox")) {
-    turnstileWidgetId = window.turnstile.render("#turnstileBox", {
-      sitekey: SITE_CONFIG.turnstile_sitekey, theme: "dark",
-    });
+
+  const mediaBox = document.getElementById("turnstileBox");
+  if (mediaBox && mediaTurnstileWidgetId === null) {
+    try {
+      mediaTurnstileWidgetId = window.turnstile.render("#turnstileBox", {
+        sitekey: SITE_CONFIG.turnstile_sitekey,
+        theme: "dark",
+      });
+    } catch (e) {
+      console.warn("[Turnstile] media render:", e);
+    }
   }
+
   const loginBox = document.getElementById("loginTurnstileBox");
-  if (loginBox && !loginBox.hasChildNodes()) {
-    window.turnstile.render("#loginTurnstileBox", {
-      sitekey: SITE_CONFIG.turnstile_sitekey, theme: "dark",
-    });
+  if (loginBox && loginTurnstileWidgetId === null) {
+    try {
+      loginTurnstileWidgetId = window.turnstile.render("#loginTurnstileBox", {
+        sitekey: SITE_CONFIG.turnstile_sitekey,
+        theme: "dark",
+      });
+    } catch (e) {
+      console.warn("[Turnstile] login render:", e);
+    }
   }
 }
 
 function getTurnstileToken() {
-  if (!window.turnstile || turnstileWidgetId === null) return "";
-  return window.turnstile.getResponse(turnstileWidgetId);
+  if (!window.turnstile || mediaTurnstileWidgetId === null) return "";
+  try {
+    return window.turnstile.getResponse(mediaTurnstileWidgetId);
+  } catch {
+    return "";
+  }
 }
+
+function getLoginTurnstileToken() {
+  if (!window.turnstile || loginTurnstileWidgetId === null) return "";
+  try {
+    return window.turnstile.getResponse(loginTurnstileWidgetId);
+  } catch {
+    return "";
+  }
+}
+
+function resetMediaTurnstile() {
+  if (window.turnstile && mediaTurnstileWidgetId !== null) {
+    try { window.turnstile.reset(mediaTurnstileWidgetId); } catch {}
+  }
+}
+
+function resetLoginTurnstile() {
+  if (window.turnstile && loginTurnstileWidgetId !== null) {
+    try { window.turnstile.reset(loginTurnstileWidgetId); } catch {}
+  }
+}
+
+window.renderTurnstile = renderTurnstile;
+window.getTurnstileToken = getTurnstileToken;
+window.getMediaTurnstileToken = getTurnstileToken;
+window.getLoginTurnstileToken = getLoginTurnstileToken;
+window.resetMediaTurnstile = resetMediaTurnstile;
+window.resetLoginTurnstile = resetLoginTurnstile;
 
 let currentTgVerifyState = "idle";
 

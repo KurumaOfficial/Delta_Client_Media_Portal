@@ -140,6 +140,48 @@ function startTaglineTypewriter() {
   }, 320);
 }
 
+// ═══ Защита от подбора кода (максимум 3 неверных ввода в день) ═══
+function checkBrowserLoginLock() {
+  const lockUntil = parseInt(localStorage.getItem("delta_login_lock_until") || "0", 10);
+  const now = Date.now();
+  if (lockUntil && now < lockUntil) {
+    const hoursLeft = Math.max(1, Math.ceil((lockUntil - now) / (1000 * 60 * 60)));
+    return {
+      locked: true,
+      msg: `Превышен лимит попыток (3 неверных ввода). Вход заблокирован на ${hoursLeft} ч. для защиты от подбора кода.`,
+    };
+  }
+  if (lockUntil && now >= lockUntil) {
+    localStorage.removeItem("delta_login_lock_until");
+    localStorage.removeItem("delta_failed_login_attempts");
+  }
+  const fails = parseInt(localStorage.getItem("delta_failed_login_attempts") || "0", 10);
+  return { locked: false, fails };
+}
+
+function recordBrowserFailedAttempt() {
+  let fails = parseInt(localStorage.getItem("delta_failed_login_attempts") || "0", 10) + 1;
+  localStorage.setItem("delta_failed_login_attempts", fails);
+  if (fails >= 3) {
+    const lockUntil = Date.now() + 24 * 60 * 60 * 1000;
+    localStorage.setItem("delta_login_lock_until", lockUntil);
+    return {
+      locked: true,
+      msg: "Превышен лимит попыток (3 неверных ввода). Вход заблокирован на 24 часа для защиты от подбора кода.",
+    };
+  }
+  return {
+    locked: false,
+    fails,
+    remaining: 3 - fails,
+  };
+}
+
+function clearBrowserLoginLock() {
+  localStorage.removeItem("delta_failed_login_attempts");
+  localStorage.removeItem("delta_login_lock_until");
+}
+
 function openAuth() {
   const modal = document.getElementById("authModal");
   if (!modal) return;
@@ -170,12 +212,33 @@ function openAuth() {
   // Запуск эффекта печатания текста слогана
   startTaglineTypewriter();
 
+  // Проверка лимита попыток в браузере (localStorage)
+  const lock = checkBrowserLoginLock();
+  const codeInput = document.getElementById("authCode");
+  const submitBtn = document.getElementById("authSubmit");
+
+  if (lock.locked) {
+    setAuthError(lock.msg);
+    if (codeInput) codeInput.disabled = true;
+    if (submitBtn) submitBtn.disabled = true;
+  } else {
+    if (codeInput) codeInput.disabled = false;
+    if (submitBtn) submitBtn.disabled = false;
+    if (lock.fails > 0) {
+      setAuthError(`Осталось попыток ввода: ${3 - lock.fails} из 3`);
+    }
+  }
+
+  // Рендерим Turnstile капчу
+  if (typeof renderTurnstile === "function") {
+    setTimeout(renderTurnstile, 50);
+  }
+
   modal.classList.add("open");
   document.body.style.overflow = "hidden";
   
   setTimeout(() => {
-    const input = document.getElementById("authCode");
-    if (input) input.focus();
+    if (codeInput && !lock.locked) codeInput.focus();
   }, 100);
 }
 
@@ -246,8 +309,6 @@ function initAuthUI() {
     });
   }
 
-
-
   // Закрытие модалки
   document.getElementById("authCloseBtn")?.addEventListener("click", closeAuth);
   document.getElementById("authBackdrop")?.addEventListener("click", closeAuth);
@@ -285,12 +346,29 @@ function initAuthUI() {
   document.getElementById("authForm")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     setAuthError("");
+
+    // Проверка браузерной блокировки
+    const lock = checkBrowserLoginLock();
+    if (lock.locked) {
+      setAuthError(lock.msg);
+      return;
+    }
     
     const codeInput = document.getElementById("authCode");
     const code = codeInput ? codeInput.value.trim().toUpperCase() : "";
     if (!code) {
       setAuthError(t("authEnterCode"));
       return;
+    }
+
+    // Проверка Cloudflare Turnstile капчи
+    let turnstile_token = "";
+    if (SITE_CONFIG && SITE_CONFIG.turnstile_enabled) {
+      turnstile_token = (typeof getLoginTurnstileToken === "function") ? getLoginTurnstileToken() : "";
+      if (!turnstile_token) {
+        setAuthError("Пройдите проверку на бота (капчу)");
+        return;
+      }
     }
 
     const remBox = document.getElementById("authRemember");
@@ -304,9 +382,16 @@ function initAuthUI() {
     } catch { /* ignore */ }
 
     try {
-      const res = await POST("/api/auth/login", { code, gps });
+      const res = await POST("/api/auth/login", { code, gps, turnstile_token });
       if (!res.success) {
-        setAuthError(res.error || t("authErrorConnection"));
+        const failStatus = recordBrowserFailedAttempt();
+        if (typeof resetLoginTurnstile === "function") resetLoginTurnstile();
+        if (failStatus.locked) {
+          setAuthError(failStatus.msg);
+          if (codeInput) codeInput.disabled = true;
+        } else {
+          setAuthError(res.error || `Неверный код доступа. Осталось попыток: ${failStatus.remaining} из 3`);
+        }
         setAuthLoading(false);
         return;
       }
@@ -331,6 +416,9 @@ function initAuthUI() {
             clearInterval(authPollInterval);
             authPollInterval = null;
 
+            // Успешный вход — очищаем счётчик неудачных попыток в браузере
+            clearBrowserLoginLock();
+
             if (rememberMe) {
               localStorage.setItem("delta_remember", "1");
             } else {
@@ -350,7 +438,14 @@ function initAuthUI() {
           } else if (statusRes.status === "denied" || statusRes.status === "expired") {
             clearInterval(authPollInterval);
             authPollInterval = null;
-            setAuthError(statusRes.error || t("authAttemptDenied"));
+            const failStatus = recordBrowserFailedAttempt();
+            if (typeof resetLoginTurnstile === "function") resetLoginTurnstile();
+            if (failStatus.locked) {
+              setAuthError(failStatus.msg);
+              if (codeInput) codeInput.disabled = true;
+            } else {
+              setAuthError(statusRes.error || t("authAttemptDenied"));
+            }
             if (pendingEl) pendingEl.classList.add("hidden");
             setAuthLoading(false);
           }
@@ -364,7 +459,20 @@ function initAuthUI() {
       }, 1000);
 
     } catch (err) {
-      setAuthError(err.message || t("authErrorConnection"));
+      if (typeof resetLoginTurnstile === "function") resetLoginTurnstile();
+      if (err._status === 401 || err._status === 429) {
+        const failStatus = recordBrowserFailedAttempt();
+        if (failStatus.locked) {
+          setAuthError(failStatus.msg);
+          if (codeInput) codeInput.disabled = true;
+          const submitBtn = document.getElementById("authSubmit");
+          if (submitBtn) submitBtn.disabled = true;
+        } else {
+          setAuthError(err.message || `Неверный код доступа. Осталось попыток: ${failStatus.remaining} из 3`);
+        }
+      } else {
+        setAuthError(err.message || t("authErrorConnection"));
+      }
       setAuthLoading(false);
     }
   });

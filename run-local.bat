@@ -12,6 +12,8 @@ set PORT=3999
 set TELEGRAM_BOT_TOKEN=
 set GPS_REQUIRED=false
 set DEV_AUTO_APPROVE_2FA=true
+set TURNSTILE_SITEKEY=1x00000000000000000000AA
+set TURNSTILE_SECRET=1x0000000000000000000000000000000AA
 if not exist delta-media-recode.exe go build -o delta-media-recode.exe .
 echo Локальный запуск V2: http://127.0.0.1:3999  (Ctrl+C для остановки)
 delta-media-recode.exe

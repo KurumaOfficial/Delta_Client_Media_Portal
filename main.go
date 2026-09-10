@@ -51,7 +51,7 @@ func main() {
 	if cfg.DevAutoApprove2FA {
 		log.Println("⚠️  DEV MODE: 2FA подтверждается автоматически без Telegram (только для локальной разработки)")
 	}
-	authHandler := auth.NewHandler(authSvc, db, cfg.GPSRequired, cfg.DevAutoApprove2FA)
+	authHandler := auth.NewHandler(authSvc, db, cfg.GPSRequired, cfg.DevAutoApprove2FA, cfg.TurnstileSecret)
 
 	tgSvc := telegram.NewService(cfg, db, authSvc)
 	crypto := telegram.NewCryptoBot(cfg.CryptoBotToken, cfg.CryptoBotTestnet)

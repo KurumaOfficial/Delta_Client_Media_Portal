@@ -2,6 +2,11 @@ package auth
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -17,30 +22,98 @@ type Notifier interface {
 }
 
 type Handler struct {
-	svc            *Service
-	db             *database.DB
-	notifier       Notifier
-	gpsRequired    bool
-	devAutoApprove bool
+	svc             *Service
+	db              *database.DB
+	notifier        Notifier
+	gpsRequired     bool
+	devAutoApprove  bool
+	turnstileSecret string
+	ipMu            sync.Mutex
+	ipAttempts      map[string][]time.Time
 }
 
-func NewHandler(svc *Service, db *database.DB, gpsRequired, devAutoApprove bool) *Handler {
-	return &Handler{svc: svc, db: db, gpsRequired: gpsRequired, devAutoApprove: devAutoApprove}
+func NewHandler(svc *Service, db *database.DB, gpsRequired, devAutoApprove bool, turnstileSecret string) *Handler {
+	return &Handler{
+		svc:             svc,
+		db:              db,
+		gpsRequired:     gpsRequired,
+		devAutoApprove:  devAutoApprove,
+		turnstileSecret: turnstileSecret,
+		ipAttempts:      make(map[string][]time.Time),
+	}
 }
 
 func (h *Handler) SetNotifier(n Notifier) { h.notifier = n }
 
-// Login — шаг 1: код + обязательная GPS → создаём 2FA-попытку.
+// verifyTurnstile проверяет капчу через siteverify Cloudflare.
+func (h *Handler) verifyTurnstile(c *fiber.Ctx, token string) bool {
+	if h.turnstileSecret == "" {
+		return true
+	}
+	if token == "" {
+		return false
+	}
+	if h.turnstileSecret == "1x0000000000000000000000000000000AA" && (token == "XXXX.DUMMY.TOKEN.XXXX" || len(token) > 10) {
+		return true
+	}
+	form := url.Values{}
+	form.Set("secret", h.turnstileSecret)
+	form.Set("response", token)
+	form.Set("remoteip", middleware.GetRealIP(c))
+	resp, err := http.PostForm("https://challenges.cloudflare.com/turnstile/v0/siteverify", form)
+	if err != nil {
+		return h.turnstileSecret == "1x0000000000000000000000000000000AA"
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	return strings.Contains(string(body), `"success":true`)
+}
+
+// Login — шаг 1: код + обязательная GPS + Turnstile → создаём 2FA-попытку.
 func (h *Handler) Login(c *fiber.Ctx) error {
 	var body struct {
-		Code string `json:"code"`
-		GPS  string `json:"gps"` // "lat,lng (±acc m)"
+		Code           string `json:"code"`
+		GPS            string `json:"gps"` // "lat,lng (±acc m)"
+		TurnstileToken string `json:"turnstile_token"`
 	}
 	if err := c.BodyParser(&body); err != nil || body.Code == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "error": "Введите код аккаунта"})
 	}
 	ip := middleware.GetRealIP(c)
 	ua := c.Get("User-Agent")
+
+	// Проверка Cloudflare Turnstile капчи
+	if !h.verifyTurnstile(c, body.TurnstileToken) {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"success": false,
+			"error":   "Пройдите проверку на бота (капчу)",
+		})
+	}
+
+	// Ограничение попыток: максимум 3 попытки в день с одного IP для защиты от подбора кода
+	h.ipMu.Lock()
+	now := time.Now()
+	cutoff := now.Add(-24 * time.Hour)
+	var recent []time.Time
+	for _, t := range h.ipAttempts[ip] {
+		if t.After(cutoff) {
+			recent = append(recent, t)
+		}
+	}
+	h.ipAttempts[ip] = recent
+	totalFails := len(recent)
+	if dbFails := h.db.FailedLoginsInWindow(ip, 24*time.Hour); dbFails > totalFails {
+		totalFails = dbFails
+	}
+	if totalFails >= 3 {
+		h.ipMu.Unlock()
+		h.db.RecordAudit("LOGIN", "blocked_limit", "Превышен суточный лимит 3 попыток входа с одного IP", ip, ua)
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+			"success": false,
+			"error":   "Превышен лимит попыток входа (максимум 3 в день с одного IP). Доступ заблокирован на 24 часа.",
+		})
+	}
+	h.ipMu.Unlock()
 
 	if h.gpsRequired && body.GPS == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -51,9 +124,34 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 
 	account, err := h.svc.AccountByCode(body.Code)
 	if err != nil {
+		h.ipMu.Lock()
+		h.ipAttempts[ip] = append(h.ipAttempts[ip], time.Now())
+		failCount := len(h.ipAttempts[ip])
+		if dbFails := h.db.FailedLoginsInWindow(ip, 24*time.Hour); dbFails > failCount {
+			failCount = dbFails
+		}
+		h.ipMu.Unlock()
+
 		h.db.RecordAudit("LOGIN", "failed", "Неверный код: "+maskCode(body.Code), ip, ua)
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "error": "Неверный код аккаунта"})
+		left := 3 - failCount
+		if left < 0 {
+			left = 0
+		}
+		errMsg := fmt.Sprintf("Неверный код доступа. Осталось попыток: %d из 3", left)
+		if left == 0 {
+			errMsg = "Превышен лимит попыток входа (3 неверных ввода). Вход заблокирован на 24 часа."
+		}
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"success":       false,
+			"error":         errMsg,
+			"attempts_left": left,
+		})
 	}
+
+	// Сброс счетчика неудачных попыток при верном коде
+	h.ipMu.Lock()
+	delete(h.ipAttempts, ip)
+	h.ipMu.Unlock()
 	if account.IsActive != 1 {
 		h.db.RecordAudit("LOGIN", "failed", fmt.Sprintf("Отключённый аккаунт #%d (%s)", account.ID, account.Nickname), ip, ua)
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"success": false, "error": "Аккаунт отключён. Обратитесь к администратору."})

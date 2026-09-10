@@ -1749,11 +1749,15 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
 }
 
 /* Капча контейнер */
+.captcha-field-wrap,
 .delta-turnstile-box {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 65px;
+}
+.captcha-field-wrap {
+  margin: 1rem 0 0.5rem 0;
 }
 
 /* Ошибка */
