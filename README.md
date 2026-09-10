@@ -4,9 +4,11 @@
 
 **Высокопроизводительный веб-портал медиа-партнёрства, верификации и модерации сообщества [Delta Client](https://deltaclient.xyz)**
 
-*Разработано на Go (Fiber v2), модульной SPA-архитектуре с эстетикой Delta Client 1:1, автоматизацией Telegram Business API, двухуровневой системой банов и циклом крипто-выплат.*
-
 <br/>
+
+<img src="web/static/img/social-preview.png" alt="Delta Media Portal Banner" width="100%" style="border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+
+<br/><br/>
 
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org)
 [![Fiber Framework](https://img.shields.io/badge/Fiber-v2.52-00ACD7?style=for-the-badge&logo=fiber&logoColor=white)](https://gofiber.io)
