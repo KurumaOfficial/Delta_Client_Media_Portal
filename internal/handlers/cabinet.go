@@ -42,13 +42,13 @@ func (h *Cabinet) baseRequest(c *fiber.Ctx) (models.Request, models.Account, err
 // SubmitPayout — таб 1 медиа: заявка на выплату за снятые видео.
 func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 	var body struct {
-		UID      string `json:"uid"`
-		Duration string `json:"duration"`
-		Want     string `json:"want"`
-		Rate     string `json:"rate"`
-		Amount   string `json:"amount"`
-		Method   string `json:"method"`
-		LotURL   string `json:"lot_url"`
+		UID       string `json:"uid"`
+		PromoCode string `json:"promo_code"`
+		Want      string `json:"want"`
+		Rate      string `json:"rate"`
+		Amount    string `json:"amount"`
+		Method    string `json:"method"`
+		LotURL    string `json:"lot_url"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректные данные")
@@ -64,10 +64,16 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 	}
 	r.Kind = models.KindPayout
 	r.UID = uid
-	r.Duration = validation.Clean(body.Duration, 100)
+
+	promo := validation.Clean(body.PromoCode, 64)
+	if promo == "" {
+		return badRequest(c, "Укажите ваш промокод")
+	}
+	r.PromoCode = promo
+
 	r.Want = validation.MultiLine(body.Want, 300)
-	if r.Duration == "" || r.Want == "" {
-		return badRequest(c, "Заполните «сколько вы в медиа» и «что хотите получить»")
+	if r.Want == "" {
+		return badRequest(c, "Заполните «что хотите получить»")
 	}
 
 	rate := validation.Clean(body.Rate, 100)
@@ -108,11 +114,12 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	var body struct {
 		UID        string `json:"uid"`
+		Platform   string `json:"platform"`
+		Duration   string `json:"duration"`
 		LotType    string `json:"lot_type"` // sub | cosmetics | other
 		Want       string `json:"want"`
 		Comment    string `json:"comment"`
 		ChannelURL string `json:"channel_url"`
-		Platform   string `json:"platform"`
 		LotURL     string `json:"lot_url"`
 	}
 	if err := c.BodyParser(&body); err != nil {
@@ -129,6 +136,18 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	}
 	r.Kind = models.KindLot
 	r.UID = uid
+
+	duration := validation.Clean(body.Duration, 100)
+	if duration == "" {
+		return badRequest(c, "Укажите, сколько вы в медиа Delta")
+	}
+	r.Duration = duration
+
+	platform := strings.ToLower(validation.Clean(body.Platform, 20))
+	if platform != "youtube" && platform != "tiktok" {
+		platform = "youtube"
+	}
+	r.Platform = platform
 
 	want := strings.TrimSpace(body.Want)
 	if want == "" {
@@ -152,24 +171,6 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	r.Want = validation.MultiLine(want, 300)
 	if r.Want == "" {
 		return badRequest(c, "Укажите, что хотите получить (сабка, косметика или своё пожелание)")
-	}
-
-	platform := strings.ToLower(validation.Clean(body.Platform, 20))
-	if platform != "" {
-		switch platform {
-		case "youtube":
-			if channel, ok := validation.YouTubeChannel(body.ChannelURL); ok {
-				r.Platform, r.ChannelURL = platform, channel
-			}
-		case "tiktok":
-			if channel, ok := validation.TikTokChannel(body.ChannelURL); ok {
-				r.Platform, r.ChannelURL = platform, channel
-			}
-		case "funpay":
-			if lot, ok := validation.FunPayLot(body.LotURL); ok {
-				r.Platform, r.LotURL = platform, lot
-			}
-		}
 	}
 
 	id, err := h.pays.Create(r)

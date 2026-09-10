@@ -22,6 +22,52 @@ function formatFileSize(bytes) {
   return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1) + " " + units[i];
 }
 
+function declWord(num, one, two, five) {
+  const n = Math.abs(num) % 100;
+  const n1 = n % 10;
+  if (n > 10 && n < 20) return five;
+  if (n1 > 1 && n1 < 5) return two;
+  if (n1 === 1) return one;
+  return five;
+}
+
+function formatDurationSince(dateInput) {
+  if (!dateInput) return "1 месяц";
+  const start = new Date(dateInput);
+  if (isNaN(start.getTime())) return "1 месяц";
+  const now = new Date();
+  const diffMs = now.getTime() - start.getTime();
+  if (diffMs <= 0) return "Меньше 1 дня";
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 7) {
+    if (diffDays === 0) return "Меньше 1 дня";
+    return `${diffDays} ${declWord(diffDays, "день", "дня", "дней")}`;
+  }
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} ${declWord(weeks, "неделя", "недели", "недель")}`;
+  }
+
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  if (now.getDate() < start.getDate()) {
+    months--;
+  }
+  if (months < 1) months = 1;
+
+  if (months < 12) {
+    return `${months} ${declWord(months, "месяц", "месяца", "месяцев")}`;
+  }
+
+  const years = Math.floor(months / 12);
+  const remMonths = months % 12;
+  let res = `${years} ${declWord(years, "год", "года", "лет")}`;
+  if (remMonths > 0) {
+    res += ` ${remMonths} ${declWord(remMonths, "месяц", "месяца", "месяцев")}`;
+  }
+  return res;
+}
+
 async function switchCabinetTab(tab) {
   cabinetActiveTab = tab;
   document.querySelectorAll("#cabinetTabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
@@ -411,8 +457,8 @@ function buildPayoutForm() {
   <form class="card form-card" id="form-payout">
     <h3>${CABINET_ICONS.payout} Заявка на выплату</h3>
     <p class="hint">Приём заявок: понедельник 00:00 — вторник 22:00 (МСК).</p>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
-    <div class="field"><label>Сколько вы в медиа Delta *</label><input type="text" name="duration" required placeholder="Например: 8 месяцев" maxlength="100"></div>
+    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric"></div>
+    <div class="field"><label>Ваш промокод *</label><input type="text" name="promo_code" id="payoutPromo" required placeholder="Например: DELTA2026" maxlength="64"></div>
     <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
     <div class="field"><label>Какая ставка *</label><input type="text" name="rate" required placeholder="Например: 500₽ за ролик / 15 USDT" maxlength="100"></div>
     <div class="field"><label>Способ выплаты *</label>
@@ -435,6 +481,37 @@ function buildLotForm() {
   <form class="card form-card" id="form-lot">
     <h3>${CABINET_ICONS.lot} Заявка на лот</h3>
     <div class="field"><label>Ваш UID в Delta Client *</label><input type="text" name="uid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric"></div>
+    <div class="field">
+      <label>Платформа *</label>
+      <div class="choice-row" id="lotPlatformChoice">
+        <button type="button" class="choice-card active" data-value="youtube">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;display:inline-block;"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          YouTube
+        </button>
+        <button type="button" class="choice-card" data-value="tiktok">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;display:inline-block;"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+          TikTok
+        </button>
+      </div>
+      <input type="hidden" name="platform" id="lotPlatformInput" value="youtube">
+    </div>
+    <div class="field">
+      <label>Сколько вы в медиа Delta *</label>
+      <div class="choice-row" id="lotDurationMode" style="margin-bottom:0.6rem;">
+        <button type="button" class="choice-card active" data-mode="auto">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px;display:inline-block;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Автоматически
+        </button>
+        <button type="button" class="choice-card" data-mode="manual">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px;display:inline-block;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          Ввести вручную
+        </button>
+      </div>
+      <input type="text" name="duration" id="lotDurationInput" required maxlength="100" placeholder="Срок в медиа">
+      <div class="hint" id="lotDurationHint" style="font-size:0.75rem;margin-top:0.25rem;color:rgba(255,255,255,0.45);">
+        Рассчитано автоматически с даты регистрации аккаунта
+      </div>
+    </div>
     <div class="field">
       <label>Что хотите получить? *</label>
       <div class="choice-row cols-3" id="lotTypeChoice">
@@ -726,7 +803,7 @@ function openRequestDetailsModal(req, role) {
       ? `USDT-чек (CryptoBot)`
       : req.method === "funpay"
       ? `<a href="${esc(req.lot_url)}" target="_blank" rel="noopener">FunPay лот</a>`
-      : req.platform || "—";
+      : (req.platform ? (req.platform.toLowerCase() === "youtube" ? "YouTube" : req.platform.toLowerCase() === "tiktok" ? "TikTok" : req.platform) : "—");
 
     fieldsHTML = `
       <div class="req-detail-field">
@@ -737,6 +814,11 @@ function openRequestDetailsModal(req, role) {
         <span class="req-detail-label">UID аккаунта</span>
         <span class="req-detail-value mono">${esc(req.uid || "—")}</span>
       </div>
+      ${req.promo_code ? `
+      <div class="req-detail-field">
+        <span class="req-detail-label">Промокод</span>
+        <span class="req-detail-value mono font-bold" style="color:var(--color-primary-400, #38bdf8);">${esc(req.promo_code)}</span>
+      </div>` : ""}
       ${req.amount ? `
       <div class="req-detail-field">
         <span class="req-detail-label">Ставка</span>
@@ -827,12 +909,57 @@ function bindCabinetForms() {
       const lotInput = document.getElementById("payoutLotUrl");
       if (lotInput) lotInput.required = isFunpay;
     }));
-  const lotPlat = document.getElementById("lotPlatform");
-  if (lotPlat) lotPlat.querySelectorAll(".dropdown-item").forEach((it) =>
-    it.addEventListener("click", () => {
-      document.getElementById("rowChannel").classList.toggle("hidden", it.dataset.value === "funpay");
-      document.getElementById("rowLotLink").classList.toggle("hidden", it.dataset.value !== "funpay");
-    }));
+
+  // Переключение платформы для лота (YouTube / TikTok)
+  const lotPlatChoice = document.getElementById("lotPlatformChoice");
+  if (lotPlatChoice) {
+    lotPlatChoice.querySelectorAll(".choice-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        lotPlatChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const platInput = document.getElementById("lotPlatformInput");
+        if (platInput) platInput.value = btn.dataset.value;
+      });
+    });
+  }
+
+  // Переключение режима «Сколько вы в медиа» (автоматически / вручную)
+  const lotDurMode = document.getElementById("lotDurationMode");
+  const lotDurInput = document.getElementById("lotDurationInput");
+  const lotDurHint = document.getElementById("lotDurationHint");
+
+  function initLotDurationAuto() {
+    if (!lotDurInput) return;
+    const autoVal = formatDurationSince(CURRENT_ACCOUNT ? CURRENT_ACCOUNT.created_at : null);
+    lotDurInput.value = autoVal;
+    lotDurInput.readOnly = true;
+    if (lotDurHint) {
+      lotDurHint.textContent = `Рассчитано автоматически с даты регистрации аккаунта (${autoVal})`;
+    }
+  }
+
+  if (lotDurMode && lotDurInput) {
+    initLotDurationAuto();
+
+    lotDurMode.querySelectorAll(".choice-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        lotDurMode.querySelectorAll(".choice-card").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const mode = btn.dataset.mode;
+        if (mode === "auto") {
+          initLotDurationAuto();
+        } else {
+          lotDurInput.readOnly = false;
+          lotDurInput.value = "";
+          lotDurInput.placeholder = "Например: 6 месяцев";
+          lotDurInput.focus();
+          if (lotDurHint) {
+            lotDurHint.textContent = "Укажите ваш реальный срок участия в медиа Delta Client";
+          }
+        }
+      });
+    });
+  }
 
   // Переключение типа лота (выдача сабки / косметика / что-то другое)
   const lotChoice = document.getElementById("lotTypeChoice");
@@ -1218,6 +1345,12 @@ async function bindSimpleForm(kind) {
     const btn = form.querySelector("button[type=submit]");
     const body = formToJSON(form);
     if (kind === "payout") {
+      body.promo_code = (body.promo_code || "").trim();
+      if (!body.promo_code) {
+        toast("Укажите ваш промокод", "err");
+        buttonState(btn, "err", "Укажите промокод", 3000);
+        return;
+      }
       body.method = (document.getElementById("payMethod")?.dataset.value || "").toLowerCase();
       if (!body.method) {
         toast("Выберите способ выплаты", "err");
@@ -1242,6 +1375,17 @@ async function bindSimpleForm(kind) {
           return;
         }
         body.want = body.want_custom.trim();
+      }
+
+      body.platform = (body.platform || "youtube").toLowerCase();
+      if (body.platform !== "youtube" && body.platform !== "tiktok") {
+        body.platform = "youtube";
+      }
+
+      body.duration = (body.duration || "").trim();
+      if (!body.duration) {
+        toast("Укажите, сколько вы в медиа Delta", "err");
+        return;
       }
     }
     buttonState(btn, "", "Отправка…");
@@ -1272,6 +1416,28 @@ async function bindSimpleForm(kind) {
         if (commentLabel) commentLabel.textContent = "Никнейм для выдачи сабки (необязательно)";
         const commentInput = document.getElementById("lotComment");
         if (commentInput) commentInput.placeholder = "Если для зрителя или на свой аккаунт";
+
+        const platChoice = document.getElementById("lotPlatformChoice");
+        if (platChoice) {
+          platChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.value === "youtube"));
+        }
+        const platInput = document.getElementById("lotPlatformInput");
+        if (platInput) platInput.value = "youtube";
+
+        const lotDurMode = document.getElementById("lotDurationMode");
+        if (lotDurMode) {
+          lotDurMode.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.mode === "auto"));
+        }
+        const lotDurInput = document.getElementById("lotDurationInput");
+        const lotDurHint = document.getElementById("lotDurationHint");
+        if (lotDurInput) {
+          const autoVal = formatDurationSince(CURRENT_ACCOUNT ? CURRENT_ACCOUNT.created_at : null);
+          lotDurInput.value = autoVal;
+          lotDurInput.readOnly = true;
+          if (lotDurHint) {
+            lotDurHint.textContent = `Рассчитано автоматически с даты регистрации аккаунта (${autoVal})`;
+          }
+        }
       }
     } catch (ex) {
       buttonState(btn, "err", ex.message, 4000);

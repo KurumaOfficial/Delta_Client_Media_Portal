@@ -39,10 +39,10 @@ func (s *Service) Create(r models.Request) (int64, error) {
 	return s.db.InsertReturningID(`
 		INSERT INTO v2_requests
 		(week_id, kind, source, account_id, nickname, telegram, tg_user_id, uid, duration,
-		 want, amount, method, platform, channel_url, lot_url, status)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+		 want, amount, method, platform, channel_url, lot_url, promo_code, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
 		week.ID, r.Kind, r.Source, r.AccountID, r.Nickname, r.Telegram, r.TGUserID,
-		r.UID, r.Duration, r.Want, r.Amount, r.Method, r.Platform, r.ChannelURL, r.LotURL)
+		r.UID, r.Duration, r.Want, r.Amount, r.Method, r.Platform, r.ChannelURL, r.LotURL, r.PromoCode)
 }
 
 // parsePaste разбирает сообщение по строкам шаблона «Префикс: {field}».
@@ -151,7 +151,7 @@ func (s *Service) ListByWeek(weekID int64) ([]models.Request, error) {
 	rows, err := s.db.Query(`
 		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
 		       uid, duration, want, amount, method, platform, channel_url, lot_url,
-		       status, decision_comment, tx_ref, created_at, decided_at
+		       promo_code, status, decision_comment, tx_ref, created_at, decided_at
 		FROM v2_requests WHERE week_id = ? ORDER BY id ASC`, weekID)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (s *Service) MyRequests(accountID int64) ([]models.Request, error) {
 	rows, err := s.db.Query(`
 		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
 		       uid, duration, want, amount, method, platform, channel_url, lot_url,
-		       status, decision_comment, tx_ref, created_at, decided_at
+		       promo_code, status, decision_comment, tx_ref, created_at, decided_at
 		FROM v2_requests WHERE account_id = ? ORDER BY id DESC LIMIT 50`, accountID)
 	if err != nil {
 		return nil, err
@@ -180,7 +180,7 @@ func scanRequests(rows *sql.Rows) ([]models.Request, error) {
 		var r models.Request
 		if rows.Scan(&r.ID, &r.WeekID, &r.Kind, &r.Source, &r.AccountID, &r.Nickname, &r.Telegram,
 			&r.TGUserID, &r.UID, &r.Duration, &r.Want, &r.Amount, &r.Method, &r.Platform,
-			&r.ChannelURL, &r.LotURL, &r.Status, &r.DecisionComment, &r.TXRef, &r.CreatedAt, &r.DecidedAt) == nil {
+			&r.ChannelURL, &r.LotURL, &r.PromoCode, &r.Status, &r.DecisionComment, &r.TXRef, &r.CreatedAt, &r.DecidedAt) == nil {
 			list = append(list, r)
 		}
 	}
@@ -193,11 +193,11 @@ func (s *Service) Get(id int64) (models.Request, error) {
 	err := s.db.QueryRow(`
 		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
 		       uid, duration, want, amount, method, platform, channel_url, lot_url,
-		       status, decision_comment, tx_ref, created_at, decided_at
+		       promo_code, status, decision_comment, tx_ref, created_at, decided_at
 		FROM v2_requests WHERE id = ?`, id,
 	).Scan(&r.ID, &r.WeekID, &r.Kind, &r.Source, &r.AccountID, &r.Nickname, &r.Telegram,
 		&r.TGUserID, &r.UID, &r.Duration, &r.Want, &r.Amount, &r.Method, &r.Platform,
-		&r.ChannelURL, &r.LotURL, &r.Status, &r.DecisionComment, &r.TXRef, &r.CreatedAt, &r.DecidedAt)
+		&r.ChannelURL, &r.LotURL, &r.PromoCode, &r.Status, &r.DecisionComment, &r.TXRef, &r.CreatedAt, &r.DecidedAt)
 	return r, err
 }
 

@@ -58,6 +58,7 @@ type Request struct {
 	Title           string     `json:"title,omitempty"`
 	ProofFiles      string     `json:"proof_files,omitempty"`
 	ProofLink       string     `json:"proof_link,omitempty"`
+	PromoCode       string     `json:"promo_code,omitempty"`
 }
 
 // Replace подставляет поля заявки (и extra) в шаблон текста.

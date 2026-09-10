@@ -251,7 +251,10 @@ func (h *Handler) AttemptStatus(c *fiber.Ctx) error {
 		attempt.IP, c.Get("User-Agent"))
 	return c.JSON(fiber.Map{
 		"success": true, "status": "approved",
-		"account": fiber.Map{"id": account.ID, "nickname": account.Nickname, "role": account.Role},
+		"account": fiber.Map{
+			"id": account.ID, "nickname": account.Nickname, "role": account.Role,
+			"created_at": account.CreatedAt.Format(time.RFC3339),
+		},
 	})
 }
 
@@ -263,6 +266,7 @@ func (h *Handler) Me(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"success": true, "account": fiber.Map{
 		"id": account.ID, "nickname": account.Nickname, "role": account.Role,
+		"created_at": account.CreatedAt.Format(time.RFC3339),
 	}})
 }
 

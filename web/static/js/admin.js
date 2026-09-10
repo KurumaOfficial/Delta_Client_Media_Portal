@@ -1215,12 +1215,16 @@ async function renderPayouts(keepWeek) {
     applyGlobalFilter(JSON.stringify(r).toLowerCase(), r.status)).map((r) => {
     const kindT = { payout: "Выплата", lot: "Лот", subscription: "Подписка" }[r.kind] || r.kind;
     const method = r.method === "usdt" ? `USDT (ставка: ${esc(r.amount || "—")})` :
-                   r.method === "funpay" ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener">FunPay лот</a><br><small>ставка: ${esc(r.amount || "—")}</small>` : (r.amount ? `ставка: ${esc(r.amount)}` : "—");
+                   r.method === "funpay" ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener">FunPay лот</a><br><small>ставка: ${esc(r.amount || "—")}</small>` : (r.amount ? `ставка: ${esc(r.amount)}` : (r.platform ? `платформа: ${esc(r.platform)}` : "—"));
+    const durationOrPromo = r.promo_code
+      ? `<span class="mono" style="font-weight:600;color:var(--color-primary-400, #38bdf8);">🏷️ ${esc(r.promo_code)}</span>${r.duration ? `<br><small class="hint">${esc(r.duration)}</small>` : ""}`
+      : esc(r.duration || "—");
+
     return `<tr>
       <td class="mono">#${r.id}</td>
       <td><b>${esc(r.nickname)}</b><br><small>${esc(r.telegram)} ${r.source === "telegram" ? "· из TG" : ""}</small></td>
       <td class="mono">${esc(r.uid)}</td>
-      <td>${esc(r.duration || "—")}</td>
+      <td>${durationOrPromo}</td>
       <td>${esc(r.want || "—")}</td>
       <td>${kindT}<br><small>${method}</small></td>
       <td>${statusBadge(r.status)}${r.decision_comment ? `<br><small>💬 ${esc(r.decision_comment)}</small>` : ""}</td>
@@ -1243,7 +1247,7 @@ async function renderPayouts(keepWeek) {
         </div>
       </h3>
       <div class="table-scroll"><table>
-        <thead><tr><th>ID</th><th>Заявитель</th><th>UID</th><th>В медиа</th><th>Хочет</th><th>Тип/способ</th><th>Статус</th><th>Действия</th></tr></thead>
+        <thead><tr><th>ID</th><th>Заявитель</th><th>UID</th><th>Промокод / Срок</th><th>Хочет</th><th>Тип/способ</th><th>Статус</th><th>Действия</th></tr></thead>
         <tbody>${rows || '<tr><td colspan="8" class="hint">Заявок на этой неделе нет</td></tr>'}</tbody>
       </table></div>
     </div>

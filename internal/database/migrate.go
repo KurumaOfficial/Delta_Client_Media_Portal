@@ -139,6 +139,7 @@ func (db *DB) Migrate() error {
 			status TEXT NOT NULL DEFAULT 'pending',
 			decision_comment TEXT NOT NULL DEFAULT '',
 			tx_ref TEXT NOT NULL DEFAULT '',
+			promo_code TEXT NOT NULL DEFAULT '',
 			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			decided_at TIMESTAMP
 		)`, pk),
@@ -192,6 +193,28 @@ func (db *DB) Migrate() error {
 	for _, s := range stmts {
 		if _, err := db.SQL.Exec(s); err != nil {
 			return fmt.Errorf("create table: %w\nQuery: %s", err, s)
+		}
+	}
+
+	// Миграция колонки promo_code в v2_requests при её отсутствии
+	if db.IsPostgres() {
+		_, _ = db.SQL.Exec(`ALTER TABLE v2_requests ADD COLUMN IF NOT EXISTS promo_code TEXT NOT NULL DEFAULT '';`)
+	} else {
+		var hasPromo bool
+		if rows, err := db.SQL.Query(`PRAGMA table_info(v2_requests)`); err == nil {
+			for rows.Next() {
+				var cid int
+				var name, ctype string
+				var notnull, pkCol int
+				var dflt interface{}
+				if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pkCol); err == nil && name == "promo_code" {
+					hasPromo = true
+				}
+			}
+			rows.Close()
+		}
+		if !hasPromo {
+			_, _ = db.SQL.Exec(`ALTER TABLE v2_requests ADD COLUMN promo_code TEXT NOT NULL DEFAULT '';`)
 		}
 	}
 

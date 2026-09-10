@@ -65,18 +65,18 @@ func (s *Service) CreateAccount(role, nickname, telegram, customCode string) (mo
 
 func (s *Service) AccountByID(id int64) (models.Account, error) {
 	return s.scanAccount(s.db.QueryRow(
-		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active FROM v2_accounts WHERE id = ?`, id))
+		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active, created_at FROM v2_accounts WHERE id = ?`, id))
 }
 
 func (s *Service) AccountByCode(code string) (models.Account, error) {
 	return s.scanAccount(s.db.QueryRow(
-		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active FROM v2_accounts
+		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active, created_at FROM v2_accounts
 		 WHERE UPPER(code) = ?`, strings.ToUpper(strings.TrimSpace(code))))
 }
 
 func (s *Service) scanAccount(row *sql.Row) (models.Account, error) {
 	var a models.Account
-	err := row.Scan(&a.ID, &a.Code, &a.Role, &a.Nickname, &a.Telegram, &a.TGUserID, &a.IsActive)
+	err := row.Scan(&a.ID, &a.Code, &a.Role, &a.Nickname, &a.Telegram, &a.TGUserID, &a.IsActive, &a.CreatedAt)
 	return a, err
 }
 
@@ -146,7 +146,7 @@ func (s *Service) AccountByTelegram(username string) (models.Account, error) {
 		return models.Account{}, sql.ErrNoRows
 	}
 	return s.scanAccount(s.db.QueryRow(
-		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active FROM v2_accounts
+		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active, created_at FROM v2_accounts
 		 WHERE LOWER(LTRIM(telegram, '@')) = ?`, clean))
 }
 

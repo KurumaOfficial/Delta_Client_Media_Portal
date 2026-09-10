@@ -110,6 +110,9 @@ func (s *Service) NotifyCabinetRequest(r models.Request) {
 		models.KindSubscription: "📺 Запрос подписки",
 	}[r.Kind]
 	body := fmt.Sprintf("Заявитель: <b>%s</b> @%s\nUID: <code>%s</code>", escapeHTML(r.Nickname), escapeHTML(strings.TrimPrefix(r.Telegram, "@")), escapeHTML(r.UID))
+	if r.PromoCode != "" {
+		body += fmt.Sprintf("\nПромокод: <code>%s</code>", escapeHTML(r.PromoCode))
+	}
 	if r.Duration != "" {
 		body += fmt.Sprintf("\nВ медиа: %s", escapeHTML(r.Duration))
 	}
