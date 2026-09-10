@@ -152,13 +152,10 @@ func main() {
 		return c.Next()
 	}
 
-	mediaGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleFreeMedia, models.RoleAdmin), maintenanceCheck)
+	mediaGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleAdmin), maintenanceCheck)
 	mediaGroup.Get("/requests", cabinetH.MyRequests)
-	mediaRole := api.Group("/cabinet", auth.Require(authSvc, models.RoleMedia, models.RoleAdmin), maintenanceCheck)
-	mediaRole.Post("/payout", cabinetH.SubmitPayout)
-	mediaRole.Post("/lot", cabinetH.SubmitLot)
-	freeGroup := api.Group("/cabinet", auth.Require(authSvc, models.RoleFreeMedia, models.RoleAdmin), maintenanceCheck)
-	freeGroup.Post("/subscription", cabinetH.SubmitSubscription)
+	mediaGroup.Post("/payout", cabinetH.SubmitPayout)
+	mediaGroup.Post("/lot", cabinetH.SubmitLot)
 
 	// ── Админ-панель ──
 	adminGroup := api.Group("/admin", auth.Require(authSvc, models.RoleAdmin))

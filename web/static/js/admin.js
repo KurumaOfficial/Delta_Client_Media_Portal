@@ -807,9 +807,7 @@ function drawAppsTable(kind, cfg) {
     }
     if (kind === "hwid") return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.uuid)}</td>
-      <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
-      <td>${statusBadge(r.status)}</td>
-      <td>${r.status === "pending" ? decideButtons(r.id) : "—"}</td></tr>`;
+      <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td></tr>`;
     return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.offender_id)}</td>
       <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
@@ -820,9 +818,9 @@ function drawAppsTable(kind, cfg) {
   const theadCols = kind === "media"
     ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
     : kind === "hwid"
-    ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>"
+    ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
-  const colSpan = kind === "media" ? 8 : 7;
+  const colSpan = kind === "media" ? 8 : (kind === "hwid" ? 5 : 7);
 
   const tableBoxHTML = `
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
@@ -1196,7 +1194,6 @@ async function renderAccounts() {
           <input type="text" name="code" placeholder="Свой ключ (опционально)" class="mono" style="text-transform:uppercase;">
           <select name="role">
             <option value="media">Медиа</option>
-            <option value="freemedia">Фримедиа</option>
             <option value="moderator">Модератор</option>
             <option value="admin">Администратор</option>
           </select>
@@ -1257,7 +1254,7 @@ async function renderAccounts() {
 }
 
 function roleBadge(role) {
-  const map = { admin: ["rejected", "админ"], moderator: ["warning", "модератор"], media: ["approved", "медиа"], freemedia: ["pending", "фримедиа"] };
+  const map = { admin: ["rejected", "админ"], moderator: ["warning", "модератор"], media: ["approved", "медиа"] };
   const [cls, label] = map[role] || ["pending", role];
   return `<span class="badge ${cls}">${label}</span>`;
 }
@@ -1574,11 +1571,11 @@ const SETTING_GROUPS = [
     ]
   },
   {
-    title: "Модерация (HWID и Discord)",
+    title: "Модерация (Сбросы и Discord)",
     desc: "Уведомления модераторам в Telegram о статусе рассмотрения их запросов",
     items: [
-      ["hwid_approve_text", "Текст при одобрении сброса HWID", "Отправляется модератору в Telegram при одобрении сброса. Плейсхолдеры: {id} — номер, {comment} — комментарий / UID."],
-      ["hwid_reject_text", "Текст при отклонении сброса HWID", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
+      ["hwid_approve_text", "Текст при одобрении сброса", "Отправляется модератору в Telegram при одобрении сброса. Плейсхолдеры: {id} — номер, {comment} — комментарий / UID."],
+      ["hwid_reject_text", "Текст при отклонении сброса", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
       ["discord_approve_text", "Текст при одобрении Discord-бана", "Отправляется модератору в Telegram при одобрении бана. Плейсхолдеры: {id} — номер, {comment} — заблокированный ID."],
       ["discord_reject_text", "Текст при отклонении Discord-бана", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
     ]

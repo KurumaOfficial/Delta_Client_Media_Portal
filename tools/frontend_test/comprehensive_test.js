@@ -403,13 +403,10 @@ async function sleep(ms) {
 
     const hwidHeaders = await page.$$eval('#adminTableWrap table thead th', els => els.map(e => e.textContent.trim()));
     assert(
-      hwidHeaders.includes("Статус") && hwidHeaders.includes("Действия"),
-      "Admin HWID table displays 'Статус' and 'Действия' headers",
+      hwidHeaders.includes("UID") && !hwidHeaders.includes("Статус") && !hwidHeaders.includes("Действия"),
+      "Admin HWID table displays clean headers without 'Статус' and 'Действия'",
       hwidHeaders.join(", ")
     );
-
-    const decideButtons = await page.$$eval('#adminTableWrap [data-decide]', els => els.length);
-    assert(decideButtons > 0, `Admin HWID table has active action buttons (Found ${decideButtons})`);
 
     // Click 'Одобрить' on the first pending HWID item and handle commentModal
     const firstApproveBtn = await page.$('#adminTableWrap [data-decide="approved"]');

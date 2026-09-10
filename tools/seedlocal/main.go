@@ -34,10 +34,13 @@ func main() {
 	authSvc := auth.NewService(db, 0)
 	pays := payouts.NewService(db, weekTZ)
 
+	// Удаляем устаревшие фримедиа аккаунты и запросы подписки
+	_, _ = db.Exec(`DELETE FROM v2_accounts WHERE role = 'freemedia'`)
+	_, _ = db.Exec(`DELETE FROM v2_requests WHERE kind = 'subscription'`)
+
 	// Демо-аккаунты всех ролей (idempotent: пересоздаём только если нет)
 	demo := []struct{ role, nick, tg string }{
 		{models.RoleMedia, "DemoMedia", "@demo_media"},
-		{models.RoleFreeMedia, "DemoFree", "@demo_free"},
 		{models.RoleModerator, "DemoMod", "@demo_mod"},
 	}
 	fmt.Println("═══ Демо-аккаунты (вход по коду, 2FA авто-подтверждается в dev-режиме) ═══")
@@ -59,26 +62,22 @@ func main() {
 		fmt.Printf("  %-10s %-12s код: %s\n", d.role, d.nick, acc.Code)
 	}
 
-	// Демо-заявки текущей недели (выплата, лот, подписка)
+	// Демо-заявки текущей недели (выплата, лот)
 	var mediaID int64
 	_ = db.QueryRow(`SELECT id FROM v2_accounts WHERE nickname = 'DemoMedia'`).Scan(&mediaID)
-	var freeID int64
-	_ = db.QueryRow(`SELECT id FROM v2_accounts WHERE nickname = 'DemoFree'`).Scan(&freeID)
 	var modID int64
 	_ = db.QueryRow(`SELECT id FROM v2_accounts WHERE nickname = 'DemoMod'`).Scan(&modID)
 
 	var payoutsCount int
 	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_requests`).Scan(&payoutsCount)
-	if payoutsCount < 3 {
+	if payoutsCount < 2 {
 		_, _ = pays.Create(models.Request{Kind: models.KindPayout, Source: "cabinet", AccountID: mediaID,
 			Nickname: "DemoMedia", Telegram: "@demo_media", UID: "UID-DEMO-0001",
 			Duration: "5 месяцев", Want: "выплата за 2 ролика на Funtime", Amount: "45", Method: models.MethodUSDT})
 		_, _ = pays.Create(models.Request{Kind: models.KindLot, Source: "cabinet", AccountID: mediaID,
 			Nickname: "DemoMedia", Telegram: "@demo_media", UID: "UID-DEMO-0001",
 			Want: "реклама лота под видео", Platform: "funpay", LotURL: "https://funpay.com/lots/123abc456"})
-		_, _ = pays.Create(models.Request{Kind: models.KindSubscription, Source: "cabinet", AccountID: freeID,
-			Nickname: "DemoFree", Telegram: "@demo_free", UID: "UID-DEMO-0002", Want: "подписка Delta Client на 1 месяц"})
-		fmt.Println("  + демо-заявки недели: выплата USDT, лот FunPay, подписка")
+		fmt.Println("  + демо-заявки недели: выплата USDT, лот FunPay")
 	}
 
 	// Демо-заявки на вступление в медиа (для админки)
@@ -149,6 +148,10 @@ func main() {
 			('https://youtube.com/@fake_delta', '', 'fakedelta', '', '', 'Фейковый канал с малварью', 'admin')`)
 		fmt.Println("  + записи в банлисте (групповые блокировки)")
 	}
+
+	// Обновление текстов без упоминания HWID
+	_, _ = db.Exec(`UPDATE v2_settings SET value = 'Запрос для пользователя {comment} успешно одобрен.' WHERE key = 'hwid_approve_text'`)
+	_, _ = db.Exec(`UPDATE v2_settings SET value = 'Заявка на сброс была отклонена.' || char(10) || char(10) || 'Причина — {reason}' WHERE key = 'hwid_reject_text'`)
 
 	// Журнал аудита
 	_, _ = db.Exec("DELETE FROM v2_audit_logs WHERE event_type = 'LOGIN' AND status = 'failed';")

@@ -395,7 +395,7 @@ func (h *Admin) decideHWID(id int64, approve bool, comment, actor string) error 
 		return err
 	}
 	h.notifyAccountVerdict(modNick, "hwid", id, approve, comment)
-	h.db.RecordAudit("STATUS_CHANGE", st, "HWID #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
+	h.db.RecordAudit("STATUS_CHANGE", st, "Запрос сброса #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
 	return nil
 }
 

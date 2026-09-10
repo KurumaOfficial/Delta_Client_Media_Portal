@@ -7,7 +7,6 @@ const (
 	RoleAdmin     = "admin"
 	RoleModerator = "moderator"
 	RoleMedia     = "media"
-	RoleFreeMedia = "freemedia"
 )
 
 func RoleTitle(role string) string {
@@ -18,8 +17,6 @@ func RoleTitle(role string) string {
 		return "Модератор"
 	case RoleMedia:
 		return "Медиа"
-	case RoleFreeMedia:
-		return "Фримедиа"
 	}
 	return role
 }

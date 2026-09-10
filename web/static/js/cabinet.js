@@ -37,7 +37,6 @@ async function switchCabinetTab(tab) {
   else if (tab === "discord") body.innerHTML = buildProofForm("discord", "Discord бан", "ID или @username нарушителя", "offender_id");
   else if (tab === "payout") body.innerHTML = buildPayoutForm();
   else if (tab === "lot") body.innerHTML = buildLotForm();
-  else if (tab === "sub") body.innerHTML = buildSubForm();
   else if (tab === "my") await renderMyRequests();
   bindCabinetForms();
 }
@@ -45,7 +44,6 @@ async function switchCabinetTab(tab) {
 function cabinetTabsForRole(role) {
   if (role === "moderator") return [["hwid", t("tabHwid")], ["discord", t("tabDiscord")], ["my", t("tabMy")]];
   if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["my", t("tabMy")]];
-  if (role === "freemedia") return [["sub", t("tabSub")], ["my", t("tabMy")]];
   if (role === "admin") return [["adminpanel", t("tabAdmin")]];
   return [];
 }
@@ -55,7 +53,6 @@ async function loadCabinet() {
   const titles = {
     moderator: t("cabinetModerator"),
     media: t("cabinetMedia"),
-    freemedia: t("cabinetFreemedia"),
     admin: t("cabinetAdmin")
   };
   document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || t("cabinetTitle");
@@ -172,19 +169,7 @@ function buildLotForm() {
   </form>`;
 }
 
-// ── Фримедиа: запрос подписки ──
-function buildSubForm() {
-  return `
-  <form class="card form-card" id="form-sub">
-    <h3>${CABINET_ICONS.sub} Запрос подписки</h3>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
-    <div class="field"><label>Ссылка на ваш канал</label><input type="url" name="channel_url" placeholder="https://... (необязательно)"></div>
-    <div class="field"><label>Какую подписку хотите получить *</label><textarea name="want" required maxlength="300" rows="2"></textarea></div>
-    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить запрос</button>
-  </form>`;
-}
-
-// ── Вкладка «Мои заявки» (для Медиа, Фримедиа и Модераторов) ──
+// ── Вкладка «Мои заявки» (для Медиа и Модераторов) ──
 async function renderMyRequests() {
   const body = document.getElementById("cabinetBody");
   if (!body) return;
@@ -445,7 +430,6 @@ function bindCabinetForms() {
   bindProofForm("discord");
   bindSimpleForm("payout");
   bindSimpleForm("lot");
-  bindSimpleForm("sub");
 }
 
 function formToJSON(form) {

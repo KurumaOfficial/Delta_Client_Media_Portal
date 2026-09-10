@@ -38,8 +38,8 @@ func (h *Admin) CreateAccount(c *fiber.Ctx) error {
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректный запрос")
 	}
-	if !validation.InList(body.Role, models.RoleAdmin, models.RoleModerator, models.RoleMedia, models.RoleFreeMedia) {
-		return badRequest(c, "Роль: admin, moderator, media или freemedia")
+	if !validation.InList(body.Role, models.RoleAdmin, models.RoleModerator, models.RoleMedia) {
+		return badRequest(c, "Роль: admin, moderator или media")
 	}
 	nickname := validation.Clean(body.Nickname, 40)
 	if len([]rune(nickname)) < 2 {
