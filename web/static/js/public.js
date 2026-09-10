@@ -13,7 +13,7 @@ async function loadSiteConfig() {
     const staffBtn = document.getElementById("staffContactBtn");
     if (staffBtn) staffBtn.href = "https://t.me/" + staff;
     const bugBtn = document.getElementById("bugReportBtn");
-    if (bugBtn) bugBtn.href = "https://t.me/" + admin;
+    if (bugBtn) bugBtn.href = "https://t.me/" + staff;
     const forgotBtn = document.getElementById("authForgot");
     if (forgotBtn) forgotBtn.href = "https://t.me/" + admin;
     if (!SITE_CONFIG.turnstile_enabled) {
