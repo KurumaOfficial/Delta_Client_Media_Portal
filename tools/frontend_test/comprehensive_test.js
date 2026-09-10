@@ -166,7 +166,23 @@ async function sleep(ms) {
     submitBtnText = await page.$eval('#mediaSubmit', el => el.textContent.trim());
     assert(submitBtnText === "Укажите ссылку на канал", "Prompts for channel URL", submitBtnText);
 
+    // 2.4.1 Invalid channel URL -> triggers red glow (.channel-error) and error text
     await page.type('#ytChannel', 'https://youtube.com/watch?v=badlink');
+    await sleep(200);
+    const hasChannelErrorClass = await page.$eval('#ytChannel', el => el.classList.contains('channel-error'));
+    const isChannelErrorVisible = await page.$eval('#ytErrorText', el => !el.classList.contains('hidden'));
+    assert(hasChannelErrorClass, "Video link in channel URL triggers red glow (.channel-error)");
+    assert(isChannelErrorVisible, "Video link in channel URL displays error text");
+
+    // Fix with valid channel URL -> removes red glow (.channel-error) and hides error text
+    await page.$eval('#ytChannel', el => el.value = '');
+    await page.type('#ytChannel', 'https://www.youtube.com/@valid_human_tester');
+    await sleep(200);
+    const hasChannelErrorAfterFix = await page.$eval('#ytChannel', el => el.classList.contains('channel-error'));
+    const isChannelErrorHidden = await page.$eval('#ytErrorText', el => el.classList.contains('hidden'));
+    assert(!hasChannelErrorAfterFix, "Valid channel URL removes red glow (.channel-error)");
+    assert(isChannelErrorHidden, "Valid channel URL hides error text");
+
     await page.type('#ytVideos', '3');
 
     // 2.5 Multi-select Servers dropdown

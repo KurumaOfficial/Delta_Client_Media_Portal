@@ -387,9 +387,13 @@ input:focus, textarea:focus {
 }
 textarea { min-height: 110px; resize: vertical; }
 
-/* ═══ UID подсветка ошибки (только цифры — светится красным) ═══ */
+/* ═══ UID и ссылка на канал: подсветка ошибки (светится красным) ═══ */
 input.uid-error,
-#mediaUid.uid-error {
+#mediaUid.uid-error,
+input.channel-error,
+#ytChannel.channel-error,
+#ttChannel.channel-error,
+input[name="channel_url"].channel-error {
   border-color: #f43f5e !important;
   background: rgba(244, 63, 94, 0.08) !important;
   box-shadow: 0 0 0 1.5px rgba(244, 63, 94, 0.4), 0 0 20px rgba(244, 63, 94, 0.45) !important;

@@ -11,7 +11,7 @@ import (
 var (
 	reTelegram = regexp.MustCompile(`^@?[a-zA-Z0-9_]{4,32}$`)
 	reYouTube  = regexp.MustCompile(`^https?://(www\.|m\.)?youtube\.com/(@[a-zA-Z0-9_.\-]+|channel/[a-zA-Z0-9_\-]+|c/[a-zA-Z0-9_\-]+|user/[a-zA-Z0-9_\-]+)/?$`)
-	reTikTok   = regexp.MustCompile(`^https?://(www\.)?tiktok\.com/@[a-zA-Z0-9_.]+/?$`)
+	reTikTok   = regexp.MustCompile(`^https?://(www\.)?tiktok\.com/@([a-zA-Z0-9_.]+)/?$`)
 	reFunPay     = regexp.MustCompile(`^https?://(www\.)?funpay\.com/(lots|chat|users|lots/offer)/[a-zA-Z0-9]+`)
 	reUID        = regexp.MustCompile(`^[a-zA-Z0-9\-_]{3,64}$`)
 	reNumericUID = regexp.MustCompile(`^[0-9]{1,64}$`)
@@ -61,10 +61,25 @@ func Telegram(raw string) (string, bool) {
 	return "@" + u, true
 }
 
+var dummyHandles = map[string]bool{
+	"username": true, "user": true, "channel": true, "name": true,
+	"test": true, "dummy": true, "example": true, "placeholder": true,
+	"fake": true, "asdf": true, "123": true, "null": true, "undefined": true,
+}
+
 // YouTubeChannel — ссылка на КАНАЛ (не видео/шортсы).
 func YouTubeChannel(raw string) (string, bool) {
 	u := Clean(raw, 200)
-	if !reYouTube.MatchString(u) {
+	matches := reYouTube.FindStringSubmatch(u)
+	if len(matches) < 3 {
+		return "", false
+	}
+	ident := strings.TrimPrefix(matches[2], "@")
+	ident = strings.TrimPrefix(ident, "channel/")
+	ident = strings.TrimPrefix(ident, "c/")
+	ident = strings.TrimPrefix(ident, "user/")
+	ident = strings.ToLower(ident)
+	if dummyHandles[ident] || len(ident) < 2 {
 		return "", false
 	}
 	return u, true
@@ -72,7 +87,12 @@ func YouTubeChannel(raw string) (string, bool) {
 
 func TikTokChannel(raw string) (string, bool) {
 	u := Clean(raw, 200)
-	if !reTikTok.MatchString(u) {
+	matches := reTikTok.FindStringSubmatch(u)
+	if len(matches) < 3 {
+		return "", false
+	}
+	ident := strings.ToLower(matches[2])
+	if dummyHandles[ident] || len(ident) < 2 {
 		return "", false
 	}
 	return u, true

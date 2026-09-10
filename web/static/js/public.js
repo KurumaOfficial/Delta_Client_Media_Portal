@@ -252,6 +252,128 @@ function initPublicForm() {
     });
   }
 
+  // ═══ Валидация ссылки на канал (YouTube / TikTok) ═══
+  const DUMMY_CHANNEL_HANDLES = new Set([
+    "username", "user", "channel", "name", "test", "dummy",
+    "asdf", "fake", "example", "placeholder", "123", "null", "undefined"
+  ]);
+
+  function validateChannelUrl(platform, rawVal) {
+    const v = (rawVal || "").trim();
+    if (!v) {
+      return { valid: false, empty: true, errorMsg: t("qChannel") || "Укажите ссылку на канал" };
+    }
+
+    let norm = v;
+    if (!/^https?:\/\//i.test(norm)) {
+      if (platform === "youtube" && /^(www\.|m\.)?youtube\.com\//i.test(norm)) norm = "https://" + norm;
+      else if (platform === "tiktok" && /^(www\.)?tiktok\.com\//i.test(norm)) norm = "https://" + norm;
+    }
+
+    if (platform === "youtube") {
+      if (/(youtube\.com\/(watch\?|shorts\/|live\/|playlist\?|clip\/)|youtu\.be\/)/i.test(norm)) {
+        return { valid: false, empty: false, errorMsg: t("ytVideoLinkErr") || "Укажите ссылку на сам канал, а не на видео или Shorts" };
+      }
+
+      const ytMatch = norm.match(/^https?:\/\/(?:www\.|m\.)?youtube\.com\/(?:@([a-zA-Z0-9_.\-]+)|channel\/([a-zA-Z0-9_\-]+)|c\/([a-zA-Z0-9_\-]+)|user\/([a-zA-Z0-9_\-]+))\/?$/i);
+      if (!ytMatch) {
+        return { valid: false, empty: false, errorMsg: t("ytInvalidFormat") || "Укажите прямую ссылку на канал (например, https://youtube.com/@username)" };
+      }
+
+      const handle = (ytMatch[1] || ytMatch[2] || ytMatch[3] || ytMatch[4] || "").toLowerCase();
+      if (DUMMY_CHANNEL_HANDLES.has(handle) || handle.length < 3 || /^[\.\-_]+$/.test(handle)) {
+        return { valid: false, empty: false, errorMsg: t("ytFakeLinkErr") || "Укажите настоящую ссылку на ваш канал" };
+      }
+
+      return { valid: true, empty: false, normalized: norm };
+    }
+
+    if (platform === "tiktok") {
+      if (/tiktok\.com\/@[^\/]+\/video\//i.test(norm)) {
+        return { valid: false, empty: false, errorMsg: t("ttVideoLinkErr") || "Укажите ссылку на профиль TikTok, а не на видео" };
+      }
+
+      const ttMatch = norm.match(/^https?:\/\/(?:www\.)?tiktok\.com\/@([a-zA-Z0-9_.]+)\/?$/i);
+      if (!ttMatch) {
+        return { valid: false, empty: false, errorMsg: t("ttInvalidFormat") || "Укажите прямую ссылку на TikTok-аккаунт (например, https://tiktok.com/@username)" };
+      }
+
+      const handle = (ttMatch[1] || "").toLowerCase();
+      if (DUMMY_CHANNEL_HANDLES.has(handle) || handle.length < 2 || /^[\._]+$/.test(handle)) {
+        return { valid: false, empty: false, errorMsg: t("ttFakeLinkErr") || "Укажите настоящую ссылку на ваш TikTok-аккаунт" };
+      }
+
+      return { valid: true, empty: false, normalized: norm };
+    }
+
+    return { valid: true, empty: false, normalized: norm };
+  }
+
+  const ytInput = document.getElementById("ytChannel");
+  const ytError = document.getElementById("ytErrorText");
+  const ytErrorMsg = document.getElementById("ytErrorMsg");
+
+  const ttInput = document.getElementById("ttChannel");
+  const ttError = document.getElementById("ttErrorText");
+  const ttErrorMsg = document.getElementById("ttErrorMsg");
+
+  function bindChannelValidation(inputEl, errorEl, errorMsgEl, plat) {
+    if (!inputEl) return;
+
+    function check(force) {
+      const v = inputEl.value.trim();
+      if (!v) {
+        if (force) {
+          inputEl.classList.add("channel-error");
+          if (errorEl && errorMsgEl) {
+            errorMsgEl.textContent = t("qChannel") || "Укажите ссылку на канал";
+            errorEl.classList.remove("hidden");
+          }
+          return false;
+        }
+        inputEl.classList.remove("channel-error");
+        if (errorEl) errorEl.classList.add("hidden");
+        return true;
+      }
+
+      const res = validateChannelUrl(plat, v);
+      if (res.valid) {
+        inputEl.classList.remove("channel-error");
+        if (errorEl) errorEl.classList.add("hidden");
+        return true;
+      }
+
+      const isClearlyBad = v.length > 8 && (
+        /(watch|shorts|live|video|\.be\/|google|twitch|@username|tiktok\.com\/@[^\/]+\/video)/i.test(v) ||
+        !/(youtube|tiktok)/i.test(v) ||
+        /^https?:\/\//i.test(v)
+      );
+
+      if (force || inputEl.classList.contains("channel-error") || isClearlyBad) {
+        inputEl.classList.add("channel-error");
+        if (errorEl && errorMsgEl) {
+          errorMsgEl.textContent = res.errorMsg;
+          errorEl.classList.remove("hidden");
+        }
+        return false;
+      }
+      return true;
+    }
+
+    inputEl.addEventListener("input", () => check(false));
+    inputEl.addEventListener("blur", () => {
+      const v = inputEl.value.trim();
+      if (v) {
+        if (plat === "youtube" && /^(www\.|m\.)?youtube\.com\//i.test(v)) inputEl.value = "https://" + v;
+        else if (plat === "tiktok" && /^(www\.)?tiktok\.com\//i.test(v)) inputEl.value = "https://" + v;
+      }
+      check(true);
+    });
+  }
+
+  bindChannelValidation(ytInput, ytError, ytErrorMsg, "youtube");
+  bindChannelValidation(ttInput, ttError, ttErrorMsg, "tiktok");
+
   // критерии: yes/no карточки
   document.querySelectorAll("#criteriaChoice .choice-card").forEach((btn) =>
     btn.addEventListener("click", () => {
@@ -269,13 +391,13 @@ function initPublicForm() {
       document.getElementById("ttBlock").classList.toggle("hidden", p !== "tiktok");
       document.getElementById("commonBlock").classList.toggle("hidden", !p);
       if (p) setTimeout(renderTurnstile, 50);
+      if (ytInput) { ytInput.classList.remove("channel-error"); if (ytError) ytError.classList.add("hidden"); }
+      if (ttInput) { ttInput.classList.remove("channel-error"); if (ttError) ttError.classList.add("hidden"); }
     }));
 
   // счётчик символов
   const why = document.getElementById("whyJoin");
   why.addEventListener("input", () => { document.getElementById("whyCount").textContent = why.value.length; });
-
-
 
   // проверка «написал сотруднику»
   const tgInput = document.getElementById("mediaTg");
@@ -356,7 +478,42 @@ async function submitMediaApp(e) {
   }
   if (!body.criteria_agreed) return err("Подтвердите критерии (Да)");
   if (!platform) return err("Выберите платформу");
-  if (!body.channel_url) return err("Укажите ссылку на канал");
+
+  const isYt = platform === "youtube";
+  const chanInput = isYt ? document.getElementById("ytChannel") : document.getElementById("ttChannel");
+  const chanErrBlock = isYt ? document.getElementById("ytErrorText") : document.getElementById("ttErrorText");
+  const chanErrMsg = isYt ? document.getElementById("ytErrorMsg") : document.getElementById("ttErrorMsg");
+
+  if (!body.channel_url) {
+    if (chanInput) {
+      chanInput.focus();
+      chanInput.classList.add("channel-error");
+      chanInput.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    if (chanErrBlock && chanErrMsg) {
+      chanErrMsg.textContent = t("qChannel") || "Укажите ссылку на канал";
+      chanErrBlock.classList.remove("hidden");
+    }
+    return err("Укажите ссылку на канал");
+  }
+
+  // Проверка формата и подлинности ссылки на канал
+  const chanRes = (typeof validateChannelUrl === "function") ? validateChannelUrl(platform, body.channel_url) : { valid: true };
+  if (!chanRes.valid) {
+    if (chanInput) {
+      chanInput.classList.add("channel-error");
+      chanInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      chanInput.focus();
+    }
+    if (chanErrBlock && chanErrMsg) {
+      chanErrMsg.textContent = chanRes.errorMsg;
+      chanErrBlock.classList.remove("hidden");
+    }
+    return err(chanRes.errorMsg);
+  }
+  if (chanRes.normalized) {
+    body.channel_url = chanRes.normalized;
+  }
   if (platform === "youtube" && !body.videos_per_week) return err("Укажите роликов в неделю");
   if (platform === "tiktok" && !body.collaborations) return err("Укажите сотрудничества");
   if (!servers.length) return err("Выберите серверы");

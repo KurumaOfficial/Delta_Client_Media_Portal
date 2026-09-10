@@ -107,8 +107,12 @@
     <div class="hidden" id="ytBlock">
       <div class="field">
         <label data-i18n="qChannel">Ссылка на канал *</label>
-        <input type="url" id="ytChannel" placeholder="https://youtube.com/@username">
+        <input type="url" id="ytChannel" placeholder="https://youtube.com/@username" autocomplete="off">
         <p class="hint" data-i18n="channelHint">Прямая ссылка на канал, не на видео</p>
+        <p class="field-error-text hidden" id="ytErrorText">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="ytErrorMsg" data-i18n="ytInvalidFormat">Укажите прямую ссылку на канал (например, https://youtube.com/@username)</span>
+        </p>
       </div>
       <div class="field">
         <label data-i18n="qVideos">Роликов в неделю *</label>
@@ -119,7 +123,11 @@
     <div class="hidden" id="ttBlock">
       <div class="field">
         <label data-i18n="qChannel">Ссылка на аккаунт *</label>
-        <input type="url" id="ttChannel" placeholder="https://tiktok.com/@username">
+        <input type="url" id="ttChannel" placeholder="https://tiktok.com/@username" autocomplete="off">
+        <p class="field-error-text hidden" id="ttErrorText">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="ttErrorMsg" data-i18n="ttInvalidFormat">Укажите прямую ссылку на TikTok-аккаунт (например, https://tiktok.com/@username)</span>
+        </p>
       </div>
       <div class="field">
         <label data-i18n="qCollab">Сотрудничества *</label>
