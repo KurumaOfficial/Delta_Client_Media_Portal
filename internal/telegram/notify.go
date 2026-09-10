@@ -75,13 +75,7 @@ func (s *Service) NotifyMediaApp(app models.MediaApp) {
 }
 
 func (s *Service) NotifyHWID(r models.HWIDRequest) {
-	s.notifyAdminsFull(
-		fmt.Sprintf("🔄 <b>Запрос сброса #%d</b>", r.ID),
-		fmt.Sprintf("Модератор: <b>%s</b>\nUID: <code>%s</code>\nПричина: %s\nДоказательства: %s %s",
-			escapeHTML(r.ModNickname), escapeHTML(r.UUID), escapeHTML(r.Reason), r.ProofFile, r.ProofLink),
-		[][2]string{{"✅ Одобрить", fmt.Sprintf("adm:hwid:%d:approve", r.ID)},
-			{"❌ Отклонить", fmt.Sprintf("adm:hwid:%d:reject", r.ID)}},
-	)
+	// Отправка сообщений в Telegram для HWID отключена по требованию
 }
 
 func (s *Service) NotifyDiscordBan(r models.DiscordBan) {
@@ -176,25 +170,8 @@ func (s *Service) SendVerdict(telegram, kind string, id int64, approve bool, com
 			text = renderTemplate(tpl, vars)
 		}
 	case "hwid":
-		vars := map[string]string{
-			"{id}":      idStr,
-			"{comment}": comment,
-			"{reason}":  comment,
-			"{uid}":     comment,
-		}
-		if approve {
-			tpl := s.db.Setting("hwid_approve_text")
-			if tpl == "" {
-				tpl = "Запрос для пользователя {comment} успешно одобрен."
-			}
-			text = renderTemplate(tpl, vars)
-		} else {
-			tpl := s.db.Setting("hwid_reject_text")
-			if tpl == "" {
-				tpl = "Заявка на сброс была отклонена.\n\nПричина — {reason}"
-			}
-			text = renderTemplate(tpl, vars)
-		}
+		// Уведомления вердикта в Telegram для HWID отключены по требованию
+		return
 	case "discord":
 		vars := map[string]string{
 			"{id}":       idStr,

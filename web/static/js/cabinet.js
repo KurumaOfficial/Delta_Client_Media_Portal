@@ -48,6 +48,283 @@ function cabinetTabsForRole(role) {
   return [];
 }
 
+// ── Оповещения на рабочий стол (Web Notifications API) для модераторов ──
+function playNotificationSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (_) {}
+}
+
+function sendDesktopNotification(title, options = {}) {
+  playNotificationSound();
+  if ("Notification" in window && Notification.permission === "granted") {
+    try {
+      const notif = new Notification(title, {
+        icon: options.icon || "/static/img/delta-icon.svg",
+        badge: options.badge || "/static/img/delta-icon.svg",
+        body: options.body || "",
+        tag: options.tag || ("delta-mod-" + Date.now()),
+        renotify: true,
+        ...options
+      });
+      if (options.onClick) {
+        notif.onclick = function(e) {
+          try {
+            window.focus();
+            options.onClick(e);
+          } catch (_) {}
+          this.close();
+        };
+      }
+      return notif;
+    } catch (err) {
+      console.warn("Desktop notification error:", err);
+    }
+  }
+  return null;
+}
+
+function renderModNotifBar() {
+  const container = document.getElementById("cabinetNotifBar");
+  if (!container) return;
+  if (!CURRENT_ACCOUNT || CURRENT_ACCOUNT.role !== "moderator" || !("Notification" in window)) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const perm = Notification.permission;
+  const dismissed = sessionStorage.getItem("delta_mod_notif_dismissed") === "1";
+
+  if (perm === "default") {
+    if (dismissed) {
+      container.innerHTML = `
+        <div class="mod-notif-pill-wrap">
+          <div class="mod-notif-pill">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <span>Оповещения на рабочий стол отключены</span>
+            <button type="button" class="mod-notif-pill-btn" id="btnEnableModNotifs">Включить</button>
+          </div>
+        </div>`;
+      document.getElementById("btnEnableModNotifs")?.addEventListener("click", requestModNotificationPermission);
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="mod-notif-banner" id="modNotifBanner">
+        <div class="mod-notif-content">
+          <div class="mod-notif-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+            </svg>
+          </div>
+          <div>
+            <div class="mod-notif-title">Уведомления на рабочий стол</div>
+            <div class="mod-notif-desc">Включите оповещения, чтобы сразу узнавать об одобрении или отклонении ваших заявок администратором.</div>
+          </div>
+        </div>
+        <div class="mod-notif-actions">
+          <button type="button" class="btn-primary btn-sm" id="btnEnableModNotifs">Разрешить</button>
+          <button type="button" class="btn-ghost btn-sm" id="btnDismissModNotifs">Не сейчас</button>
+        </div>
+      </div>`;
+
+    document.getElementById("btnEnableModNotifs")?.addEventListener("click", requestModNotificationPermission);
+    document.getElementById("btnDismissModNotifs")?.addEventListener("click", () => {
+      sessionStorage.setItem("delta_mod_notif_dismissed", "1");
+      renderModNotifBar();
+    });
+  } else if (perm === "granted") {
+    container.innerHTML = `
+      <div class="mod-notif-pill-wrap">
+        <div class="mod-notif-pill active">
+          <span class="mod-notif-pill-dot"></span>
+          <span>Оповещения на рабочий стол активны</span>
+          <button type="button" class="mod-notif-pill-btn" id="btnTestModNotif" title="Отправить тестовое уведомление на экран">Проверить</button>
+        </div>
+      </div>`;
+    document.getElementById("btnTestModNotif")?.addEventListener("click", testModNotification);
+  } else if (perm === "denied") {
+    container.innerHTML = `
+      <div class="mod-notif-pill-wrap">
+        <div class="mod-notif-pill denied">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <span>Уведомления заблокированы в настройках браузера</span>
+        </div>
+      </div>`;
+  }
+}
+
+async function requestModNotificationPermission() {
+  if (!("Notification" in window)) {
+    toast("Ваш браузер не поддерживает оповещения", "err");
+    return;
+  }
+  try {
+    const res = await Notification.requestPermission();
+    renderModNotifBar();
+    if (res === "granted") {
+      toast("Уведомления на рабочий стол включены!", "ok");
+      sendDesktopNotification("Delta Client — Оповещения активны", {
+        body: "Теперь вы будете получать решения администратора прямо на рабочий стол!",
+        tag: "delta-welcome"
+      });
+    } else if (res === "denied") {
+      toast("Уведомления заблокированы в настройках браузера", "err");
+    }
+  } catch (e) {
+    console.warn(e);
+  }
+}
+
+function testModNotification() {
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    requestModNotificationPermission();
+    return;
+  }
+  sendDesktopNotification("Delta Client — Тестовое оповещение", {
+    body: "Оповещения на рабочий стол работают отлично! Вы сразу узнаете о решении по заявке.",
+    tag: "delta-test-" + Date.now(),
+    onClick: () => {
+      if (typeof showView === "function") showView("cabinet");
+      if (typeof switchCabinetTab === "function") switchCabinetTab("my");
+    }
+  });
+  toast("Тестовое уведомление отправлено на рабочий стол", "ok");
+}
+
+let modNotifWatcherTimer = null;
+
+function getModCacheKey() {
+  return CURRENT_ACCOUNT ? `delta_mod_reqs_cache_${CURRENT_ACCOUNT.id}` : null;
+}
+
+function getModRequestsCache() {
+  const key = getModCacheKey();
+  if (!key) return {};
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveModRequestsCache(cache) {
+  const key = getModCacheKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(cache));
+  } catch (_) {}
+}
+
+async function pollModRequestsAndNotify() {
+  if (!CURRENT_ACCOUNT || CURRENT_ACCOUNT.role !== "moderator") {
+    stopModNotificationsWatcher();
+    return;
+  }
+
+  try {
+    const resp = await GET("/api/mod/requests");
+    const requests = resp && resp.data ? resp.data : [];
+    const cache = getModRequestsCache();
+    const isFirstRun = Object.keys(cache).length === 0;
+
+    let updated = false;
+    const newDecisions = [];
+
+    requests.forEach((r) => {
+      const key = `${r.kind}:${r.id}`;
+      const prev = cache[key];
+
+      if (!isFirstRun && prev) {
+        const wasPending = prev.status === "pending";
+        const isDecided = r.status === "approved" || r.status === "rejected";
+        const newComment = r.admin_comment && r.admin_comment !== prev.comment;
+
+        if ((wasPending && isDecided) || (isDecided && newComment)) {
+          newDecisions.push(r);
+        }
+      }
+
+      if (!prev || prev.status !== r.status || prev.comment !== (r.admin_comment || "")) {
+        cache[key] = { status: r.status, comment: r.admin_comment || "" };
+        updated = true;
+      }
+    });
+
+    if (updated || isFirstRun) {
+      saveModRequestsCache(cache);
+    }
+
+    newDecisions.forEach((item) => {
+      notifyModRequestVerdict(item);
+    });
+
+    if (newDecisions.length > 0 && cabinetActiveTab === "my") {
+      renderMyRequests();
+    }
+  } catch (_) {}
+}
+
+function notifyModRequestVerdict(item) {
+  const isApproved = item.status === "approved";
+  const kindTitle = item.kind === "hwid" ? "Сброс HWID" : "Discord бан";
+  const targetLabel = item.kind === "hwid" ? "UID" : "Нарушитель";
+  const targetVal = item.target || "—";
+
+  const title = `Delta Client — Заявка ${isApproved ? "одобрена ✅" : "отклонена ❌"}`;
+  let body = `${kindTitle} #${item.id} (${targetLabel}: ${targetVal})\nСтатус: ${isApproved ? "Одобрено" : "Отклонено"}`;
+  if (item.admin_comment) {
+    body += `\nОтвет администратора: ${item.admin_comment}`;
+  }
+
+  sendDesktopNotification(title, {
+    body: body,
+    tag: `delta-mod-decision-${item.kind}-${item.id}-${item.status}`,
+    onClick: () => {
+      if (typeof showView === "function") showView("cabinet");
+      if (typeof switchCabinetTab === "function") switchCabinetTab("my");
+      openRequestDetailsModal(item, "moderator");
+    }
+  });
+
+  toast(`${kindTitle} #${item.id}: ${isApproved ? "Одобрено" : "Отклонено"}${item.admin_comment ? " — " + item.admin_comment : ""}`, isApproved ? "ok" : "err", 6500);
+}
+
+function startModNotificationsWatcher() {
+  stopModNotificationsWatcher();
+  if (!CURRENT_ACCOUNT || CURRENT_ACCOUNT.role !== "moderator") return;
+  modNotifWatcherTimer = setInterval(pollModRequestsAndNotify, 12000);
+  pollModRequestsAndNotify();
+}
+
+function stopModNotificationsWatcher() {
+  if (modNotifWatcherTimer) {
+    clearInterval(modNotifWatcherTimer);
+    modNotifWatcherTimer = null;
+  }
+}
+
+window.renderModNotifBar = renderModNotifBar;
+window.requestModNotificationPermission = requestModNotificationPermission;
+window.testModNotification = testModNotification;
+window.startModNotificationsWatcher = startModNotificationsWatcher;
+window.stopModNotificationsWatcher = stopModNotificationsWatcher;
+
 async function loadCabinet() {
   if (!CURRENT_ACCOUNT) return;
   const titles = {
@@ -56,6 +333,10 @@ async function loadCabinet() {
     admin: t("cabinetAdmin")
   };
   document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || t("cabinetTitle");
+  renderModNotifBar();
+  if (CURRENT_ACCOUNT.role === "moderator") {
+    startModNotificationsWatcher();
+  }
   const tabs = cabinetTabsForRole(CURRENT_ACCOUNT.role);
   document.getElementById("cabinetTabs").innerHTML =
     tabs.map(([id, label]) => `<button type="button" data-tab="${id}">${CABINET_ICONS[id] || ""}<span>${label}</span></button>`).join("");
@@ -564,6 +845,11 @@ async function bindProofForm(kind) {
       });
       const data = await resp.json();
       if (!resp.ok) throw new Error(data.error || "Ошибка");
+      if (data.id) {
+        const cache = getModRequestsCache();
+        cache[`${kind}:${data.id}`] = { status: "pending", comment: "" };
+        saveModRequestsCache(cache);
+      }
       buttonState(btn, "ok", "Заявка отправлена", 3500);
       toast("Заявка успешно отправлена", "ok");
       form.reset();

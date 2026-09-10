@@ -42,6 +42,7 @@ function handleSessionExpired() {
   if (!CURRENT_ACCOUNT) return;
   CURRENT_ACCOUNT = null;
   stopSessionHeartbeat();
+  if (typeof stopModNotificationsWatcher === "function") stopModNotificationsWatcher();
   document.body.classList.remove("user-is-staff");
   updateCabinetBtn();
   if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
@@ -71,12 +72,16 @@ async function loadSession() {
       updateCabinetBtn();
       if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
       startSessionHeartbeat();
+      if (CURRENT_ACCOUNT.role === "moderator" && typeof startModNotificationsWatcher === "function") {
+        startModNotificationsWatcher();
+      }
       return CURRENT_ACCOUNT;
     }
   } catch {
     CURRENT_ACCOUNT = null;
   }
   stopSessionHeartbeat();
+  if (typeof stopModNotificationsWatcher === "function") stopModNotificationsWatcher();
   document.body.classList.remove("user-is-staff");
   updateCabinetBtn();
   if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
@@ -325,6 +330,7 @@ function initAuthUI() {
     } catch { /* ignore */ }
     CURRENT_ACCOUNT = null;
     stopSessionHeartbeat();
+    if (typeof stopModNotificationsWatcher === "function") stopModNotificationsWatcher();
     localStorage.removeItem("delta_remember");
     document.body.classList.remove("user-is-staff");
     updateCabinetBtn();

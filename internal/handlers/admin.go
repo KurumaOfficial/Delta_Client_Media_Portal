@@ -394,7 +394,7 @@ func (h *Admin) decideHWID(id int64, approve bool, comment, actor string) error 
 	if _, err := h.db.Exec(`UPDATE v2_hwid_requests SET status = ?, admin_comment = ? WHERE id = ?`, st, comment, id); err != nil {
 		return err
 	}
-	h.notifyAccountVerdict(modNick, "hwid", id, approve, comment)
+	// Уведомление в Telegram для HWID отключено по требованию
 	h.db.RecordAudit("STATUS_CHANGE", st, "Запрос сброса #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
 	return nil
 }

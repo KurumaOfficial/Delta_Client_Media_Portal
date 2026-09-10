@@ -73,8 +73,7 @@ func (h *Mod) SubmitHWID(c *fiber.Ctx) error {
 		return serverError(c, "Не удалось сохранить заявку")
 	}
 
-	h.tg.NotifyHWID(models.HWIDRequest{ID: id, ModNickname: account.Nickname, UUID: uid,
-		ProofFile: files, ProofLink: link, Reason: reason})
+	// Уведомление в Telegram для HWID отключено по требованию
 	h.db.RecordAudit("HWID_SUBMIT", "success",
 		"HWID #"+itoa64(id)+" от "+account.Nickname+" (UID "+uid+")",
 		middleware.GetRealIP(c), c.Get("User-Agent"))
