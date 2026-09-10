@@ -328,8 +328,8 @@ async function renderOverview() {
 
           <!-- 5. Идеи и баги -->
           <div class="info-metric-card" data-jump="ideas" title="Перейти в раздел Идеи и баги">
-            <b class="info-metric-num">${stats.ideas_pending || 0}</b>
-            <span class="info-metric-lbl">Идеи и баги (в ожидании)</span>
+            <b class="info-metric-num">${stats.ideas_total ?? stats.ideas_pending ?? 0}</b>
+            <span class="info-metric-lbl">Идеи и баги</span>
           </div>
         </div>
       </div>
@@ -786,9 +786,17 @@ async function renderAppsTable(kind) {
 }
 
 function drawAppsTable(kind, cfg) {
+  const withStatuses = (kind !== "hwid" && kind !== "ideas");
   const all = adminCache[kind] || [];
-  const filtered = all.filter((r) => applyGlobalFilter(
-    JSON.stringify(r).toLowerCase(), r.status));
+  const filtered = all.filter((r) => {
+    if (withStatuses) {
+      return applyGlobalFilter(JSON.stringify(r).toLowerCase(), r.status);
+    }
+    if (ADMIN_FILTER.search) {
+      return JSON.stringify(r).toLowerCase().includes(ADMIN_FILTER.search.toLowerCase());
+    }
+    return true;
+  });
 
   // пагинация: новые внизу (ASC), срез текущей страницы
   const pageSize = cfg.pageSize;
@@ -830,10 +838,7 @@ function drawAppsTable(kind, cfg) {
           <td><b>${esc(r.nickname || "—")}</b> <small class="hint">(${esc(r.role || "")})</small></td>
           <td><b style="color:var(--color-text);">${esc(r.title || "—")}</b></td>
           <td>${proofLinks(r.proof_files, r.proof_link)}</td>
-          <td>${statusBadge(r.status)}</td>
-          <td>${r.status === "pending" ? `<div class="row-actions" onclick="event.stopPropagation()">
-            <button class="act" data-decide="approved" data-id="${r.id}">✓ Принять</button>
-            <button class="act reject" data-decide="rejected" data-id="${r.id}">✕ Отклонить</button></div>` : (r.admin_comment ? `<small class="hint" title="${esc(r.admin_comment)}">${esc(r.admin_comment).slice(0, 20)}…</small>` : "—")}</td>
+          <td class="hint">${formatDate(r.created_at)}</td>
         </tr>`;
     }
     return `
@@ -848,12 +853,13 @@ function drawAppsTable(kind, cfg) {
     : kind === "hwid"
     ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
     : kind === "ideas"
-    ? "<th>ID</th><th>Тип</th><th>Автор</th><th>Тема</th><th>Доказательства</th><th>Статус</th><th>Действия</th>"
+    ? "<th>ID</th><th>Тип</th><th>Автор</th><th>Тема</th><th>Доказательства</th><th>Дата</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
-  const colSpan = kind === "media" ? 8 : (kind === "hwid" ? 5 : 7);
+  const colSpan = kind === "media" ? 8 : (kind === "hwid" ? 5 : (kind === "ideas" ? 6 : 7));
+  const badgeCls = withStatuses ? "badge pending" : "badge";
 
   const tableBoxHTML = `
-    <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
+    <div class="table-box"><h3>${cfg.title} <span class="${badgeCls}">${filtered.length}</span></h3>
       <div class="table-scroll"><table>
         <thead><tr>${theadCols}</tr></thead>
         <tbody>${rows || `<tr><td colspan="${colSpan}" class="hint">Нет обращений</td></tr>`}</tbody>
@@ -861,7 +867,6 @@ function drawAppsTable(kind, cfg) {
       <div class="pager" id="pager-${kind}"></div>
     </div>`;
 
-  const withStatuses = true;
   let tableWrap = document.getElementById("adminTableWrap");
   const hasStatusFilter = !!document.getElementById("fStatus");
   if (!tableWrap || (withStatuses !== hasStatusFilter)) {
@@ -958,7 +963,6 @@ function openIdeaBugAdminModal(r) {
           <div style="display:flex;align-items:center;gap:0.6rem;">
             <h3>Обращение #${r.id}</h3>
             ${catBadge}
-            ${statusBadge(r.status)}
           </div>
         </div>
         <button type="button" class="ban-modal-close" id="ideaBugModalClose">&times;</button>
@@ -990,10 +994,6 @@ function openIdeaBugAdminModal(r) {
       ${adminBlock}
 
       <div class="media-modal-actions" style="margin-top:1.5rem;display:flex;gap:0.6rem;justify-content:flex-end;">
-        ${r.status === "pending" ? `
-          <button type="button" class="btn-primary" id="modalIdeaApprove" style="background:#22c55e;color:#fff;">✓ Принять к реализации</button>
-          <button type="button" class="btn-ghost" id="modalIdeaReject" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">✕ Отклонить</button>
-        ` : ""}
         <button type="button" class="btn-ghost" id="ideaBugModalOk">Закрыть</button>
       </div>
     </div>`;
@@ -1006,28 +1006,6 @@ function openIdeaBugAdminModal(r) {
   document.getElementById("ideaBugModalOk")?.addEventListener("click", close);
   modalWrap.addEventListener("click", (e) => {
     if (e.target === modalWrap) close();
-  });
-
-  document.getElementById("modalIdeaApprove")?.addEventListener("click", async () => {
-    const comment = await askComment(`Принять обращение #${r.id}`, false);
-    if (comment === null) return;
-    try {
-      await POST(`/api/admin/ideas/${r.id}/decide`, { status: "approved", admin_comment: comment });
-      toast("Обращение принято", "ok");
-      close();
-      renderAppsTable("ideas");
-    } catch (e) { toast(e.message, "err"); }
-  });
-
-  document.getElementById("modalIdeaReject")?.addEventListener("click", async () => {
-    const comment = await askComment(`Отклонить обращение #${r.id}`, false);
-    if (comment === null) return;
-    try {
-      await POST(`/api/admin/ideas/${r.id}/decide`, { status: "rejected", admin_comment: comment });
-      toast("Обращение отклонено", "ok");
-      close();
-      renderAppsTable("ideas");
-    } catch (e) { toast(e.message, "err"); }
   });
 }
 

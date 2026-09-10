@@ -149,6 +149,29 @@ func main() {
 		fmt.Println("  + записи в банлисте (групповые блокировки)")
 	}
 
+	// Идеи и баги (для раздела «Идеи и баги» в админке)
+	var ideasCount int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM v2_ideas_bugs`).Scan(&ideasCount)
+	if ideasCount < 4 {
+		_, _ = db.InsertReturningID(`INSERT INTO v2_ideas_bugs
+			(account_id, nickname, role, category, title, description, proof_link, status)
+			VALUES (?, 'DemoMedia', 'media', 'idea', 'Быстрое переключение профилей по хоткею', 'Предлагаю добавить возможность привязать переключение рейдж/легит конфигов на одну клавишу без открытия GUI клика.', 'https://imgur.com/demo_idea1', 'pending')`,
+			mediaID)
+		_, _ = db.InsertReturningID(`INSERT INTO v2_ideas_bugs
+			(account_id, nickname, role, category, title, description, proof_link, status)
+			VALUES (?, 'DemoMedia', 'media', 'bug', 'Краш игры при быстром реконнекте во время боя', 'Если во время боя быстро нажать кнопку Reconnect, игра крашится с ошибкой NullPointerException в модуле AutoTotem.', 'https://youtube.com/watch?v=demo_bug1', 'pending')`,
+			mediaID)
+		_, _ = db.InsertReturningID(`INSERT INTO v2_ideas_bugs
+			(account_id, nickname, role, category, title, description, proof_link, status)
+			VALUES (?, 'DemoMod', 'moderator', 'idea', 'Интеграция с Discord Rich Presence и Spotify', 'Было бы круто выводить текущий трек Spotify и статус сервера прямо в игровом оверлее или статусе Discord.', '', 'pending')`,
+			modID)
+		_, _ = db.InsertReturningID(`INSERT INTO v2_ideas_bugs
+			(account_id, nickname, role, category, title, description, proof_link, status)
+			VALUES (?, 'DemoMod', 'moderator', 'bug', 'Мерцание шрифтов при включенном Blur на AMD', 'При включении размытия заднего фона на видеокартах AMD текст в некоторых вкладках меню начинает дрожать.', 'https://imgur.com/demo_bug2', 'pending')`,
+			modID)
+		fmt.Println("  + демо-обращения в «Идеи и баги» (идеи и баги)")
+	}
+
 	// Обновление текстов без упоминания HWID
 	_, _ = db.Exec(`UPDATE v2_settings SET value = 'Запрос для пользователя {comment} успешно одобрен.' WHERE key = 'hwid_approve_text'`)
 	_, _ = db.Exec(`UPDATE v2_settings SET value = 'Заявка на сброс была отклонена.' || char(10) || char(10) || 'Причина — {reason}' WHERE key = 'hwid_reject_text'`)

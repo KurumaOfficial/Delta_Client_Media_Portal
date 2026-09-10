@@ -61,8 +61,10 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "stats": fiber.Map{
 		"media_pending":            count("v2_media_apps", "WHERE status = 'pending'"),
 		"hwid_pending":             count("v2_hwid_requests", "WHERE status = 'pending'"),
+		"hwid_total":               count("v2_hwid_requests", ""),
 		"discord_pending":          count("v2_discord_bans", "WHERE status = 'pending'"),
 		"ideas_pending":            count("v2_ideas_bugs", "WHERE status = 'pending'"),
+		"ideas_total":              count("v2_ideas_bugs", ""),
 		"accounts_total":           count("v2_accounts", "WHERE is_active = 1"),
 		"payouts_pending":          st.Pending,
 		"payouts_total":            st.Total,
