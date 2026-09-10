@@ -7,7 +7,7 @@ rem Сайт: http://127.0.0.1:3999
 cd /d "%~dp0"
 set DB_DRIVER=sqlite
 set DB_PATH=./local.db
-set HOST=127.0.0.1
+set HOST=0.0.0.0
 set PORT=3999
 set TELEGRAM_BOT_TOKEN=
 set GPS_REQUIRED=false
