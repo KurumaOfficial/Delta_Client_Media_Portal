@@ -73,7 +73,7 @@ func Load() *Config {
 		GPSRequired:        getEnv("GPS_REQUIRED", "true") == "true",
 		DevAutoApprove2FA:  getEnv("DEV_AUTO_APPROVE_2FA", "false") == "true",
 		TGBotToken:         getEnv("TELEGRAM_BOT_TOKEN", ""),
-		TGAdminContact:     stripAt(getEnv("TELEGRAM_ADMIN_CONTACT", "notyxx")),
+		TGAdminContact:     stripAt(getEnv("TELEGRAM_ADMIN_CONTACT", "notyxs")),
 		TGSecretary:        stripAt(getEnv("TELEGRAM_SECRETARY_CONTACT", "notyxs")),
 		CryptoBotToken:     getEnv("CRYPTOBOT_API_TOKEN", ""),
 		CryptoBotTestnet:   getEnv("CRYPTOBOT_TESTNET", "false") == "true",

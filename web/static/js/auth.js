@@ -74,6 +74,8 @@ async function loadSession() {
       startSessionHeartbeat();
       if (CURRENT_ACCOUNT.role === "moderator" && typeof startModNotificationsWatcher === "function") {
         startModNotificationsWatcher();
+      } else if (CURRENT_ACCOUNT.role === "media" && typeof startMediaNotificationsWatcher === "function") {
+        startMediaNotificationsWatcher();
       }
       return CURRENT_ACCOUNT;
     }
@@ -82,6 +84,7 @@ async function loadSession() {
   }
   stopSessionHeartbeat();
   if (typeof stopModNotificationsWatcher === "function") stopModNotificationsWatcher();
+  if (typeof stopMediaNotificationsWatcher === "function") stopMediaNotificationsWatcher();
   document.body.classList.remove("user-is-staff");
   updateCabinetBtn();
   if (typeof updateMaintenanceUI === "function") updateMaintenanceUI();
@@ -331,21 +334,6 @@ function initAuthUI() {
     }
   });
 
-  // Переход на подачу заявки: «не член? войти сейчас»
-  document.getElementById("authApplyLink")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    closeAuth();
-    if (typeof showView === "function") {
-      showView("public");
-    }
-    const form = document.getElementById("mediaForm");
-    if (form) {
-      setTimeout(() => {
-        form.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 100);
-    }
-  });
-
   // Функция выхода из аккаунта
   async function doUserLogout() {
     try {
@@ -354,6 +342,7 @@ function initAuthUI() {
     CURRENT_ACCOUNT = null;
     stopSessionHeartbeat();
     if (typeof stopModNotificationsWatcher === "function") stopModNotificationsWatcher();
+    if (typeof stopMediaNotificationsWatcher === "function") stopMediaNotificationsWatcher();
     localStorage.removeItem("delta_remember");
     document.body.classList.remove("user-is-staff");
     updateCabinetBtn();

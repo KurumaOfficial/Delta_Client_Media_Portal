@@ -61,7 +61,7 @@ async function sleep(ms) {
     const { DatabaseSync } = require('node:sqlite');
     const db = new DatabaseSync('./local.db');
     db.prepare("DELETE FROM v2_media_apps WHERE LOWER(telegram) = '@demo_media' OR LOWER(telegram) = 'demo_media'").run();
-    db.prepare("DELETE FROM v2_requests WHERE (nickname = 'DemoMedia' OR telegram = '@demo_media') AND kind = 'lot'").run();
+    db.prepare("DELETE FROM v2_requests WHERE (account_id = 2 OR nickname = 'DemoMedia' OR telegram = '@demo_media') AND kind = 'lot'").run();
   } catch (dbErr) {
     console.warn("DB prep warning:", dbErr.message);
   }
@@ -113,8 +113,7 @@ async function sleep(ms) {
     assert(submitBtnText === "Укажите UID", "Empty submission shows 'Укажите UID' inside button", submitBtnText);
 
     // 2.2 Non-digits in UID -> triggers red glow (.uid-error) and error message
-    const nonDigitPayload = 'abc!@#';
-    await page.type('#mediaUid', nonDigitPayload);
+    await page.type('#mediaUid', 'abc');
     await sleep(200);
 
     const hasUidErrorClass = await page.$eval('#mediaUid', el => el.classList.contains('uid-error'));
@@ -122,6 +121,8 @@ async function sleep(ms) {
     assert(hasUidErrorClass, "Non-digit UID triggers red glow (.uid-error)");
     assert(isUidErrorTextVisible, "Non-digit UID displays error text 'В поле UID разрешены только цифры'");
 
+    // Test submit-time rejection by pasting non-digits
+    await page.$eval('#mediaUid', el => { el.value = 'invalid_pasted_uid'; el.dispatchEvent(new Event('input')); });
     await page.$eval('#mediaSubmit', el => el.click());
     await sleep(300);
     submitBtnText = await page.$eval('#mediaSubmit', el => el.textContent.trim());
@@ -305,7 +306,7 @@ async function sleep(ms) {
     // Invalid code
     await page.type('#authCode', 'INVALID-CODE-999');
     await page.$eval('#authSubmit', el => el.click());
-    await sleep(800);
+    await sleep(3500);
     const authErrText = await page.$eval('#authError', el => el.textContent.trim());
     assert(authErrText.includes("Неверный") || authErrText.includes("код"), "Auth error shown on invalid code", authErrText);
 
@@ -319,8 +320,8 @@ async function sleep(ms) {
     let isCabinetActive = await page.$eval('#view-cabinet', el => el.classList.contains('active'));
     assert(isCabinetActive, "Moderator successfully logged into Cabinet");
 
-    // Submit HWID request
-    await page.type('#form-hwid input[name="uuid"]', 'MOD_BROWSER_HWID_UID');
+    // Submit HWID request with numeric UID
+    await page.type('#form-hwid input[name="uuid"]', '100234');
     await page.type('#form-hwid textarea[name="reason"]', 'Замена SSD накопителя');
     await page.type('#form-hwid input[name="proof_link"]', 'https://imgur.com/browser_test');
     await page.$eval('#form-hwid button[type="submit"]', el => el.click());
@@ -362,24 +363,24 @@ async function sleep(ms) {
     isCabinetActive = await page.$eval('#view-cabinet', el => el.classList.contains('active'));
     assert(isCabinetActive, "Media successfully logged into Cabinet");
 
-    // Test Lot application form
+    // Test Lot application form & Cosmetics conditional field
     await page.$eval('#cabinetTabs button[data-tab="lot"]', el => el.click());
     await sleep(500);
-    await page.type('#form-lot input[name="uid"]', 'MEDIA_TEST_UID_LOT');
-    await page.type('#form-lot textarea[name="want"]', 'Реклама лота на FunPay');
-    await page.$eval('#lotPlatform .dropdown-head', el => { el.scrollIntoView({ block: 'center' }); el.click(); });
-    await sleep(150);
-    await page.$eval('#lotPlatform .dropdown-item[data-value="funpay"]', el => el.click());
+    await page.type('#form-lot input[name="uid"]', '774411');
+
+    // Click "Косметика" choice
+    await page.$eval('#lotTypeChoice button[data-value="cosmetics"]', el => el.click());
     await sleep(200);
+    const isCustomCosmeticVisible = await page.$eval('#rowLotCustom', el => !el.classList.contains('hidden'));
+    const customLabelText = await page.$eval('#lotWantCustomLabel', el => el.textContent.trim());
+    assert(isCustomCosmeticVisible, "Selecting 'Косметика' reveals custom description field");
+    assert(customLabelText.includes("Какая косметика вам необходима?"), "Cosmetics label changes to 'Какая косметика вам необходима? *'");
 
-    const isLotLinkVisible = await page.$eval('#rowLotLink', el => !el.classList.contains('hidden'));
-    assert(isLotLinkVisible, "FunPay selection shows FunPay lot link field");
-
-    await page.type('#form-lot input[name="lot_url"]', 'https://funpay.com/lots/offer?id=998877');
+    await page.type('#lotWantCustom', 'Фиолетовый плащ и анимированные крылья');
     await page.$eval('#form-lot button[type="submit"]', el => el.click());
     await sleep(1500);
     let lotStatus = await page.$eval('#form-lot button[type="submit"]', el => el.textContent.trim());
-    assert(lotStatus.includes("принята") || lotStatus.includes("отправлена"), "Media Lot request submitted successfully", lotStatus);
+    assert(lotStatus.includes("принята") || lotStatus.includes("отправлена"), "Media Lot request with cosmetics submitted successfully", lotStatus);
 
     // Logout
     await page.$eval('#cabinetLogout', el => el.click());

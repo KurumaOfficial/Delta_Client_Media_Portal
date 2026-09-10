@@ -220,3 +220,53 @@ function askComment(title, required) {
 document.querySelector("#commentModal [data-close]").addEventListener("click", () => {
   if (commentResolve) { commentResolve(null); commentResolve = null; }
 });
+
+// ── Универсальная валидация цифровых UID полей с красным свечением ──
+function attachNumericUIDValidation(inputEl, errorEl, errorMessage) {
+  if (!inputEl) return;
+  const defaultMsg = "В поле UID разрешены только цифры";
+
+  function check() {
+    const v = inputEl.value.trim();
+    if (!v) {
+      inputEl.classList.remove("uid-error");
+      if (errorEl) errorEl.classList.add("hidden");
+      return true;
+    }
+    if (/\D/.test(v)) {
+      inputEl.classList.add("uid-error");
+      if (errorEl) {
+        const span = errorEl.querySelector("span") || errorEl;
+        span.textContent = errorMessage || (typeof t === "function" ? t("uidDigitsOnly") : defaultMsg);
+        errorEl.classList.remove("hidden");
+      }
+      return false;
+    }
+    inputEl.classList.remove("uid-error");
+    if (errorEl) errorEl.classList.add("hidden");
+    return true;
+  }
+
+  inputEl.addEventListener("input", check);
+  inputEl.addEventListener("blur", check);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (["Backspace", "Delete", "Tab", "Enter", "Escape", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+    if (!/^\d$/.test(e.key)) {
+      e.preventDefault();
+      inputEl.classList.add("uid-error");
+      if (errorEl) {
+        const span = errorEl.querySelector("span") || errorEl;
+        span.textContent = errorMessage || (typeof t === "function" ? t("uidDigitsOnly") : defaultMsg);
+        errorEl.classList.remove("hidden");
+      }
+      setTimeout(() => {
+        if (!/\D/.test(inputEl.value.trim())) {
+          inputEl.classList.remove("uid-error");
+          if (errorEl) errorEl.classList.add("hidden");
+        }
+      }, 2200);
+    }
+  });
+}
+window.attachNumericUIDValidation = attachNumericUIDValidation;

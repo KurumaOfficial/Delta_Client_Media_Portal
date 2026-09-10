@@ -42,9 +42,9 @@ func parseProof(c *fiber.Ctx) (files, link string, err error) {
 func (h *Mod) SubmitHWID(c *fiber.Ctx) error {
 	account, _ := auth.AccountOf(c)
 
-	uid, ok := validation.UID(c.FormValue("uuid"))
+	uid, ok := validation.NumericUID(c.FormValue("uuid"))
 	if !ok {
-		return badRequest(c, "Укажите корректный UID пользователя")
+		return badRequest(c, "В поле UID разрешены только цифры")
 	}
 	reason := validation.MultiLine(c.FormValue("reason"), 500)
 	if len([]rune(reason)) < 5 {

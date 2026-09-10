@@ -61,9 +61,15 @@ func (h *Admin) AddBan(c *fiber.Ctx) error {
 			}
 		}
 	}
+	cleanUID := validation.Clean(body.UID, 100)
+	if cleanUID != "" {
+		if _, ok := validation.NumericUID(cleanUID); !ok {
+			return badRequest(c, "В поле UID разрешены только цифры")
+		}
+	}
 	ban := models.Ban{
 		Channel:  validation.Clean(body.Channel, 300),
-		UID:      validation.Clean(body.UID, 100),
+		UID:      cleanUID,
 		Telegram: validation.Clean(body.Telegram, 100),
 		Discord:  validation.Clean(body.Discord, 100),
 		IP:       validation.Clean(body.IP, 100),
@@ -121,10 +127,16 @@ func (h *Admin) UpdateBan(c *fiber.Ctx) error {
 			}
 		}
 	}
+	cleanUID := validation.Clean(body.UID, 100)
+	if cleanUID != "" {
+		if _, ok := validation.NumericUID(cleanUID); !ok {
+			return badRequest(c, "В поле UID разрешены только цифры")
+		}
+	}
 	ban := models.Ban{
 		ID:       id,
 		Channel:  validation.Clean(body.Channel, 300),
-		UID:      validation.Clean(body.UID, 100),
+		UID:      cleanUID,
 		Telegram: validation.Clean(body.Telegram, 100),
 		Discord:  validation.Clean(body.Discord, 100),
 		IP:       validation.Clean(body.IP, 100),

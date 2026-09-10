@@ -55,9 +55,9 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 	}
 
 	r, _, _ := h.baseRequest(c)
-	uid, ok := validation.UID(body.UID)
+	uid, ok := validation.NumericUID(body.UID)
 	if !ok {
-		return badRequest(c, "Укажите корректный UID")
+		return badRequest(c, "В поле UID разрешены только цифры")
 	}
 	if b, banned := h.bans.Banned(models.BanUID, uid); banned {
 		return banHit(c, b)
@@ -127,9 +127,9 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	}
 
 	r, _, _ := h.baseRequest(c)
-	uid, ok := validation.UID(body.UID)
+	uid, ok := validation.NumericUID(body.UID)
 	if !ok {
-		return badRequest(c, "Укажите корректный UID")
+		return badRequest(c, "В поле UID разрешены только цифры")
 	}
 	if b, banned := h.bans.Banned(models.BanUID, uid); banned {
 		return banHit(c, b)
@@ -242,9 +242,9 @@ func (h *Cabinet) SubmitSubscription(c *fiber.Ctx) error {
 	}
 
 	r, _, _ := h.baseRequest(c)
-	uid, ok := validation.UID(body.UID)
+	uid, ok := validation.NumericUID(body.UID)
 	if !ok {
-		return badRequest(c, "Укажите корректный UID")
+		return badRequest(c, "В поле UID разрешены только цифры")
 	}
 	if b, banned := h.bans.Banned(models.BanUID, uid); banned {
 		return banHit(c, b)

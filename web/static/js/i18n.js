@@ -24,6 +24,7 @@ const I18N = {
     ttFakeLinkErr: "Укажите настоящую ссылку на ваш TikTok-аккаунт",
     qVideos: "Роликов в неделю *", qCollab: "Сотрудничества *",
     ytVideosInvalid: "Недопустимые символы в количестве видео",
+    ytVideosDigitsOnly: "В поле количества роликов разрешены только цифры",
     qServers: "Серверы *", pickServers: "Выберите серверы", other: "Прочие",
     qWhy: "Почему вы? *", qExclusive: "Вы готовы снимать только с Delta Client?", pickVariant: "Выберите вариант",
     qTg: "Telegram *",
@@ -53,7 +54,7 @@ const I18N = {
 
     // Плейсхолдеры
     phUid: "Ваш UID в Delta Client",
-    phVideos: "Например: 2-3 ролика",
+    phVideos: "Например: 3",
     phCollab: "С какими клиентами/визуалами сотрудничали?",
     phWhy: "Расскажите о себе, планах, опыте...",
 
@@ -135,6 +136,7 @@ const I18N = {
     ttFakeLinkErr: "Вкажіть справжнє посилання на ваш TikTok-акаунт",
     qVideos: "Відео на тиждень *", qCollab: "Співпраці *",
     ytVideosInvalid: "Неприпустимі символи в кількості відео",
+    ytVideosDigitsOnly: "У полі кількості роликів дозволені лише цифри",
     qServers: "Сервери *", pickServers: "Оберіть сервери", other: "Інші",
     qWhy: "Чому ви? *", qExclusive: "Ви готові знімати тільки з Delta Client?", pickVariant: "Оберіть варіант",
     qTg: "Telegram *",
@@ -162,9 +164,9 @@ const I18N = {
     tfaDesc: "Ми надіслали запит у Telegram. Натисніть «✅ Підтвердити» у повідомленні від бота.",
     cancel: "Скасувати", confirm: "Підтвердити",
 
-    // Плейсхолдери
+    // Плейсхолдеры
     phUid: "Ваш UID у Delta Client",
-    phVideos: "Наприклад: 2-3 ролики",
+    phVideos: "Наприклад: 3",
     phCollab: "З якими клієнтами/візуалами співпрацювали?",
     phWhy: "Розкажіть про себе, плани, досвід...",
 
@@ -246,6 +248,7 @@ const I18N = {
     ttFakeLinkErr: "Enter a real link to your TikTok account",
     qVideos: "Videos per week *", qCollab: "Collaborations *",
     ytVideosInvalid: "Invalid characters in videos per week",
+    ytVideosDigitsOnly: "Only digits are allowed in videos per week",
     qServers: "Servers *", pickServers: "Choose servers", other: "Other",
     qWhy: "Why you? *", qExclusive: "Are you ready to record only with Delta Client?", pickVariant: "Choose an option",
     qTg: "Telegram *",
@@ -275,7 +278,7 @@ const I18N = {
 
     // Placeholders
     phUid: "Your UID in Delta Client",
-    phVideos: "For example: 2-3 videos",
+    phVideos: "For example: 3",
     phCollab: "Previous projects or servers?",
     phWhy: "Tell us about yourself, plans, experience...",
 

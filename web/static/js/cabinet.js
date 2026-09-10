@@ -145,16 +145,18 @@ function sendDesktopNotification(title, options = {}) {
   return null;
 }
 
-function renderModNotifBar() {
+function renderCabinetNotifBar() {
   const container = document.getElementById("cabinetNotifBar");
   if (!container) return;
-  if (!CURRENT_ACCOUNT || CURRENT_ACCOUNT.role !== "moderator" || !("Notification" in window)) {
+  if (!CURRENT_ACCOUNT || (CURRENT_ACCOUNT.role !== "moderator" && CURRENT_ACCOUNT.role !== "media") || !("Notification" in window)) {
     container.innerHTML = "";
     return;
   }
 
   const perm = Notification.permission;
-  const dismissed = sessionStorage.getItem("delta_mod_notif_dismissed") === "1";
+  const role = CURRENT_ACCOUNT.role;
+  const dismissedKey = "delta_cabinet_notif_dismissed_" + role;
+  const dismissed = sessionStorage.getItem(dismissedKey) === "1";
 
   if (perm === "default") {
     if (dismissed) {
@@ -163,10 +165,10 @@ function renderModNotifBar() {
           <div class="mod-notif-pill">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             <span>Оповещения на рабочий стол отключены</span>
-            <button type="button" class="mod-notif-pill-btn" id="btnEnableModNotifs">Включить</button>
+            <button type="button" class="mod-notif-pill-btn" id="btnEnableCabinetNotifs">Включить</button>
           </div>
         </div>`;
-      document.getElementById("btnEnableModNotifs")?.addEventListener("click", requestModNotificationPermission);
+      document.getElementById("btnEnableCabinetNotifs")?.addEventListener("click", requestCabinetNotificationPermission);
       return;
     }
 
@@ -185,15 +187,15 @@ function renderModNotifBar() {
           </div>
         </div>
         <div class="mod-notif-actions">
-          <button type="button" class="btn-primary btn-sm" id="btnEnableModNotifs">Разрешить</button>
-          <button type="button" class="btn-ghost btn-sm" id="btnDismissModNotifs">Не сейчас</button>
+          <button type="button" class="btn-primary btn-sm" id="btnEnableCabinetNotifs">Разрешить</button>
+          <button type="button" class="btn-ghost btn-sm" id="btnDismissCabinetNotifs">Не сейчас</button>
         </div>
       </div>`;
 
-    document.getElementById("btnEnableModNotifs")?.addEventListener("click", requestModNotificationPermission);
-    document.getElementById("btnDismissModNotifs")?.addEventListener("click", () => {
-      sessionStorage.setItem("delta_mod_notif_dismissed", "1");
-      renderModNotifBar();
+    document.getElementById("btnEnableCabinetNotifs")?.addEventListener("click", requestCabinetNotificationPermission);
+    document.getElementById("btnDismissCabinetNotifs")?.addEventListener("click", () => {
+      sessionStorage.setItem(dismissedKey, "1");
+      renderCabinetNotifBar();
     });
   } else if (perm === "granted") {
     container.innerHTML = `
@@ -201,10 +203,10 @@ function renderModNotifBar() {
         <div class="mod-notif-pill active">
           <span class="mod-notif-pill-dot"></span>
           <span>Оповещения на рабочий стол активны</span>
-          <button type="button" class="mod-notif-pill-btn" id="btnTestModNotif" title="Отправить тестовое уведомление на экран">Проверить</button>
+          <button type="button" class="mod-notif-pill-btn" id="btnTestCabinetNotif" title="Отправить тестовое уведомление на экран">Проверить</button>
         </div>
       </div>`;
-    document.getElementById("btnTestModNotif")?.addEventListener("click", testModNotification);
+    document.getElementById("btnTestCabinetNotif")?.addEventListener("click", testCabinetNotification);
   } else if (perm === "denied") {
     container.innerHTML = `
       <div class="mod-notif-pill-wrap">
@@ -216,20 +218,24 @@ function renderModNotifBar() {
   }
 }
 
-async function requestModNotificationPermission() {
+async function requestCabinetNotificationPermission() {
   if (!("Notification" in window)) {
     toast("Ваш браузер не поддерживает оповещения", "err");
     return;
   }
   try {
     const res = await Notification.requestPermission();
-    renderModNotifBar();
+    renderCabinetNotifBar();
     if (res === "granted") {
       toast("Уведомления на рабочий стол включены!", "ok");
       sendDesktopNotification("Delta Client — Оповещения активны", {
         body: "Теперь вы будете получать решения администратора прямо на рабочий стол!",
         tag: "delta-welcome"
       });
+      if (CURRENT_ACCOUNT) {
+        if (CURRENT_ACCOUNT.role === "moderator") startModNotificationsWatcher();
+        else if (CURRENT_ACCOUNT.role === "media") startMediaNotificationsWatcher();
+      }
     } else if (res === "denied") {
       toast("Уведомления заблокированы в настройках браузера", "err");
     }
@@ -238,9 +244,9 @@ async function requestModNotificationPermission() {
   }
 }
 
-function testModNotification() {
+function testCabinetNotification() {
   if (!("Notification" in window) || Notification.permission !== "granted") {
-    requestModNotificationPermission();
+    requestCabinetNotificationPermission();
     return;
   }
   sendDesktopNotification("Delta Client — Тестовое оповещение", {
@@ -254,6 +260,7 @@ function testModNotification() {
   toast("Тестовое уведомление отправлено на рабочий стол", "ok");
 }
 
+// ── Оповещения для модераторов ──
 let modNotifWatcherTimer = null;
 
 function getModCacheKey() {
@@ -367,11 +374,136 @@ function stopModNotificationsWatcher() {
   }
 }
 
-window.renderModNotifBar = renderModNotifBar;
-window.requestModNotificationPermission = requestModNotificationPermission;
-window.testModNotification = testModNotification;
+// ── Оповещения для медиа ──
+let mediaNotifWatcherTimer = null;
+
+function getMediaCacheKey() {
+  return CURRENT_ACCOUNT ? `delta_media_reqs_cache_${CURRENT_ACCOUNT.id}` : null;
+}
+
+function getMediaRequestsCache() {
+  const key = getMediaCacheKey();
+  if (!key) return {};
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveMediaRequestsCache(cache) {
+  const key = getMediaCacheKey();
+  if (!key) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(cache));
+  } catch (_) {}
+}
+
+async function pollMediaRequestsAndNotify() {
+  if (!CURRENT_ACCOUNT || CURRENT_ACCOUNT.role !== "media") {
+    stopMediaNotificationsWatcher();
+    return;
+  }
+
+  try {
+    const resp = await GET("/api/cabinet/requests");
+    const requests = resp && resp.data ? resp.data : [];
+    const cache = getMediaRequestsCache();
+    const isFirstRun = Object.keys(cache).length === 0;
+
+    let updated = false;
+    const newDecisions = [];
+
+    requests.forEach((r) => {
+      const key = `${r.kind}:${r.id}`;
+      const prev = cache[key];
+      const comment = r.decision_comment || r.admin_comment || "";
+
+      if (!isFirstRun && prev) {
+        const wasPending = prev.status === "pending";
+        const isDecided = r.status === "approved" || r.status === "rejected";
+        const newComment = comment && comment !== prev.comment;
+
+        if ((wasPending && isDecided) || (isDecided && newComment)) {
+          newDecisions.push(r);
+        }
+      }
+
+      if (!prev || prev.status !== r.status || prev.comment !== comment) {
+        cache[key] = { status: r.status, comment: comment };
+        updated = true;
+      }
+    });
+
+    if (updated || isFirstRun) {
+      saveMediaRequestsCache(cache);
+    }
+
+    newDecisions.forEach((item) => {
+      notifyMediaRequestVerdict(item);
+    });
+
+    if (newDecisions.length > 0 && cabinetActiveTab === "my") {
+      renderMyRequests();
+    }
+  } catch (_) {}
+}
+
+function notifyMediaRequestVerdict(item) {
+  const isApproved = item.status === "approved";
+  const kindTitle = {
+    payout: "Заявка на выплату",
+    lot: "Заявка на лот",
+    subscription: "Запрос подписки",
+    idea: "Идея",
+    bug: "Баг-репорт"
+  }[item.kind] || "Заявка";
+
+  const title = `Delta Client — ${kindTitle} ${isApproved ? "одобрена ✅" : "отклонена ❌"}`;
+  let body = `${kindTitle} #${item.id} (${item.want || item.amount || ""})\nСтатус: ${isApproved ? "Одобрено" : "Отклонено"}`;
+  const comment = item.decision_comment || item.admin_comment;
+  if (comment) {
+    body += `\nОтвет администратора: ${comment}`;
+  }
+
+  sendDesktopNotification(title, {
+    body: body,
+    tag: `delta-media-decision-${item.kind}-${item.id}-${item.status}`,
+    onClick: () => {
+      if (typeof showView === "function") showView("cabinet");
+      if (typeof switchCabinetTab === "function") switchCabinetTab("my");
+      openRequestDetailsModal(item, "media");
+    }
+  });
+
+  toast(`${kindTitle} #${item.id}: ${isApproved ? "Одобрено" : "Отклонено"}${comment ? " — " + comment : ""}`, isApproved ? "ok" : "err", 6500);
+}
+
+function startMediaNotificationsWatcher() {
+  stopMediaNotificationsWatcher();
+  if (!CURRENT_ACCOUNT || CURRENT_ACCOUNT.role !== "media") return;
+  mediaNotifWatcherTimer = setInterval(pollMediaRequestsAndNotify, 12000);
+  pollMediaRequestsAndNotify();
+}
+
+function stopMediaNotificationsWatcher() {
+  if (mediaNotifWatcherTimer) {
+    clearInterval(mediaNotifWatcherTimer);
+    mediaNotifWatcherTimer = null;
+  }
+}
+
+window.renderModNotifBar = renderCabinetNotifBar;
+window.renderCabinetNotifBar = renderCabinetNotifBar;
+window.requestCabinetNotificationPermission = requestCabinetNotificationPermission;
+window.requestModNotificationPermission = requestCabinetNotificationPermission;
+window.testCabinetNotification = testCabinetNotification;
+window.testModNotification = testCabinetNotification;
 window.startModNotificationsWatcher = startModNotificationsWatcher;
 window.stopModNotificationsWatcher = stopModNotificationsWatcher;
+window.startMediaNotificationsWatcher = startMediaNotificationsWatcher;
+window.stopMediaNotificationsWatcher = stopMediaNotificationsWatcher;
 
 async function loadCabinet() {
   if (!CURRENT_ACCOUNT) return;
@@ -381,9 +513,11 @@ async function loadCabinet() {
     admin: t("cabinetAdmin")
   };
   document.getElementById("cabinetTitle").textContent = titles[CURRENT_ACCOUNT.role] || t("cabinetTitle");
-  renderModNotifBar();
+  renderCabinetNotifBar();
   if (CURRENT_ACCOUNT.role === "moderator") {
     startModNotificationsWatcher();
+  } else if (CURRENT_ACCOUNT.role === "media") {
+    startMediaNotificationsWatcher();
   }
   const tabs = cabinetTabsForRole(CURRENT_ACCOUNT.role);
   document.getElementById("cabinetTabs").innerHTML =
@@ -396,10 +530,17 @@ async function loadCabinet() {
 
 // ── Формы с доказательствами (модераторы) ──
 function buildProofForm(kind, title, targetLabel, targetName) {
+  const isHwid = (kind === "hwid");
+  const uidAttrs = isHwid ? ' id="hwidUid" inputmode="numeric" pattern="[0-9]*" autocomplete="off"' : '';
+  const errorMsg = isHwid ? `
+    <p class="field-error-text hidden" id="hwidUidError">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span>В поле UID разрешены только цифры</span>
+    </p>` : '';
   return `
   <form class="card form-card" id="form-${kind}">
     <h3>${CABINET_ICONS[kind] || ""} ${title}</h3>
-    <div class="field"><label>${targetLabel} *</label><input type="text" name="${targetName}" required maxlength="64" placeholder="${targetLabel}"></div>
+    <div class="field"><label>${targetLabel} *</label><input type="text" name="${targetName}" required maxlength="64" placeholder="${targetLabel}"${uidAttrs}>${errorMsg}</div>
     <div class="field">
       <label>Доказательства (файлы и/или ссылка) *</label>
       <div class="proof-dropzone" id="dropzone-${kind}">
@@ -457,7 +598,14 @@ function buildPayoutForm() {
   <form class="card form-card" id="form-payout">
     <h3>${CABINET_ICONS.payout} Заявка на выплату</h3>
     <p class="hint">Приём заявок: понедельник 00:00 — вторник 22:00 (МСК).</p>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric"></div>
+    <div class="field">
+      <label>Ваш UID *</label>
+      <input type="text" name="uid" id="payoutUid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+      <p class="field-error-text hidden" id="payoutUidError">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>В поле UID разрешены только цифры</span>
+      </p>
+    </div>
     <div class="field"><label>Ваш промокод *</label><input type="text" name="promo_code" id="payoutPromo" required placeholder="Например: DELTA2026" maxlength="64"></div>
     <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
     <div class="field"><label>Какая ставка *</label><input type="text" name="rate" required placeholder="Например: 500₽ за ролик / 15 USDT" maxlength="100"></div>
@@ -480,7 +628,14 @@ function buildLotForm() {
   return `
   <form class="card form-card" id="form-lot">
     <h3>${CABINET_ICONS.lot} Заявка на лот</h3>
-    <div class="field"><label>Ваш UID в Delta Client *</label><input type="text" name="uid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric"></div>
+    <div class="field">
+      <label>Ваш UID в Delta Client *</label>
+      <input type="text" name="uid" id="lotUid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+      <p class="field-error-text hidden" id="lotUidError">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>В поле UID разрешены только цифры</span>
+      </p>
+    </div>
     <div class="field">
       <label>Платформа *</label>
       <div class="choice-row" id="lotPlatformChoice">
@@ -522,7 +677,7 @@ function buildLotForm() {
       <input type="hidden" name="lot_type" id="lotTypeInput" value="sub">
     </div>
     <div class="field hidden" id="rowLotCustom">
-      <label>Укажите, что именно вы хотите получить *</label>
+      <label id="lotWantCustomLabel">Укажите, что именно вы хотите получить *</label>
       <textarea name="want_custom" id="lotWantCustom" maxlength="300" rows="3" placeholder="Подробно опишите, что вам необходимо..."></textarea>
     </div>
     <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
@@ -955,6 +1110,21 @@ function bindCabinetForms() {
     });
   }
 
+  // Валидация цифровых UID полей в кабинете
+  if (typeof attachNumericUIDValidation === "function") {
+    const hwidUid = document.getElementById("hwidUid");
+    const hwidUidErr = document.getElementById("hwidUidError");
+    if (hwidUid) attachNumericUIDValidation(hwidUid, hwidUidErr);
+
+    const payoutUid = document.getElementById("payoutUid");
+    const payoutUidErr = document.getElementById("payoutUidError");
+    if (payoutUid) attachNumericUIDValidation(payoutUid, payoutUidErr);
+
+    const lotUid = document.getElementById("lotUid");
+    const lotUidErr = document.getElementById("lotUidError");
+    if (lotUid) attachNumericUIDValidation(lotUid, lotUidErr);
+  }
+
   // Переключение типа лота (выдача сабки / косметика / что-то другое)
   const lotChoice = document.getElementById("lotTypeChoice");
   if (lotChoice) {
@@ -968,13 +1138,28 @@ function bindCabinetForms() {
 
         const rowCustom = document.getElementById("rowLotCustom");
         const customInput = document.getElementById("lotWantCustom");
+        const customLabel = document.getElementById("lotWantCustomLabel");
 
-        if (val === "other") {
+        if (val === "cosmetics") {
           rowCustom?.classList.remove("hidden");
-          if (customInput) customInput.required = true;
+          if (customLabel) customLabel.textContent = "Какая косметика вам необходима? *";
+          if (customInput) {
+            customInput.required = true;
+            customInput.placeholder = "Укажите желаемую косметику (например: плащ, крылья, маска)...";
+          }
+        } else if (val === "other") {
+          rowCustom?.classList.remove("hidden");
+          if (customLabel) customLabel.textContent = "Укажите, что именно вы хотите получить *";
+          if (customInput) {
+            customInput.required = true;
+            customInput.placeholder = "Подробно опишите, что вам необходимо...";
+          }
         } else {
           rowCustom?.classList.add("hidden");
-          if (customInput) customInput.required = false;
+          if (customInput) {
+            customInput.required = false;
+            customInput.value = "";
+          }
         }
       });
     });
@@ -1078,6 +1263,15 @@ async function bindProofForm(kind) {
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (kind === "hwid") {
+      const uidVal = (form.querySelector('[name="uuid"]')?.value || "").trim();
+      if (/\D/.test(uidVal)) {
+        toast("В поле UID разрешены только цифры", "err");
+        const uidEl = form.querySelector('[name="uuid"]');
+        if (uidEl) uidEl.classList.add("uid-error");
+        return;
+      }
+    }
     const linkVal = (form.querySelector('[name="proof_link"]')?.value || "").trim();
     if (picked.length === 0 && !linkVal) {
       toast("Приложите доказательства: выберите файл(ы) или укажите ссылку", "err");
@@ -1328,6 +1522,14 @@ async function bindSimpleForm(kind) {
     const btn = form.querySelector("button[type=submit]");
     const body = formToJSON(form);
     if (kind === "payout") {
+      const uidVal = (body.uid || "").trim();
+      if (/\D/.test(uidVal)) {
+        toast("В поле UID разрешены только цифры", "err");
+        const uidEl = form.querySelector('[name="uid"]');
+        if (uidEl) uidEl.classList.add("uid-error");
+        buttonState(btn, "err", "Только цифры в UID", 3000);
+        return;
+      }
       body.promo_code = (body.promo_code || "").trim();
       if (!body.promo_code) {
         toast("Укажите ваш промокод", "err");
@@ -1347,14 +1549,29 @@ async function bindSimpleForm(kind) {
       }
     }
     if (kind === "lot") {
+      const uidVal = (body.uid || "").trim();
+      if (/\D/.test(uidVal)) {
+        toast("В поле UID разрешены только цифры", "err");
+        const uidEl = form.querySelector('[name="uid"]');
+        if (uidEl) uidEl.classList.add("uid-error");
+        buttonState(btn, "err", "Только цифры в UID", 3000);
+        return;
+      }
       const lotType = body.lot_type || "sub";
       if (lotType === "sub") {
         body.want = "Выдача сабки";
       } else if (lotType === "cosmetics") {
-        body.want = "Косметика";
+        const cosmeticDetails = (body.want_custom || "").trim();
+        if (!cosmeticDetails) {
+          toast("Укажите, какая косметика вам необходима", "err");
+          buttonState(btn, "err", "Укажите косметику", 3000);
+          return;
+        }
+        body.want = "Косметика: " + cosmeticDetails;
       } else if (lotType === "other") {
         if (!body.want_custom || !body.want_custom.trim()) {
           toast("Укажите, что именно вы хотите получить", "err");
+          buttonState(btn, "err", "Заполните поле", 3000);
           return;
         }
         body.want = body.want_custom.trim();
@@ -1389,6 +1606,13 @@ async function bindSimpleForm(kind) {
       }
       if (kind === "lot") {
         document.getElementById("rowLotCustom")?.classList.add("hidden");
+        const customLabel = document.getElementById("lotWantCustomLabel");
+        if (customLabel) customLabel.textContent = "Укажите, что именно вы хотите получить *";
+        const customInput = document.getElementById("lotWantCustom");
+        if (customInput) {
+          customInput.required = false;
+          customInput.placeholder = "Подробно опишите, что вам необходимо...";
+        }
         const choice = document.getElementById("lotTypeChoice");
         if (choice) {
           choice.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.value === "sub"));

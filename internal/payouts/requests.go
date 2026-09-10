@@ -104,9 +104,9 @@ func (s *Service) HandlePaste(nickname, telegram string, tgUserID int64, text st
 		return 0, "", err
 	}
 
-	uid, ok := validation.UID(fields["uid"])
+	uid, ok := validation.NumericUID(fields["uid"])
 	if !ok {
-		return 0, "", fmt.Errorf("некорректный UID")
+		return 0, "", fmt.Errorf("в поле UID разрешены только цифры")
 	}
 	method, err := parseMethod(fields["method"])
 	if err != nil {

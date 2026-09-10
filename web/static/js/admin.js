@@ -1502,7 +1502,11 @@ function openBanModal(ban) {
         </div>
         <div class="ban-field-row">
           <label>UID</label>
-          <input type="text" name="uid" placeholder="UID пользователя" value="${esc(uidVal)}">
+          <input type="text" name="uid" id="banModalUid" placeholder="UID пользователя" value="${esc(uidVal)}" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+          <p class="field-error-text hidden" id="banModalUidError">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>В поле UID разрешены только цифры</span>
+          </p>
         </div>
         <div class="ban-field-row">
           <label>Telegram</label>
@@ -1554,6 +1558,13 @@ function openBanModal(ban) {
   };
   window.addEventListener("keydown", onKeyEsc);
 
+  // Валидация цифрового UID
+  const banUidInput = document.getElementById("banModalUid");
+  const banUidError = document.getElementById("banModalUidError");
+  if (typeof attachNumericUIDValidation === "function") {
+    attachNumericUIDValidation(banUidInput, banUidError);
+  }
+
   document.getElementById("banModalClearBtn")?.addEventListener("click", () => {
     const form = document.getElementById("banModalForm");
     if (!form) return;
@@ -1584,6 +1595,13 @@ function openBanModal(ban) {
       ip: (fd.get("ip") || "").trim(),
       reason: (fd.get("reason") || "").trim(),
     };
+
+    if (payload.uid && /\D/.test(payload.uid)) {
+      toast("В поле UID разрешены только цифры", "err");
+      const uidInp = e.target.querySelector('[name="uid"]');
+      if (uidInp) uidInp.classList.add("uid-error");
+      return;
+    }
 
     const hasAny = payload.channel || payload.uid || payload.telegram || payload.discord || payload.ip;
     if (!hasAny) {

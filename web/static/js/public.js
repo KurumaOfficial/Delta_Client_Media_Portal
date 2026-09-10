@@ -9,7 +9,7 @@ async function loadSiteConfig() {
   try {
     SITE_CONFIG = await GET("/api/health");
     const staff = SITE_CONFIG.staff_contact || "notyxs";
-    const admin = SITE_CONFIG.admin_contact || "notyxx";
+    const admin = SITE_CONFIG.admin_contact || "notyxs";
     const staffBtn = document.getElementById("staffContactBtn");
     if (staffBtn) staffBtn.href = "https://t.me/" + staff;
     const bugBtn = document.getElementById("bugReportBtn");
@@ -313,7 +313,7 @@ function initPublicForm() {
     });
   }
 
-  // ═══ Валидация количества видео в неделю (проверка на символы) ═══
+  // ═══ Валидация количества видео в неделю (только цифры) ═══
   const ytVideosInput = document.getElementById("ytVideos");
   const ytVideosError = document.getElementById("ytVideosErrorText");
   const ytVideosErrorMsg = document.getElementById("ytVideosErrorMsg");
@@ -323,13 +323,8 @@ function initPublicForm() {
     if (!v) {
       return { valid: false, empty: true, errorMsg: "Укажите количество роликов в неделю" };
     }
-    // Разрешены: цифры, буквы (кириллица/латиница), пробелы, дефис, точка, запятая, слэш
-    const allowedRe = /^[0-9a-zA-Zа-яА-ЯёЁ\s\-\,\.\/]+$/;
-    if (!allowedRe.test(v)) {
-      return { valid: false, empty: false, errorMsg: t("ytVideosInvalid") || "Недопустимые символы в количестве видео (разрешены цифры, буквы, дефис)" };
-    }
-    if (!/\d/.test(v)) {
-      return { valid: false, empty: false, errorMsg: "Укажите число роликов (например: 2-3 ролика)" };
+    if (/\D/.test(v)) {
+      return { valid: false, empty: false, errorMsg: t("ytVideosDigitsOnly") || "В поле количества роликов разрешены только цифры" };
     }
     return { valid: true, empty: false };
   }
@@ -353,6 +348,25 @@ function initPublicForm() {
       } else {
         ytVideosInput.classList.remove("videos-error");
         if (ytVideosError) ytVideosError.classList.add("hidden");
+      }
+    });
+
+    ytVideosInput.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+      if (["Backspace", "Delete", "Tab", "Enter", "Escape", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
+      if (!/^\d$/.test(e.key)) {
+        e.preventDefault();
+        ytVideosInput.classList.add("videos-error");
+        if (ytVideosError && ytVideosErrorMsg) {
+          ytVideosErrorMsg.textContent = t("ytVideosDigitsOnly") || "В поле количества роликов разрешены только цифры";
+          ytVideosError.classList.remove("hidden");
+        }
+        setTimeout(() => {
+          if (!/\D/.test(ytVideosInput.value.trim())) {
+            ytVideosInput.classList.remove("videos-error");
+            if (ytVideosError) ytVideosError.classList.add("hidden");
+          }
+        }, 2200);
       }
     });
 
@@ -700,7 +714,7 @@ async function submitMediaApp(e) {
     ["ytBlock", "ttBlock", "commonBlock"].forEach((id) => document.getElementById(id).classList.add("hidden"));
     document.getElementById("whyCount").textContent = "0";
     setTgVerifyState("idle");
-    if (turnstileWidgetId !== null && window.turnstile) window.turnstile.reset(turnstileWidgetId);
+    resetMediaTurnstile();
   } catch (ex) {
     if (ex.tg_required) { err(ex.error || t("tgStatusErr")); return; }
     if (ex.banned) { buttonState(btn, "err", ex.error, 6000); return; }

@@ -7,11 +7,12 @@ func TestVideosPerWeek(t *testing.T) {
 		in    string
 		valid bool
 	}{
-		{"2-3 ролика", true},
-		{"5 видео в неделю", true},
-		{"1-2", true},
 		{"3", true},
-		{"10 роликов/неделю", true},
+		{"1", true},
+		{"10", true},
+		{"2-3 ролика", false},
+		{"5 видео в неделю", false},
+		{"1-2", false},
 		{"abc", false},
 		{"", false},
 		{"   ", false},

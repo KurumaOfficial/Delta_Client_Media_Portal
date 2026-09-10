@@ -138,7 +138,7 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		var validVideos bool
 		videosPerWeek, validVideos = validation.VideosPerWeek(body.VideosPerWeek)
 		if !validVideos {
-			return badRequest(c, "Недопустимые символы в поле роликов в неделю (разрешены цифры, буквы, дефис)")
+			return badRequest(c, "В поле количества роликов в неделю разрешены только цифры")
 		}
 	} else {
 		channel, ok = validation.TikTokChannel(body.ChannelURL)
