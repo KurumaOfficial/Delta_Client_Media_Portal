@@ -36,8 +36,7 @@
 
 | Ветка | Статус | Описание | Стек |
 | :--- | :---: | :--- | :--- |
-| **`main`** | **Active (V2)** | **Основная production-ветка.** Полный рекод портала на базе Go Fiber v2, SPA, 2FA, автономный бэкенд без внешних BaaS. | Go 1.22+, Fiber v2, SQLite / PostgreSQL, Vanilla JS SPA |
-| **`V2`** | Development | Ветка разработки и внедрения новых модулей поколения V2. | Go 1.22+, Fiber v2 |
+| **`main`** | **Active (Production)** | **Основная рабочая ветка.** Полный рекод портала V2 на базе Go Fiber v2, модульного SPA, 2FA и автономного бэкенда. | Go 1.22+, Fiber v2, SQLite / PostgreSQL, Vanilla JS SPA |
 | **`Legacy`** | Archived (V1.4) | Историческая версия 1.4 клиентского портала (Supabase + клиентский JS). Сохранена для обратной совместимости и архива. | Supabase, HTML5, Vanilla JS |
 
 ---
