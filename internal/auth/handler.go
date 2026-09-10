@@ -33,7 +33,7 @@ type Handler struct {
 }
 
 func NewHandler(svc *Service, db *database.DB, gpsRequired, devAutoApprove bool, turnstileSecret string) *Handler {
-	return &Handler{
+	h := &Handler{
 		svc:             svc,
 		db:              db,
 		gpsRequired:     gpsRequired,
@@ -41,6 +41,16 @@ func NewHandler(svc *Service, db *database.DB, gpsRequired, devAutoApprove bool,
 		turnstileSecret: turnstileSecret,
 		ipAttempts:      make(map[string][]time.Time),
 	}
+	h.ResetAllLimits()
+	return h
+}
+
+// ResetAllLimits сбрасывает все блокировки попыток входа (и в памяти, и в БД).
+func (h *Handler) ResetAllLimits() {
+	h.ipMu.Lock()
+	h.ipAttempts = make(map[string][]time.Time)
+	h.ipMu.Unlock()
+	_ = h.db.ResetFailedLogins()
 }
 
 func (h *Handler) SetNotifier(n Notifier) { h.notifier = n }

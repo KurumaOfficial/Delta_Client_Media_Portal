@@ -27,6 +27,12 @@ func (db *DB) FailedLoginsInWindow(ip string, window time.Duration) int {
 	return count
 }
 
+// ResetFailedLogins очищает все зафиксированные неудачные попытки входа для всех IP.
+func (db *DB) ResetFailedLogins() error {
+	_, err := db.SQL.Exec(`UPDATE v2_audit_logs SET status = 'failed_cleared' WHERE event_type = 'LOGIN' AND status = 'failed'`)
+	return err
+}
+
 // Setting читает значение из v2_settings (пусто, если нет ключа).
 func (db *DB) Setting(key string) string {
 	var value string

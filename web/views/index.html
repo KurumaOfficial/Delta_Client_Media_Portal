@@ -117,6 +117,10 @@
       <div class="field">
         <label data-i18n="qVideos">Роликов в неделю *</label>
         <input type="text" id="ytVideos" placeholder="Например: 2-3 ролика" data-i18n-ph="phVideos" maxlength="100">
+        <p class="field-error-text hidden" id="ytVideosErrorText">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span id="ytVideosErrorMsg" data-i18n="ytVideosInvalid">Недопустимые символы в поле количества видео</span>
+        </p>
       </div>
     </div>
 

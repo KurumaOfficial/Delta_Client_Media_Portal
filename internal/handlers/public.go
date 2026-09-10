@@ -129,21 +129,24 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 	if !ok {
 		return badRequest(c, "Укажите корректный Telegram @username")
 	}
-	var channel string
+	var channel, videosPerWeek, collaborations string
 	if body.Platform == "youtube" {
 		channel, ok = validation.YouTubeChannel(body.ChannelURL)
 		if !ok {
 			return badRequest(c, "Укажите прямую ссылку на YouTube КАНАЛ (не видео)")
 		}
-		if v := validation.Clean(body.VideosPerWeek, 100); v == "" {
-			return badRequest(c, "Укажите, сколько роликов в неделю выходит")
+		var validVideos bool
+		videosPerWeek, validVideos = validation.VideosPerWeek(body.VideosPerWeek)
+		if !validVideos {
+			return badRequest(c, "Недопустимые символы в поле роликов в неделю (разрешены цифры, буквы, дефис)")
 		}
 	} else {
 		channel, ok = validation.TikTokChannel(body.ChannelURL)
 		if !ok {
 			return badRequest(c, "Укажите прямую ссылку на TikTok-аккаунт")
 		}
-		if v := validation.Clean(body.Collaborations, 300); v == "" {
+		collaborations = validation.Clean(body.Collaborations, 300)
+		if collaborations == "" {
 			return badRequest(c, "Укажите, с какими клиентами сотрудничали")
 		}
 	}
@@ -198,14 +201,14 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		 collaborations, why_join, exclusive, telegram)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		langOrDefault(body.Lang), uid, 1, body.Platform, channel, servers,
-		validation.Clean(body.VideosPerWeek, 100), validation.Clean(body.Collaborations, 300),
+		videosPerWeek, collaborations,
 		why, body.Exclusive, tg)
 	if err != nil {
 		return serverError(c, "Не удалось сохранить заявку")
 	}
 
 	app := models.MediaApp{ID: id, UID: uid, Platform: body.Platform, ChannelURL: channel,
-		Servers: servers, VideosPerWeek: body.VideosPerWeek, Collaborations: body.Collaborations,
+		Servers: servers, VideosPerWeek: videosPerWeek, Collaborations: collaborations,
 		WhyJoin: why, Exclusive: body.Exclusive, Telegram: tg}
 	h.tg.NotifyMediaApp(app)
 	h.db.RecordAudit("APP_SUBMIT", "success",

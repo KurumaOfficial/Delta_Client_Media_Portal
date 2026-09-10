@@ -296,8 +296,77 @@ function initPublicForm() {
       if (e.ctrlKey || e.altKey || e.metaKey) return;
       if (["Backspace", "Delete", "Tab", "Enter", "Escape", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) return;
       if (!/^\d$/.test(e.key)) {
+        e.preventDefault();
         uidInput.classList.add("uid-error");
         if (uidError) uidError.classList.remove("hidden");
+        setTimeout(() => {
+          if (!/\D/.test(uidInput.value.trim())) {
+            uidInput.classList.remove("uid-error");
+            if (uidError) uidError.classList.add("hidden");
+          }
+        }, 2200);
+      }
+    });
+
+    uidInput.addEventListener("blur", () => {
+      validateUidDigits();
+    });
+  }
+
+  // ═══ Валидация количества видео в неделю (проверка на символы) ═══
+  const ytVideosInput = document.getElementById("ytVideos");
+  const ytVideosError = document.getElementById("ytVideosErrorText");
+  const ytVideosErrorMsg = document.getElementById("ytVideosErrorMsg");
+
+  function validateVideosPerWeek(val) {
+    const v = (val || "").trim();
+    if (!v) {
+      return { valid: false, empty: true, errorMsg: "Укажите количество роликов в неделю" };
+    }
+    // Разрешены: цифры, буквы (кириллица/латиница), пробелы, дефис, точка, запятая, слэш
+    const allowedRe = /^[0-9a-zA-Zа-яА-ЯёЁ\s\-\,\.\/]+$/;
+    if (!allowedRe.test(v)) {
+      return { valid: false, empty: false, errorMsg: t("ytVideosInvalid") || "Недопустимые символы в количестве видео (разрешены цифры, буквы, дефис)" };
+    }
+    if (!/\d/.test(v)) {
+      return { valid: false, empty: false, errorMsg: "Укажите число роликов (например: 2-3 ролика)" };
+    }
+    return { valid: true, empty: false };
+  }
+  window._validateVideosPerWeek = validateVideosPerWeek;
+
+  if (ytVideosInput) {
+    ytVideosInput.addEventListener("input", () => {
+      const v = ytVideosInput.value.trim();
+      if (!v) {
+        ytVideosInput.classList.remove("videos-error");
+        if (ytVideosError) ytVideosError.classList.add("hidden");
+        return;
+      }
+      const res = validateVideosPerWeek(v);
+      if (!res.valid) {
+        ytVideosInput.classList.add("videos-error");
+        if (ytVideosError && ytVideosErrorMsg) {
+          ytVideosErrorMsg.textContent = res.errorMsg;
+          ytVideosError.classList.remove("hidden");
+        }
+      } else {
+        ytVideosInput.classList.remove("videos-error");
+        if (ytVideosError) ytVideosError.classList.add("hidden");
+      }
+    });
+
+    ytVideosInput.addEventListener("blur", () => {
+      const v = ytVideosInput.value.trim();
+      if (v) {
+        const res = validateVideosPerWeek(v);
+        if (!res.valid) {
+          ytVideosInput.classList.add("videos-error");
+          if (ytVideosError && ytVideosErrorMsg) {
+            ytVideosErrorMsg.textContent = res.errorMsg;
+            ytVideosError.classList.remove("hidden");
+          }
+        }
       }
     });
   }
@@ -564,7 +633,26 @@ async function submitMediaApp(e) {
   if (chanRes.normalized) {
     body.channel_url = chanRes.normalized;
   }
-  if (platform === "youtube" && !body.videos_per_week) return err("Укажите роликов в неделю");
+  if (platform === "youtube") {
+    const vCheck = (typeof window._validateVideosPerWeek === "function")
+      ? window._validateVideosPerWeek(body.videos_per_week)
+      : { valid: !!body.videos_per_week, errorMsg: "Укажите количество роликов в неделю" };
+    if (!vCheck.valid) {
+      const vInput = document.getElementById("ytVideos");
+      const vErr = document.getElementById("ytVideosErrorText");
+      const vErrMsg = document.getElementById("ytVideosErrorMsg");
+      if (vInput) {
+        vInput.classList.add("videos-error");
+        vInput.scrollIntoView({ behavior: "smooth", block: "center" });
+        vInput.focus();
+      }
+      if (vErr && vErrMsg) {
+        vErrMsg.textContent = vCheck.errorMsg;
+        vErr.classList.remove("hidden");
+      }
+      return err(vCheck.errorMsg);
+    }
+  }
   if (platform === "tiktok" && !body.collaborations) return err("Укажите сотрудничества");
   if (!servers.length) return err("Выберите серверы");
   if (body.why_join.length < 10) return err("Мотивация — минимум 10 символов");

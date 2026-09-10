@@ -325,12 +325,6 @@ async function renderOverview() {
             <b class="info-metric-num">${stats.accounts_total}</b>
             <span class="info-metric-lbl">Активные аккаунты</span>
           </div>
-
-          <!-- 5. Идеи и баги -->
-          <div class="info-metric-card" data-jump="ideas" title="Перейти в раздел Идеи и баги">
-            <b class="info-metric-num">${stats.ideas_total ?? stats.ideas_pending ?? 0}</b>
-            <span class="info-metric-lbl">Идеи и баги</span>
-          </div>
         </div>
       </div>
     </div>`;
@@ -1705,11 +1699,9 @@ const SETTING_GROUPS = [
     ]
   },
   {
-    title: "Модерация (Сбросы и Discord)",
-    desc: "Уведомления модераторам в Telegram о статусе рассмотрения их запросов",
+    title: "Модерация (Discord)",
+    desc: "Уведомления модераторам в Telegram о статусе рассмотрения Discord-банов",
     items: [
-      ["hwid_approve_text", "Текст при одобрении сброса", "Отправляется модератору в Telegram при одобрении сброса. Плейсхолдеры: {id} — номер, {comment} — комментарий / UID."],
-      ["hwid_reject_text", "Текст при отклонении сброса", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
       ["discord_approve_text", "Текст при одобрении Discord-бана", "Отправляется модератору в Telegram при одобрении бана. Плейсхолдеры: {id} — номер, {comment} — заблокированный ID."],
       ["discord_reject_text", "Текст при отклонении Discord-бана", "Отправляется модератору в Telegram при отказе. Плейсхолдеры: {id} — номер, {reason} — причина отказа."],
     ]

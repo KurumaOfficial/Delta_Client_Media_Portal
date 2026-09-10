@@ -146,6 +146,14 @@ function startTaglineTypewriter() {
 }
 
 // ═══ Защита от подбора кода (максимум 3 неверных ввода в день) ═══
+try {
+  if (localStorage.getItem("delta_lockout_reset_v2") !== "done") {
+    localStorage.removeItem("delta_login_lock_until");
+    localStorage.removeItem("delta_failed_login_attempts");
+    localStorage.setItem("delta_lockout_reset_v2", "done");
+  }
+} catch (_) {}
+
 function checkBrowserLoginLock() {
   const lockUntil = parseInt(localStorage.getItem("delta_login_lock_until") || "0", 10);
   const now = Date.now();

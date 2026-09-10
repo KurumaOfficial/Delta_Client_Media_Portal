@@ -16,6 +16,8 @@ var (
 	reUID        = regexp.MustCompile(`^[a-zA-Z0-9\-_]{3,64}$`)
 	reNumericUID = regexp.MustCompile(`^[0-9]{1,64}$`)
 	reDiscord    = regexp.MustCompile(`^[0-9]{5,20}$|^@?[a-zA-Z0-9._]{2,32}$`)
+	reVideos     = regexp.MustCompile(`^[0-9a-zA-Z\p{Cyrillic}\s\-\,\.\/]+$`)
+	reHasDigit   = regexp.MustCompile(`[0-9]`)
 )
 
 // Clean нормализует строку: trim, удаление управляющих символов.
@@ -192,4 +194,17 @@ func Servers(raw []string) (string, bool) {
 		}
 	}
 	return strings.Join(uniq, ", "), true
+}
+
+// VideosPerWeek проверяет и нормализует количество роликов в неделю.
+// Разрешены цифры, буквы, пробелы, дефис, точка, запятая, слэш. Обязательно наличие хотя бы одной цифры.
+func VideosPerWeek(raw string) (string, bool) {
+	v := Clean(raw, 100)
+	if v == "" {
+		return "", false
+	}
+	if !reVideos.MatchString(v) || !reHasDigit.MatchString(v) {
+		return "", false
+	}
+	return v, true
 }

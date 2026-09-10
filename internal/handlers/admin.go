@@ -362,6 +362,10 @@ func (h *Admin) decideMedia(id int64, approve bool, comment, actor string) error
 		st, comment, time.Now(), id); err != nil {
 		return err
 	}
+	if !approve {
+		cleanTg := strings.ToLower(strings.TrimPrefix(tgUsername, "@"))
+		_, _ = h.db.Exec(`UPDATE v2_tg_users SET last_incoming_at = NULL WHERE LOWER(username) = ?`, cleanTg)
+	}
 	h.tg.SendVerdict(tgUsername, "media", id, approve, comment)
 	h.db.RecordAudit("STATUS_CHANGE", st, "Медиа-заявка #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
 	return nil

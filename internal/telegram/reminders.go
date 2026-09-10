@@ -22,9 +22,20 @@ func (s *Service) WindowWatcher() {
 
 func (s *Service) checkWindows() {
 	rows, err := s.db.Query(`
-		SELECT tg_user_id, username, business_chat_id, last_incoming_at, last_nudge_at
-		FROM v2_tg_users
-		WHERE business_chat_id != 0 AND last_incoming_at IS NOT NULL`)
+		SELECT u.tg_user_id, u.username, u.business_chat_id, u.last_incoming_at, u.last_nudge_at
+		FROM v2_tg_users u
+		WHERE u.business_chat_id != 0 AND u.last_incoming_at IS NOT NULL
+		  AND NOT EXISTS (
+		      SELECT 1 FROM v2_media_apps m
+		      WHERE LOWER(LTRIM(m.telegram, '@')) = LOWER(u.username)
+		        AND m.status = 'rejected'
+		        AND NOT EXISTS (
+		            SELECT 1 FROM v2_media_apps m2
+		            WHERE LOWER(LTRIM(m2.telegram, '@')) = LOWER(u.username)
+		              AND m2.status IN ('pending', 'approved')
+		              AND m2.id > m.id
+		        )
+		  )`)
 	if err != nil {
 		return
 	}
@@ -80,9 +91,21 @@ type WindowState struct {
 // WindowStates — список состояний окон (админка подстраивается под таймеры).
 func (s *Service) WindowStates() []WindowState {
 	rows, err := s.db.Query(`
-		SELECT username, tg_user_id, last_incoming_at, last_nudge_at
-		FROM v2_tg_users WHERE business_chat_id != 0 AND last_incoming_at IS NOT NULL
-		ORDER BY last_incoming_at DESC LIMIT 100`)
+		SELECT u.username, u.tg_user_id, u.last_incoming_at, u.last_nudge_at
+		FROM v2_tg_users u
+		WHERE u.business_chat_id != 0 AND u.last_incoming_at IS NOT NULL
+		  AND NOT EXISTS (
+		      SELECT 1 FROM v2_media_apps m
+		      WHERE LOWER(LTRIM(m.telegram, '@')) = LOWER(u.username)
+		        AND m.status = 'rejected'
+		        AND NOT EXISTS (
+		            SELECT 1 FROM v2_media_apps m2
+		            WHERE LOWER(LTRIM(m2.telegram, '@')) = LOWER(u.username)
+		              AND m2.status IN ('pending', 'approved')
+		              AND m2.id > m.id
+		        )
+		  )
+		ORDER BY u.last_incoming_at DESC LIMIT 100`)
 	if err != nil {
 		return nil
 	}

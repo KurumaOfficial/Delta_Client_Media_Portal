@@ -305,6 +305,9 @@ func (db *DB) Migrate() error {
 	_, _ = db.SQL.Exec(`ALTER TABLE v2_sessions ADD COLUMN last_seen TIMESTAMP`)
 	_, _ = db.SQL.Exec(`UPDATE v2_sessions SET last_seen = COALESCE(last_seen, CURRENT_TIMESTAMP)`)
 
+	// Сброс всех 24-часовых блокировок входа (попытки очищаются)
+	_, _ = db.SQL.Exec(`UPDATE v2_audit_logs SET status = 'failed_cleared' WHERE event_type = 'LOGIN' AND status = 'failed'`)
+
 	if err := db.seedDefaults(); err != nil {
 		return err
 	}
@@ -323,8 +326,6 @@ func defaultSettings() map[string]string {
 		"payout_reject_text":    "❌ Выплата была отклонена.\nПричина: {reason}",
 		"payout_usdt_text":      "💸 Выплата №{id} одобрена: {amount} USDT отправлены через CryptoBot (@crypto_bot).\nПроверь чек в боте. Если что-то не так — пиши администратору.",
 		"week_summary_template": "📊 Итоги недели {week}:\nЗаявок подано: {total}\nОдобрено: {approved} | Отклонено: {rejected} | В ожидании: {pending}\nВыплачено USDT: {usdt_total}\nFunPay-выплат: {funpay_count}",
-		"hwid_approve_text":     "Запрос для пользователя {comment} успешно одобрен.",
-		"hwid_reject_text":      "Заявка на сброс была отклонена.\n\nПричина — {reason}",
 		"discord_approve_text":  "Аккаунт в дискорде {comment} успешно заблокирован.",
 		"discord_reject_text":   "Блокировка аккаунта {comment} была отклонена.\n\nПричина — {reason}",
 		"tg_window_nudge_text":  "⏳ Напоминание: окно для ответов скоро закроется. Напиши любое сообщение, чтобы продлить его на 24 часа.",

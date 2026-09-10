@@ -525,10 +525,6 @@ function buildLotForm() {
       <label>Укажите, что именно вы хотите получить *</label>
       <textarea name="want_custom" id="lotWantCustom" maxlength="300" rows="3" placeholder="Подробно опишите, что вам необходимо..."></textarea>
     </div>
-    <div class="field" id="rowLotComment">
-      <label id="lotCommentLabel">Никнейм для выдачи сабки (необязательно)</label>
-      <input type="text" name="comment" id="lotComment" placeholder="Если для зрителя или на свой аккаунт" maxlength="150">
-    </div>
     <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
   </form>`;
 }
@@ -602,7 +598,7 @@ async function renderMyRequests() {
   try {
     if (isMod) {
       const resp = await GET("/api/mod/requests");
-      requests = resp.data || [];
+      requests = (resp.data || []).filter((r) => r.kind !== "hwid");
     } else {
       const resp = await GET("/api/cabinet/requests");
       requests = resp.data || [];
@@ -619,7 +615,6 @@ async function renderMyRequests() {
     payout: "Выплата",
     lot: "Лот",
     subscription: "Подписка",
-    hwid: "Сброс HWID",
     discord: "Discord бан",
     idea: "Идея",
     bug: "Баг"
@@ -631,8 +626,7 @@ async function renderMyRequests() {
     let replySnippet = "";
 
     if (isMod) {
-      const targetLabel = r.kind === "hwid" ? "UID" : "Нарушитель";
-      mainText = `<b>${kindTitle[r.kind] || r.kind}</b> — ${targetLabel}: <code>${esc(r.target || "—")}</code>`;
+      mainText = `<b>${kindTitle[r.kind] || "Discord бан"}</b> — Нарушитель: <code>${esc(r.target || "—")}</code>`;
       subText = `${formatDate(r.created_at)} · Причина: ${esc(r.reason || "—")}`;
       if (r.admin_comment) {
         replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(r.admin_comment)}</small>`;
@@ -973,25 +967,14 @@ function bindCabinetForms() {
         if (input) input.value = val;
 
         const rowCustom = document.getElementById("rowLotCustom");
-        const commentLabel = document.getElementById("lotCommentLabel");
-        const commentInput = document.getElementById("lotComment");
         const customInput = document.getElementById("lotWantCustom");
 
-        if (val === "sub") {
-          rowCustom?.classList.add("hidden");
-          if (customInput) customInput.required = false;
-          if (commentLabel) commentLabel.textContent = "Никнейм для выдачи сабки (необязательно)";
-          if (commentInput) commentInput.placeholder = "Если для зрителя или на свой аккаунт";
-        } else if (val === "cosmetics") {
-          rowCustom?.classList.add("hidden");
-          if (customInput) customInput.required = false;
-          if (commentLabel) commentLabel.textContent = "Предмет косметики / никнейм (необязательно)";
-          if (commentInput) commentInput.placeholder = "Например: Плащ / крылья или ник получателя";
-        } else if (val === "other") {
+        if (val === "other") {
           rowCustom?.classList.remove("hidden");
           if (customInput) customInput.required = true;
-          if (commentLabel) commentLabel.textContent = "Дополнительный комментарий (необязательно)";
-          if (commentInput) commentInput.placeholder = "Комментарий или контакты";
+        } else {
+          rowCustom?.classList.add("hidden");
+          if (customInput) customInput.required = false;
         }
       });
     });
@@ -1366,9 +1349,9 @@ async function bindSimpleForm(kind) {
     if (kind === "lot") {
       const lotType = body.lot_type || "sub";
       if (lotType === "sub") {
-        body.want = "Выдача сабки" + (body.comment ? ` (Ник: ${body.comment})` : "");
+        body.want = "Выдача сабки";
       } else if (lotType === "cosmetics") {
-        body.want = "Косметика" + (body.comment ? ` (${body.comment})` : "");
+        body.want = "Косметика";
       } else if (lotType === "other") {
         if (!body.want_custom || !body.want_custom.trim()) {
           toast("Укажите, что именно вы хотите получить", "err");
@@ -1412,10 +1395,6 @@ async function bindSimpleForm(kind) {
         }
         const lotTypeInput = document.getElementById("lotTypeInput");
         if (lotTypeInput) lotTypeInput.value = "sub";
-        const commentLabel = document.getElementById("lotCommentLabel");
-        if (commentLabel) commentLabel.textContent = "Никнейм для выдачи сабки (необязательно)";
-        const commentInput = document.getElementById("lotComment");
-        if (commentInput) commentInput.placeholder = "Если для зрителя или на свой аккаунт";
 
         const platChoice = document.getElementById("lotPlatformChoice");
         if (platChoice) {

@@ -120,16 +120,13 @@ func (h *Mod) SubmitDiscord(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "id": id})
 }
 
-// MyRequests — история заявок модератора (HWID и Discord).
+// MyRequests — история заявок модератора (Discord).
 func (h *Mod) MyRequests(c *fiber.Ctx) error {
 	account, _ := auth.AccountOf(c)
 	rows, err := h.db.Query(`
-		SELECT 'hwid' as kind, id, uuid as target, proof_type, proof_file, proof_link, reason, status, admin_comment, created_at
-		FROM v2_hwid_requests WHERE account_id = ? OR mod_nickname = ?
-		UNION ALL
 		SELECT 'discord' as kind, id, offender_id as target, proof_type, proof_file, proof_link, reason, status, admin_comment, created_at
 		FROM v2_discord_bans WHERE account_id = ? OR mod_nickname = ?
-		ORDER BY created_at DESC LIMIT 100`, account.ID, account.Nickname, account.ID, account.Nickname)
+		ORDER BY created_at DESC LIMIT 100`, account.ID, account.Nickname)
 	if err != nil {
 		return serverError(c, "Не удалось загрузить заявки")
 	}
