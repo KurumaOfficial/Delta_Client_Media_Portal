@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"strconv"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -44,6 +45,7 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 		UID      string `json:"uid"`
 		Duration string `json:"duration"`
 		Want     string `json:"want"`
+		Rate     string `json:"rate"`
 		Amount   string `json:"amount"`
 		Method   string `json:"method"`
 		LotURL   string `json:"lot_url"`
@@ -68,14 +70,18 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 		return badRequest(c, "Заполните «сколько вы в медиа» и «что хотите получить»")
 	}
 
+	rate := validation.Clean(body.Rate, 100)
+	if rate == "" {
+		rate = validation.Clean(body.Amount, 100)
+	}
+	if rate == "" {
+		return badRequest(c, "Укажите вашу ставку")
+	}
+	r.Amount = rate
+
 	switch strings.ToLower(body.Method) {
 	case "usdt":
-		amount, ok := validation.Amount(body.Amount)
-		if !ok {
-			return badRequest(c, "Укажите корректную сумму USDT")
-		}
 		r.Method = models.MethodUSDT
-		r.Amount = strconv.FormatFloat(amount, 'f', -1, 64)
 	case "funpay":
 		lot, ok := validation.FunPayLot(body.LotURL)
 		if !ok {
@@ -98,14 +104,16 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "id": id, "week": h.pays.WeekLabel()})
 }
 
-// SubmitLot — таб 2 медиа: заявка на лот (FunPay → ссылка на лот).
+// SubmitLot — таб 2 медиа: заявка на лот (выдача сабки, косметика или что-то другое).
 func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	var body struct {
+		UID        string `json:"uid"`
+		LotType    string `json:"lot_type"` // sub | cosmetics | other
+		Want       string `json:"want"`
+		Comment    string `json:"comment"`
 		ChannelURL string `json:"channel_url"`
 		Platform   string `json:"platform"`
 		LotURL     string `json:"lot_url"`
-		Want       string `json:"want"`
-		UID        string `json:"uid"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректные данные")
@@ -121,40 +129,47 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	}
 	r.Kind = models.KindLot
 	r.UID = uid
-	r.Want = validation.MultiLine(body.Want, 300)
+
+	want := strings.TrimSpace(body.Want)
+	if want == "" {
+		switch body.LotType {
+		case "sub":
+			want = "Выдача сабки"
+			if body.Comment != "" {
+				want += " (" + strings.TrimSpace(body.Comment) + ")"
+			}
+		case "cosmetics":
+			want = "Косметика"
+			if body.Comment != "" {
+				want += " (" + strings.TrimSpace(body.Comment) + ")"
+			}
+		case "other":
+			want = strings.TrimSpace(body.Comment)
+		default:
+			want = strings.TrimSpace(body.Comment)
+		}
+	}
+	r.Want = validation.MultiLine(want, 300)
 	if r.Want == "" {
-		return badRequest(c, "Укажите, что хотите получить")
+		return badRequest(c, "Укажите, что хотите получить (сабка, косметика или своё пожелание)")
 	}
 
 	platform := strings.ToLower(validation.Clean(body.Platform, 20))
-	switch platform {
-	case "youtube":
-		channel, ok := validation.YouTubeChannel(body.ChannelURL)
-		if !ok {
-			return badRequest(c, "Укажите ссылку на YouTube-канал")
+	if platform != "" {
+		switch platform {
+		case "youtube":
+			if channel, ok := validation.YouTubeChannel(body.ChannelURL); ok {
+				r.Platform, r.ChannelURL = platform, channel
+			}
+		case "tiktok":
+			if channel, ok := validation.TikTokChannel(body.ChannelURL); ok {
+				r.Platform, r.ChannelURL = platform, channel
+			}
+		case "funpay":
+			if lot, ok := validation.FunPayLot(body.LotURL); ok {
+				r.Platform, r.LotURL = platform, lot
+			}
 		}
-		r.Platform, r.ChannelURL = platform, channel
-		if b, banned := h.bans.Banned(models.BanYouTube, channel); banned {
-			return banHit(c, b)
-		}
-	case "tiktok":
-		channel, ok := validation.TikTokChannel(body.ChannelURL)
-		if !ok {
-			return badRequest(c, "Укажите ссылку на TikTok-аккаунт")
-		}
-		r.Platform, r.ChannelURL = platform, channel
-		if b, banned := h.bans.Banned(models.BanTikTok, channel); banned {
-			return banHit(c, b)
-		}
-	case "funpay":
-		r.Platform = platform
-		lot, ok := validation.FunPayLot(body.LotURL)
-		if !ok {
-			return badRequest(c, "Для FunPay укажите ссылку на лот")
-		}
-		r.LotURL = lot
-	default:
-		return badRequest(c, "Выберите платформу: YouTube, TikTok или FunPay")
 	}
 
 	id, err := h.pays.Create(r)
@@ -164,8 +179,53 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	full, _ := h.pays.Get(id)
 	h.tg.NotifyCabinetRequest(full)
 	h.db.RecordAudit("LOT_SUBMIT", "success",
-		"Лот #"+itoa64(id)+" от "+r.Nickname, middleware.GetRealIP(c), c.Get("User-Agent"))
+		"Лот #"+itoa64(id)+" от "+r.Nickname+" ("+r.Want+")", middleware.GetRealIP(c), c.Get("User-Agent"))
 	return c.JSON(fiber.Map{"success": true, "id": id, "week": h.pays.WeekLabel()})
+}
+
+// SubmitIdeaBug — вкладка «Идеи и баги» в кабинете.
+func (h *Cabinet) SubmitIdeaBug(c *fiber.Ctx) error {
+	account, ok := auth.AccountOf(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"success": false, "error": "Требуется авторизация"})
+	}
+
+	category := strings.ToLower(strings.TrimSpace(c.FormValue("category")))
+	if category != "bug" {
+		category = "idea"
+	}
+
+	title := validation.Clean(c.FormValue("title"), 150)
+	if len([]rune(title)) < 3 {
+		return badRequest(c, "Укажите тему обращения (минимум 3 символа)")
+	}
+
+	description := validation.MultiLine(c.FormValue("description"), 1000)
+	if len([]rune(description)) < 5 {
+		return badRequest(c, "Укажите подробное описание (минимум 5 символов)")
+	}
+
+	files, link, _ := parseProof(c)
+
+	id, err := h.db.InsertReturningID(`
+		INSERT INTO v2_ideas_bugs (account_id, nickname, role, category, title, description, proof_files, proof_link, status)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+		account.ID, account.Nickname, account.Role, category, title, description, files, link)
+	if err != nil {
+		return serverError(c, "Не удалось сохранить обращение")
+	}
+
+	h.tg.NotifyIdeaBug(models.IdeaBug{
+		ID: id, AccountID: account.ID, Nickname: account.Nickname, Role: account.Role,
+		Category: category, Title: title, Description: description,
+		ProofFiles: files, ProofLink: link,
+	})
+
+	h.db.RecordAudit("FEEDBACK_SUBMIT", "success",
+		strings.ToUpper(category)+" #"+itoa64(id)+" от "+account.Nickname+": "+title,
+		middleware.GetRealIP(c), c.Get("User-Agent"))
+
+	return c.JSON(fiber.Map{"success": true, "id": id, "category": category})
 }
 
 // SubmitSubscription — фримедиа: запрос подписки.
@@ -212,7 +272,7 @@ func (h *Cabinet) SubmitSubscription(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "id": id, "week": h.pays.WeekLabel()})
 }
 
-// MyRequests — история заявок кабинета.
+// MyRequests — история заявок кабинета (включая выплаты, лоты, идеи и баги).
 func (h *Cabinet) MyRequests(c *fiber.Ctx) error {
 	account, _ := auth.AccountOf(c)
 	list, err := h.pays.MyRequests(account.ID)
@@ -222,6 +282,52 @@ func (h *Cabinet) MyRequests(c *fiber.Ctx) error {
 	if list == nil {
 		list = []models.Request{}
 	}
+
+	// Подтягиваем идеи и баги пользователя
+	rows, err := h.db.Query(`
+		SELECT id, category, title, description, proof_files, proof_link, status, admin_comment, created_at
+		FROM v2_ideas_bugs WHERE account_id = ? OR nickname = ?
+		ORDER BY created_at DESC LIMIT 50`, account.ID, account.Nickname)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id int64
+			var cat, title, desc, files, link, status, adminComment string
+			var t interface{}
+			if err := rows.Scan(&id, &cat, &title, &desc, &files, &link, &status, &adminComment, &t); err == nil {
+				createdAt := time.Now()
+				switch val := t.(type) {
+				case time.Time:
+					createdAt = val
+				case string:
+					if parsed, pErr := time.Parse(time.RFC3339, val); pErr == nil {
+						createdAt = parsed
+					} else if parsed2, pErr2 := time.Parse("2006-01-02 15:04:05", val); pErr2 == nil {
+						createdAt = parsed2
+					}
+				}
+				list = append(list, models.Request{
+					ID:              id,
+					Kind:            cat,
+					Source:          "cabinet",
+					AccountID:       account.ID,
+					Nickname:        account.Nickname,
+					Want:            desc,
+					Status:          status,
+					DecisionComment: adminComment,
+					CreatedAt:       createdAt,
+					Title:           title,
+					ProofFiles:      files,
+					ProofLink:       link,
+				})
+			}
+		}
+	}
+
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].CreatedAt.After(list[j].CreatedAt)
+	})
+
 	return c.JSON(fiber.Map{"success": true, "data": list, "week": h.pays.WeekLabel(),
 		"window_open": h.pays.WindowOpen()})
 }

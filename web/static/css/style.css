@@ -470,6 +470,10 @@ select option:checked {
 .char-counter { text-align: right; font-size: 0.75rem; color: rgba(255, 255, 255, 0.45); font-family: var(--font-mono); }
 
 .choice-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+.choice-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 640px) {
+  .choice-row.cols-3 { grid-template-columns: 1fr; }
+}
 .choice-card {
   padding: 0.875rem;
   border-radius: 1rem;
@@ -1819,6 +1823,31 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.delta-auth-alt-wrap {
+  margin-top: 0.85rem;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+}
+.delta-auth-alt-link {
+  color: #859bff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+}
+.delta-auth-alt-link:hover {
+  color: #a5b4fc;
+  text-decoration: underline;
+  text-shadow: 0 0 12px rgba(133, 155, 255, 0.4);
 }
 
 /* 2FA Pending */
@@ -3504,7 +3533,7 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 /* Блок 3: Блок информации */
 .info-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
   gap: 0.65rem;
   flex: 1;
   align-items: stretch;

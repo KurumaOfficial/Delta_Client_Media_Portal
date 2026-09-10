@@ -11,6 +11,8 @@ const (
 	KindPayout       = "payout"       // заявка на выплату за снятые видео (медиа)
 	KindLot          = "lot"          // заявка на лот (медиа)
 	KindSubscription = "subscription" // запрос подписки (фримедиа)
+	KindIdea         = "idea"         // идея / предложение
+	KindBug          = "bug"          // сообщение о баге / ошибке
 )
 
 const (
@@ -53,6 +55,9 @@ type Request struct {
 	TXRef           string     `json:"tx_ref"`
 	CreatedAt       time.Time  `json:"created_at"`
 	DecidedAt       *time.Time `json:"decided_at,omitempty"`
+	Title           string     `json:"title,omitempty"`
+	ProofFiles      string     `json:"proof_files,omitempty"`
+	ProofLink       string     `json:"proof_link,omitempty"`
 }
 
 // Replace подставляет поля заявки (и extra) в шаблон текста.

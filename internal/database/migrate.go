@@ -143,6 +143,22 @@ func (db *DB) Migrate() error {
 			decided_at TIMESTAMP
 		)`, pk),
 
+		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS v2_ideas_bugs (
+			id %s,
+			account_id BIGINT NOT NULL DEFAULT 0,
+			nickname TEXT NOT NULL DEFAULT '',
+			role TEXT NOT NULL DEFAULT '',
+			category TEXT NOT NULL DEFAULT 'idea',
+			title TEXT NOT NULL,
+			description TEXT NOT NULL,
+			proof_files TEXT NOT NULL DEFAULT '',
+			proof_link TEXT NOT NULL DEFAULT '',
+			status TEXT NOT NULL DEFAULT 'pending',
+			admin_comment TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`, pk),
+
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS v2_bans (
 			id %s,
 			channel TEXT NOT NULL DEFAULT '',

@@ -323,6 +323,21 @@ function initAuthUI() {
     }
   });
 
+  // Переход на подачу заявки: «не член? войти сейчас»
+  document.getElementById("authApplyLink")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    closeAuth();
+    if (typeof showView === "function") {
+      showView("public");
+    }
+    const form = document.getElementById("mediaForm");
+    if (form) {
+      setTimeout(() => {
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  });
+
   // Функция выхода из аккаунта
   async function doUserLogout() {
     try {

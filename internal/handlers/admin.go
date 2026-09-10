@@ -62,6 +62,7 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 		"media_pending":            count("v2_media_apps", "WHERE status = 'pending'"),
 		"hwid_pending":             count("v2_hwid_requests", "WHERE status = 'pending'"),
 		"discord_pending":          count("v2_discord_bans", "WHERE status = 'pending'"),
+		"ideas_pending":            count("v2_ideas_bugs", "WHERE status = 'pending'"),
 		"accounts_total":           count("v2_accounts", "WHERE is_active = 1"),
 		"payouts_pending":          st.Pending,
 		"payouts_total":            st.Total,
@@ -455,8 +456,67 @@ func (h *Admin) DecideFromTelegram(kind string, id int64, approve bool) error {
 		return h.decideDiscord(id, approve, "", "telegram")
 	case "pay":
 		return h.DecidePayoutInternal(id, approve, "", "telegram")
+	case "idea", "bug":
+		return h.decideIdeaBug(id, approve, "", "telegram")
 	}
 	return simpleErr("Неизвестный тип заявки")
+}
+
+// IdeasBugs — список обращений из раздела «Идеи и баги» для админ-панели.
+func (h *Admin) IdeasBugs(c *fiber.Ctx) error {
+	rows, err := h.db.Query(`
+		SELECT id, account_id, nickname, role, category, title, description,
+		       proof_files, proof_link, status, admin_comment, created_at, updated_at
+		FROM v2_ideas_bugs ORDER BY id DESC`)
+	if err != nil {
+		return serverError(c, "Ошибка загрузки данных")
+	}
+	defer rows.Close()
+
+	list := make([]models.IdeaBug, 0, 16)
+	for rows.Next() {
+		var it models.IdeaBug
+		if err := rows.Scan(&it.ID, &it.AccountID, &it.Nickname, &it.Role, &it.Category,
+			&it.Title, &it.Description, &it.ProofFiles, &it.ProofLink, &it.Status,
+			&it.AdminComment, &it.CreatedAt, &it.UpdatedAt); err == nil {
+			list = append(list, it)
+		}
+	}
+	return c.JSON(fiber.Map{"success": true, "data": list})
+}
+
+// DecideIdeaBug — решение по идее или багу из админ-панели.
+func (h *Admin) DecideIdeaBug(c *fiber.Ctx) error {
+	var body models.StatusUpdate
+	if err := c.BodyParser(&body); err != nil {
+		return badRequest(c, "Некорректное решение")
+	}
+	approve := strings.EqualFold(body.Status, "approved")
+	id, _ := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err := h.decideIdeaBug(id, approve, body.AdminComment, actorInfo(c)); err != nil {
+		return badRequest(c, err.Error())
+	}
+	return c.JSON(fiber.Map{"success": true})
+}
+
+func (h *Admin) decideIdeaBug(id int64, approve bool, comment, actor string) error {
+	var nickname, category, status string
+	err := h.db.QueryRow(`SELECT nickname, category, status FROM v2_ideas_bugs WHERE id = ?`, id).
+		Scan(&nickname, &category, &status)
+	if err != nil {
+		return simpleErr("Обращение не найдено")
+	}
+	st := "rejected"
+	if approve {
+		st = "approved"
+	}
+	if _, err := h.db.Exec(`UPDATE v2_ideas_bugs SET status = ?, admin_comment = ?, updated_at = ? WHERE id = ?`,
+		st, comment, time.Now(), id); err != nil {
+		return err
+	}
+	h.notifyAccountVerdict(nickname, category, id, approve, comment)
+	h.db.RecordAudit("STATUS_CHANGE", st, strings.ToUpper(category)+" #"+itoa64(id)+" → "+st+" ("+actor+")", "", "")
+	return nil
 }
 
 // ── Журнал ───────────────────────────────────────────────────

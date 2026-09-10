@@ -88,6 +88,22 @@ func (s *Service) NotifyDiscordBan(r models.DiscordBan) {
 	)
 }
 
+func (s *Service) NotifyIdeaBug(r models.IdeaBug) {
+	icon := "💡"
+	catTitle := "Идея"
+	if r.Category == "bug" {
+		icon = "🐛"
+		catTitle = "Баг-репорт"
+	}
+	s.notifyAdminsFull(
+		fmt.Sprintf("%s <b>%s #%d</b>", icon, catTitle, r.ID),
+		fmt.Sprintf("Заявитель: <b>%s</b> (%s)\nТема: <b>%s</b>\n\n%s\n\nДоказательства: %s %s",
+			escapeHTML(r.Nickname), escapeHTML(r.Role), escapeHTML(r.Title), escapeHTML(r.Description), r.ProofFiles, r.ProofLink),
+		[][2]string{{"✅ Одобрить", fmt.Sprintf("adm:idea:%d:approve", r.ID)},
+			{"❌ Отклонить", fmt.Sprintf("adm:idea:%d:reject", r.ID)}},
+	)
+}
+
 func (s *Service) NotifyCabinetRequest(r models.Request) {
 	kindTitle := map[string]string{
 		models.KindPayout: "💸 Заявка на выплату", models.KindLot: "🏷️ Заявка на лот",
@@ -101,7 +117,7 @@ func (s *Service) NotifyCabinetRequest(r models.Request) {
 		body += fmt.Sprintf("\nХочет получить: %s", escapeHTML(r.Want))
 	}
 	if r.Amount != "" {
-		body += fmt.Sprintf("\nСумма: %s USDT", escapeHTML(r.Amount))
+		body += fmt.Sprintf("\nСтавка: %s", escapeHTML(r.Amount))
 	}
 	if r.Method != "" {
 		body += fmt.Sprintf("\nСпособ: %s", r.Method)
@@ -191,6 +207,22 @@ func (s *Service) SendVerdict(telegram, kind string, id int64, approve bool, com
 				tpl = "Блокировка аккаунта {comment} была отклонена.\n\nПричина — {reason}"
 			}
 			text = renderTemplate(tpl, vars)
+		}
+	case "idea", "bug":
+		catName := "идее"
+		if kind == "bug" {
+			catName = "баг-репорту"
+		}
+		if approve {
+			text = fmt.Sprintf("Ваше обращение по %s #%s принято и одобрено администрацией.", catName, idStr)
+			if comment != "" {
+				text += "\n\nОтвет администратора: " + comment
+			}
+		} else {
+			text = fmt.Sprintf("Ваше обращение по %s #%s было отклонено администрацией.", catName, idStr)
+			if comment != "" {
+				text += "\n\nПричина: " + comment
+			}
 		}
 	default:
 		return

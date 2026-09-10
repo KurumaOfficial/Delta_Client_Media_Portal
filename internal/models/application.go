@@ -55,3 +55,20 @@ type StatusUpdate struct {
 	Status       string `json:"status"`
 	AdminComment string `json:"admin_comment"`
 }
+
+// IdeaBug — обращение в разделе «Идеи и баги».
+type IdeaBug struct {
+	ID           int64     `json:"id"`
+	AccountID    int64     `json:"account_id"`
+	Nickname     string    `json:"nickname"`
+	Role         string    `json:"role"`
+	Category     string    `json:"category"` // "idea" | "bug"
+	Title        string    `json:"title"`
+	Description  string    `json:"description"`
+	ProofFiles   string    `json:"proof_files,omitempty"`
+	ProofLink    string    `json:"proof_link,omitempty"`
+	Status       string    `json:"status"`
+	AdminComment string    `json:"admin_comment,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}

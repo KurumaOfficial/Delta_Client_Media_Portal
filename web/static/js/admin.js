@@ -23,6 +23,7 @@ const ICONS = {
   windows: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>',
   logs: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>',
   edit: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
+  ideas: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
 };
 
 function initAdminNav() {
@@ -54,6 +55,7 @@ async function renderAdminCategory() {
     else if (adminCat === "media") await renderAppsTable("media");
     else if (adminCat === "hwid") await renderAppsTable("hwid");
     else if (adminCat === "discord") await renderAppsTable("discord");
+    else if (adminCat === "ideas") await renderAppsTable("ideas");
     else if (adminCat === "payouts") await renderPayouts();
     else if (adminCat === "accounts") await renderAccounts();
     else if (adminCat === "bans") await renderBans();
@@ -322,6 +324,12 @@ async function renderOverview() {
           <div class="info-metric-card" data-jump="accounts" title="Перейти в раздел Аккаунты">
             <b class="info-metric-num">${stats.accounts_total}</b>
             <span class="info-metric-lbl">Активные аккаунты</span>
+          </div>
+
+          <!-- 5. Идеи и баги -->
+          <div class="info-metric-card" data-jump="ideas" title="Перейти в раздел Идеи и баги">
+            <b class="info-metric-num">${stats.ideas_pending || 0}</b>
+            <span class="info-metric-lbl">Идеи и баги (в ожидании)</span>
           </div>
         </div>
       </div>
@@ -759,7 +767,7 @@ function initMaintenanceModal() {
 document.addEventListener("DOMContentLoaded", initMaintenanceModal);
 initMaintenanceModal();
 
-// ── Заявки media/hwid/discord ──
+// ── Заявки media/hwid/discord/ideas ──
 const APP_TABLES = {
   media: { api: "/api/admin/media", decide: (id, st, c) => POST(`/api/admin/media/${id}/decide`, { status: st, admin_comment: c }),
     title: "Заявки на вступление в медиа", pageSize: 10 },
@@ -767,6 +775,8 @@ const APP_TABLES = {
     title: "HWID запросы", pageSize: 10 },
   discord: { api: "/api/admin/discord", decide: (id, st, c) => POST(`/api/admin/discord/${id}/decide`, { status: st, admin_comment: c }),
     title: "Discord баны", pageSize: 10 },
+  ideas: { api: "/api/admin/ideas", decide: (id, st, c) => POST(`/api/admin/ideas/${id}/decide`, { status: st, admin_comment: c }),
+    title: "Идеи и баги", pageSize: 10 },
 };
 
 async function renderAppsTable(kind) {
@@ -808,6 +818,24 @@ function drawAppsTable(kind, cfg) {
     if (kind === "hwid") return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.uuid)}</td>
       <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td></tr>`;
+    if (kind === "ideas") {
+      const isIdea = r.category === "idea";
+      const catBadge = isIdea
+        ? '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-size:0.75rem;padding:0.2rem 0.55rem;">💡 Идея</span>'
+        : '<span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:0.75rem;padding:0.2rem 0.55rem;">🐛 Баг</span>';
+      return `
+        <tr class="clickable-row" data-idea-id="${r.id}" style="cursor:pointer;" title="Нажмите, чтобы просмотреть обращение">
+          <td class="mono">#${r.id}</td>
+          <td>${catBadge}</td>
+          <td><b>${esc(r.nickname || "—")}</b> <small class="hint">(${esc(r.role || "")})</small></td>
+          <td><b style="color:var(--color-text);">${esc(r.title || "—")}</b></td>
+          <td>${proofLinks(r.proof_files, r.proof_link)}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td>${r.status === "pending" ? `<div class="row-actions" onclick="event.stopPropagation()">
+            <button class="act" data-decide="approved" data-id="${r.id}">✓ Принять</button>
+            <button class="act reject" data-decide="rejected" data-id="${r.id}">✕ Отклонить</button></div>` : (r.admin_comment ? `<small class="hint" title="${esc(r.admin_comment)}">${esc(r.admin_comment).slice(0, 20)}…</small>` : "—")}</td>
+        </tr>`;
+    }
     return `
       <tr><td class="mono">#${r.id}</td><td><b>${esc(r.mod_nickname)}</b></td><td class="mono">${esc(r.offender_id)}</td>
       <td>${proofLinks(r.proof_file, r.proof_link)}</td><td>${esc(r.reason)}</td>
@@ -819,6 +847,8 @@ function drawAppsTable(kind, cfg) {
     ? "<th>ID</th><th>UID</th><th>Платформа</th><th>Канал</th><th>Серверы</th><th>Telegram</th><th>Статус</th><th>Действия</th>"
     : kind === "hwid"
     ? "<th>ID</th><th>Модератор</th><th>UID</th><th>Доказательства</th><th>Причина</th>"
+    : kind === "ideas"
+    ? "<th>ID</th><th>Тип</th><th>Автор</th><th>Тема</th><th>Доказательства</th><th>Статус</th><th>Действия</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
   const colSpan = kind === "media" ? 8 : (kind === "hwid" ? 5 : 7);
 
@@ -826,7 +856,7 @@ function drawAppsTable(kind, cfg) {
     <div class="table-box"><h3>${cfg.title} <span class="badge pending">${filtered.length}</span></h3>
       <div class="table-scroll"><table>
         <thead><tr>${theadCols}</tr></thead>
-        <tbody>${rows || `<tr><td colspan="${colSpan}" class="hint">Нет заявок</td></tr>`}</tbody>
+        <tbody>${rows || `<tr><td colspan="${colSpan}" class="hint">Нет обращений</td></tr>`}</tbody>
       </table></div>
       <div class="pager" id="pager-${kind}"></div>
     </div>`;
@@ -864,6 +894,16 @@ function drawAppsTable(kind, cfg) {
     });
   }
 
+  if (kind === "ideas") {
+    document.querySelectorAll("[data-idea-id]").forEach((tr) => {
+      tr.addEventListener("click", () => {
+        const id = parseInt(tr.dataset.ideaId, 10);
+        const item = (adminCache["ideas"] || []).find((x) => x.id === id);
+        if (item) openIdeaBugAdminModal(item);
+      });
+    });
+  }
+
   document.querySelectorAll(`[data-decide]`).forEach((b) =>
     b.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -877,6 +917,118 @@ function drawAppsTable(kind, cfg) {
         renderAppsTable(kind);
       } catch (e) { toast(e.message, "err"); }
     }));
+}
+
+function openIdeaBugAdminModal(r) {
+  let modalWrap = document.getElementById("ideaBugModalOverlay");
+  if (!modalWrap) {
+    modalWrap = document.createElement("div");
+    modalWrap.id = "ideaBugModalOverlay";
+    modalWrap.className = "ban-modal-overlay";
+    document.body.appendChild(modalWrap);
+  }
+
+  const isIdea = r.category === "idea";
+  const catBadge = isIdea
+    ? '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-size:0.8rem;padding:0.25rem 0.6rem;">💡 Идея / Предложение</span>'
+    : '<span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:0.8rem;padding:0.25rem 0.6rem;">🐛 Баг / Ошибка</span>';
+
+  const proofHtml = proofLinks(r.proof_files, r.proof_link);
+
+  let adminBlock = "";
+  if (r.admin_comment) {
+    adminBlock = `
+      <div class="req-admin-reply ${r.status || ''}" style="margin-top:1.25rem;">
+        <div class="req-admin-reply-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ответ администратора:
+        </div>
+        <p>${esc(r.admin_comment)}</p>
+      </div>`;
+  }
+
+  modalWrap.innerHTML = `
+    <div class="media-modal-card" style="max-width:640px;">
+      <div class="ban-modal-header">
+        <div class="ban-modal-title">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
+            <path d="M9 18h6"/><path d="M10 22h4"/>
+          </svg>
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <h3>Обращение #${r.id}</h3>
+            ${catBadge}
+            ${statusBadge(r.status)}
+          </div>
+        </div>
+        <button type="button" class="ban-modal-close" id="ideaBugModalClose">&times;</button>
+      </div>
+
+      <div class="media-modal-grid">
+        <div class="media-field">
+          <div class="media-field-lbl">Автор</div>
+          <div class="media-field-val"><b>${esc(r.nickname || "—")}</b> <small class="hint">(${esc(r.role || "")})</small></div>
+        </div>
+        <div class="media-field">
+          <div class="media-field-lbl">Дата отправки</div>
+          <div class="media-field-val">${formatDate(r.created_at)}</div>
+        </div>
+        <div class="media-field" style="grid-column:1/-1;">
+          <div class="media-field-lbl">Тема обращения</div>
+          <div class="media-field-val" style="font-size:1rem;font-weight:600;color:var(--color-text);">${esc(r.title || "—")}</div>
+        </div>
+        <div class="media-field" style="grid-column:1/-1;">
+          <div class="media-field-lbl">Подробное описание</div>
+          <div class="media-field-val" style="white-space:pre-wrap;word-break:break-word;line-height:1.55;background:rgba(0,0,0,0.2);padding:0.75rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.06);">${esc(r.description || "—")}</div>
+        </div>
+        <div class="media-field" style="grid-column:1/-1;">
+          <div class="media-field-lbl">Материалы и доказательства</div>
+          <div class="media-field-val">${proofHtml}</div>
+        </div>
+      </div>
+
+      ${adminBlock}
+
+      <div class="media-modal-actions" style="margin-top:1.5rem;display:flex;gap:0.6rem;justify-content:flex-end;">
+        ${r.status === "pending" ? `
+          <button type="button" class="btn-primary" id="modalIdeaApprove" style="background:#22c55e;color:#fff;">✓ Принять к реализации</button>
+          <button type="button" class="btn-ghost" id="modalIdeaReject" style="color:#ef4444;border-color:rgba(239,68,68,0.3);">✕ Отклонить</button>
+        ` : ""}
+        <button type="button" class="btn-ghost" id="ideaBugModalOk">Закрыть</button>
+      </div>
+    </div>`;
+
+  void modalWrap.offsetWidth;
+  modalWrap.classList.add("open");
+
+  const close = () => modalWrap.classList.remove("open");
+  document.getElementById("ideaBugModalClose")?.addEventListener("click", close);
+  document.getElementById("ideaBugModalOk")?.addEventListener("click", close);
+  modalWrap.addEventListener("click", (e) => {
+    if (e.target === modalWrap) close();
+  });
+
+  document.getElementById("modalIdeaApprove")?.addEventListener("click", async () => {
+    const comment = await askComment(`Принять обращение #${r.id}`, false);
+    if (comment === null) return;
+    try {
+      await POST(`/api/admin/ideas/${r.id}/decide`, { status: "approved", admin_comment: comment });
+      toast("Обращение принято", "ok");
+      close();
+      renderAppsTable("ideas");
+    } catch (e) { toast(e.message, "err"); }
+  });
+
+  document.getElementById("modalIdeaReject")?.addEventListener("click", async () => {
+    const comment = await askComment(`Отклонить обращение #${r.id}`, false);
+    if (comment === null) return;
+    try {
+      await POST(`/api/admin/ideas/${r.id}/decide`, { status: "rejected", admin_comment: comment });
+      toast("Обращение отклонено", "ok");
+      close();
+      renderAppsTable("ideas");
+    } catch (e) { toast(e.message, "err"); }
+  });
 }
 
 function openMediaAppModal(r) {
@@ -1062,8 +1214,8 @@ async function renderPayouts(keepWeek) {
   const rows = (data.data || []).filter((r) =>
     applyGlobalFilter(JSON.stringify(r).toLowerCase(), r.status)).map((r) => {
     const kindT = { payout: "Выплата", lot: "Лот", subscription: "Подписка" }[r.kind] || r.kind;
-    const method = r.method === "usdt" ? `USDT ${esc(r.amount)}` :
-                   r.method === "funpay" ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener">FunPay лот</a>` : "—";
+    const method = r.method === "usdt" ? `USDT (ставка: ${esc(r.amount || "—")})` :
+                   r.method === "funpay" ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener">FunPay лот</a><br><small>ставка: ${esc(r.amount || "—")}</small>` : (r.amount ? `ставка: ${esc(r.amount)}` : "—");
     return `<tr>
       <td class="mono">#${r.id}</td>
       <td><b>${esc(r.nickname)}</b><br><small>${esc(r.telegram)} ${r.source === "telegram" ? "· из TG" : ""}</small></td>

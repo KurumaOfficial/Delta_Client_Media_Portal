@@ -15,7 +15,16 @@ import (
 func (s *Service) Create(r models.Request) (int64, error) {
 	week, err := s.EnsureCurrentWeek()
 	if err != nil {
-		return 0, fmt.Errorf("приём заявок закрыт (окно: пн 00:00 — вт 22:00)")
+		if r.Kind == models.KindLot {
+			row := s.db.QueryRow(`SELECT id, label, opens_at, closes_at, is_current FROM v2_weeks ORDER BY id DESC LIMIT 1`)
+			if sWeek, sErr := s.scanWeek(row); sErr == nil {
+				week = sWeek
+				err = nil
+			}
+		}
+		if err != nil {
+			return 0, fmt.Errorf("приём заявок закрыт (окно: пн 00:00 — вт 22:00)")
+		}
 	}
 
 	// одна незакрытая заявка этого вида на аккаунт за неделю

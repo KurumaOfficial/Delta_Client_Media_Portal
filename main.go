@@ -119,8 +119,8 @@ func main() {
 	api.Post("/check-tg-verified", publicH.CheckTGVerified)
 	api.Post("/media/submit", middleware.RateLimiter(5, time.Minute), publicH.SubmitMediaApp)
 
-	// ── Чанковые загрузки доказательств (модераторы/админы) ──
-	uploadGuard := auth.Require(authSvc, models.RoleModerator, models.RoleAdmin)
+	// ── Чанковые загрузки доказательств (медиа/модераторы/админы) ──
+	uploadGuard := auth.Require(authSvc, models.RoleMedia, models.RoleModerator, models.RoleAdmin)
 	api.Post("/upload/init", uploadGuard, uploads.InitUpload)
 	api.Post("/upload/chunk", uploadGuard, uploads.UploadChunk)
 
@@ -156,6 +156,7 @@ func main() {
 	mediaGroup.Get("/requests", cabinetH.MyRequests)
 	mediaGroup.Post("/payout", cabinetH.SubmitPayout)
 	mediaGroup.Post("/lot", cabinetH.SubmitLot)
+	mediaGroup.Post("/feedback", cabinetH.SubmitIdeaBug)
 
 	// ── Админ-панель ──
 	adminGroup := api.Group("/admin", auth.Require(authSvc, models.RoleAdmin))
@@ -177,6 +178,9 @@ func main() {
 	adminGroup.Get("/payouts", adminH.Payouts)
 	adminGroup.Post("/payouts/:id/decide", adminH.DecidePayout)
 	adminGroup.Post("/week-summary", adminH.UpdateWeekSummary)
+
+	adminGroup.Get("/ideas", adminH.IdeasBugs)
+	adminGroup.Post("/ideas/:id/decide", adminH.DecideIdeaBug)
 
 	adminGroup.Get("/accounts", adminH.Accounts)
 	adminGroup.Post("/accounts", adminH.CreateAccount)

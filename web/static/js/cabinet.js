@@ -9,6 +9,7 @@ const CABINET_ICONS = {
   discord: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/></svg>',
   payout: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
   lot: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>',
+  ideabug: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
   sub: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
   my: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
   adminpanel: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>'
@@ -37,13 +38,14 @@ async function switchCabinetTab(tab) {
   else if (tab === "discord") body.innerHTML = buildProofForm("discord", "Discord бан", "ID или @username нарушителя", "offender_id");
   else if (tab === "payout") body.innerHTML = buildPayoutForm();
   else if (tab === "lot") body.innerHTML = buildLotForm();
+  else if (tab === "ideabug") body.innerHTML = buildIdeaBugForm();
   else if (tab === "my") await renderMyRequests();
   bindCabinetForms();
 }
 
 function cabinetTabsForRole(role) {
   if (role === "moderator") return [["hwid", t("tabHwid")], ["discord", t("tabDiscord")], ["my", t("tabMy")]];
-  if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["my", t("tabMy")]];
+  if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["ideabug", "Идеи и баги"], ["my", t("tabMy")]];
   if (role === "admin") return [["adminpanel", t("tabAdmin")]];
   return [];
 }
@@ -412,6 +414,7 @@ function buildPayoutForm() {
     <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
     <div class="field"><label>Сколько вы в медиа Delta *</label><input type="text" name="duration" required placeholder="Например: 8 месяцев" maxlength="100"></div>
     <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2" placeholder="За какие видео/работы выплата"></textarea></div>
+    <div class="field"><label>Какая ставка *</label><input type="text" name="rate" required placeholder="Например: 500₽ за ролик / 15 USDT" maxlength="100"></div>
     <div class="field"><label>Способ выплаты *</label>
       <div class="dropdown" id="payMethod">
         <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите способ</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
@@ -421,32 +424,91 @@ function buildPayoutForm() {
         </div>
       </div>
     </div>
-    <div class="field hidden" id="rowAmount"><label>Сумма USDT *</label><input type="text" name="amount" placeholder="Например: 25.5"></div>
-    <div class="field hidden" id="rowLot"><label>Ссылка на лот FunPay *</label><input type="url" name="lot_url" placeholder="https://funpay.com/lots/..."></div>
+    <div class="field hidden" id="rowLot"><label>Ссылка на лот FunPay *</label><input type="url" name="lot_url" id="payoutLotUrl" placeholder="https://funpay.com/lots/..."></div>
     <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
   </form>`;
 }
 
-// ── Медиа: заявка на лот ──
+// ── Медиа: заявка на лот (выдача сабки, косметика или что-то другое) ──
 function buildLotForm() {
   return `
   <form class="card form-card" id="form-lot">
     <h3>${CABINET_ICONS.lot} Заявка на лот</h3>
-    <div class="field"><label>Ваш UID *</label><input type="text" name="uid" required maxlength="64"></div>
-    <div class="field"><label>Платформа *</label>
-      <div class="dropdown" id="lotPlatform">
-        <button type="button" class="dropdown-head"><span class="dropdown-value">Выберите платформу</span><span class="chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>
-        <div class="dropdown-menu">
-          <button type="button" class="dropdown-item" data-value="youtube">YouTube</button>
-          <button type="button" class="dropdown-item" data-value="tiktok">TikTok</button>
-          <button type="button" class="dropdown-item" data-value="funpay">FunPay</button>
+    <div class="field"><label>Ваш UID в Delta Client *</label><input type="text" name="uid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric"></div>
+    <div class="field">
+      <label>Что хотите получить? *</label>
+      <div class="choice-row cols-3" id="lotTypeChoice">
+        <button type="button" class="choice-card active" data-value="sub">Выдача сабки</button>
+        <button type="button" class="choice-card" data-value="cosmetics">Косметика</button>
+        <button type="button" class="choice-card" data-value="other">Что-то другое</button>
+      </div>
+      <input type="hidden" name="lot_type" id="lotTypeInput" value="sub">
+    </div>
+    <div class="field hidden" id="rowLotCustom">
+      <label>Укажите, что именно вы хотите получить *</label>
+      <textarea name="want_custom" id="lotWantCustom" maxlength="300" rows="3" placeholder="Подробно опишите, что вам необходимо..."></textarea>
+    </div>
+    <div class="field" id="rowLotComment">
+      <label id="lotCommentLabel">Никнейм для выдачи сабки (необязательно)</label>
+      <input type="text" name="comment" id="lotComment" placeholder="Если для зрителя или на свой аккаунт" maxlength="150">
+    </div>
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
+  </form>`;
+}
+
+// ── Медиа: идеи и баги ──
+function buildIdeaBugForm() {
+  return `
+  <form class="card form-card" id="form-ideabug">
+    <h3>${CABINET_ICONS.ideabug} Идеи и баги</h3>
+    <p class="hint" style="margin-bottom:1.25rem;">Предложите идею по улучшению Delta Client или сообщите о найденной ошибке/баге.</p>
+    
+    <div class="field">
+      <label>Тип обращения *</label>
+      <div class="choice-row" id="feedbackTypeChoice">
+        <button type="button" class="choice-card active" data-value="idea">💡 Идея / Предложение</button>
+        <button type="button" class="choice-card" data-value="bug">🐛 Баг / Ошибка</button>
+      </div>
+      <input type="hidden" name="category" id="feedbackCategoryInput" value="idea">
+    </div>
+
+    <div class="field">
+      <label id="feedbackTitleLabel">Тема идеи / предложения *</label>
+      <input type="text" name="title" id="feedbackTitle" required maxlength="150" placeholder="Краткая суть идеи или улучшения">
+    </div>
+
+    <div class="field">
+      <label id="feedbackDescLabel">Подробное описание *</label>
+      <textarea name="description" id="feedbackDescription" required maxlength="1000" rows="4" placeholder="Опишите ваше предложение, почему это будет полезно для Delta Client..."></textarea>
+    </div>
+
+    <div class="field">
+      <label>Доказательства или материалы (файлы и/или ссылка)</label>
+      <div class="proof-dropzone" id="dropzone-ideabug">
+        <input type="file" id="proof-ideabug" accept="image/*,video/*" multiple class="proof-dropzone-input">
+        <div class="proof-dropzone-inner">
+          <div class="proof-dropzone-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="proof-dropzone-title">Перетащите файлы сюда или <span>выберите на устройстве</span></div>
+          <div class="proof-dropzone-sub">Скриншоты и видео (PNG, JPG, MP4, WebM) · Необязательно</div>
         </div>
       </div>
+      <div class="proof-files-list" id="filesList-ideabug"></div>
+      <div class="proof-upload-progress" id="uploadProgress-ideabug" style="display:none;">
+        <div class="proof-progress-bar"><div class="proof-progress-fill" id="progressFill-ideabug"></div></div>
+        <div class="proof-progress-label" id="progressLabel-ideabug"></div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <input type="url" name="proof_link" placeholder="https://... — ссылка на концепт, видеозапись или скриншот (необязательно)">
+      </div>
     </div>
-    <div class="field" id="rowChannel"><label>Ссылка на ваш канал *</label><input type="url" name="channel_url" placeholder="https://youtube.com/@..."></div>
-    <div class="field hidden" id="rowLotLink"><label>Ссылка на лот FunPay *</label><input type="url" name="lot_url" placeholder="https://funpay.com/lots/..."></div>
-    <div class="field"><label>Что хотите получить *</label><textarea name="want" required maxlength="300" rows="2"></textarea></div>
-    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку</button>
+
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить обращение</button>
   </form>`;
 }
 
@@ -481,7 +543,9 @@ async function renderMyRequests() {
     lot: "Лот",
     subscription: "Подписка",
     hwid: "Сброс HWID",
-    discord: "Discord бан"
+    discord: "Discord бан",
+    idea: "Идея",
+    bug: "Баг"
   };
 
   const itemsHTML = requests.map((r, idx) => {
@@ -495,6 +559,14 @@ async function renderMyRequests() {
       subText = `${formatDate(r.created_at)} · Причина: ${esc(r.reason || "—")}`;
       if (r.admin_comment) {
         replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(r.admin_comment)}</small>`;
+      }
+    } else if (r.kind === "idea" || r.kind === "bug") {
+      const isIdea = r.kind === "idea";
+      mainText = `<b>${isIdea ? "💡 Идея" : "🐛 Баг"}</b> — ${esc(r.title || r.want || "")}`;
+      subText = `${formatDate(r.created_at)} · ${esc(r.description || "").slice(0, 90)}${r.description && r.description.length > 90 ? "…" : ""}`;
+      const comment = r.decision_comment || r.admin_comment;
+      if (comment) {
+        replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(comment)}</small>`;
       }
     } else {
       mainText = `<b>${kindTitle[r.kind] || r.kind}</b> — ${esc(r.want || r.amount || "")}`;
@@ -548,7 +620,9 @@ function openRequestDetailsModal(req, role) {
     lot: "Заявка на лот",
     subscription: "Запрос подписки",
     hwid: "Запрос сброса HWID",
-    discord: "Запрос Discord-бана"
+    discord: "Запрос Discord-бана",
+    idea: "Предложение / Идея",
+    bug: "Сообщение об ошибке (баг)"
   };
 
   let fieldsHTML = "";
@@ -599,11 +673,57 @@ function openRequestDetailsModal(req, role) {
         <span class="req-detail-value">${formatDate(req.created_at)}</span>
       </div>
     `;
+  } else if (req.kind === "idea" || req.kind === "bug") {
+    adminComment = req.decision_comment || req.admin_comment || "";
+    const isIdea = req.kind === "idea";
+
+    let proofsHTML = "—";
+    const chips = [];
+    const filesStr = req.proof_files || req.proof_file || "";
+    if (filesStr) {
+      filesStr.split(",").filter(Boolean).forEach((p, i) => {
+        const ext = p.split(".").pop().toLowerCase();
+        const isVid = ["mp4", "webm", "mov", "avi"].includes(ext);
+        const ico = isVid
+          ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+          : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+        chips.push(`<a href="${esc(p)}" target="_blank" rel="noopener" class="proof-chip">${ico}<span>Файл ${i + 1}</span></a>`);
+      });
+    }
+    if (req.proof_link) {
+      chips.push(`<a href="${esc(req.proof_link)}" target="_blank" rel="noopener" class="proof-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Ссылка</span></a>`);
+    }
+    if (chips.length) {
+      proofsHTML = `<div class="proof-chips-wrap">${chips.join("")}</div>`;
+    }
+
+    fieldsHTML = `
+      <div class="req-detail-field">
+        <span class="req-detail-label">Тип обращения</span>
+        <span class="req-detail-value">${isIdea ? "💡 Идея / Предложение" : "🐛 Баг / Ошибка"}</span>
+      </div>
+      <div class="req-detail-field">
+        <span class="req-detail-label">Тема</span>
+        <span class="req-detail-value"><b>${esc(req.title || "—")}</b></span>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Подробное описание</span>
+        <span class="req-detail-value" style="white-space:pre-wrap;word-break:break-word;line-height:1.5;">${esc(req.description || "—")}</span>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Материалы и доказательства</span>
+        <div class="req-detail-value">${proofsHTML}</div>
+      </div>
+      <div class="req-detail-field span-2">
+        <span class="req-detail-label">Дата отправки</span>
+        <span class="req-detail-value">${formatDate(req.created_at)}</span>
+      </div>
+    `;
   } else {
     adminComment = req.decision_comment || "";
 
     const methodOrPlatform = req.method === "usdt"
-      ? `USDT (${esc(req.amount || "")})`
+      ? `USDT-чек (CryptoBot)`
       : req.method === "funpay"
       ? `<a href="${esc(req.lot_url)}" target="_blank" rel="noopener">FunPay лот</a>`
       : req.platform || "—";
@@ -617,6 +737,11 @@ function openRequestDetailsModal(req, role) {
         <span class="req-detail-label">UID аккаунта</span>
         <span class="req-detail-value mono">${esc(req.uid || "—")}</span>
       </div>
+      ${req.amount ? `
+      <div class="req-detail-field">
+        <span class="req-detail-label">Ставка</span>
+        <span class="req-detail-value font-bold">${esc(req.amount)}</span>
+      </div>` : ""}
       ${req.duration ? `
       <div class="req-detail-field">
         <span class="req-detail-label">Срок в медиа</span>
@@ -697,8 +822,10 @@ function bindCabinetForms() {
   const method = document.getElementById("payMethod");
   if (method) method.querySelectorAll(".dropdown-item").forEach((it) =>
     it.addEventListener("click", () => {
-      document.getElementById("rowAmount").classList.toggle("hidden", it.dataset.value !== "usdt");
-      document.getElementById("rowLot").classList.toggle("hidden", it.dataset.value !== "funpay");
+      const isFunpay = (it.dataset.value === "funpay");
+      document.getElementById("rowLot")?.classList.toggle("hidden", !isFunpay);
+      const lotInput = document.getElementById("payoutLotUrl");
+      if (lotInput) lotInput.required = isFunpay;
     }));
   const lotPlat = document.getElementById("lotPlatform");
   if (lotPlat) lotPlat.querySelectorAll(".dropdown-item").forEach((it) =>
@@ -707,10 +834,47 @@ function bindCabinetForms() {
       document.getElementById("rowLotLink").classList.toggle("hidden", it.dataset.value !== "funpay");
     }));
 
+  // Переключение типа лота (выдача сабки / косметика / что-то другое)
+  const lotChoice = document.getElementById("lotTypeChoice");
+  if (lotChoice) {
+    lotChoice.querySelectorAll(".choice-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        lotChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const val = btn.dataset.value;
+        const input = document.getElementById("lotTypeInput");
+        if (input) input.value = val;
+
+        const rowCustom = document.getElementById("rowLotCustom");
+        const commentLabel = document.getElementById("lotCommentLabel");
+        const commentInput = document.getElementById("lotComment");
+        const customInput = document.getElementById("lotWantCustom");
+
+        if (val === "sub") {
+          rowCustom?.classList.add("hidden");
+          if (customInput) customInput.required = false;
+          if (commentLabel) commentLabel.textContent = "Никнейм для выдачи сабки (необязательно)";
+          if (commentInput) commentInput.placeholder = "Если для зрителя или на свой аккаунт";
+        } else if (val === "cosmetics") {
+          rowCustom?.classList.add("hidden");
+          if (customInput) customInput.required = false;
+          if (commentLabel) commentLabel.textContent = "Предмет косметики / никнейм (необязательно)";
+          if (commentInput) commentInput.placeholder = "Например: Плащ / крылья или ник получателя";
+        } else if (val === "other") {
+          rowCustom?.classList.remove("hidden");
+          if (customInput) customInput.required = true;
+          if (commentLabel) commentLabel.textContent = "Дополнительный комментарий (необязательно)";
+          if (commentInput) commentInput.placeholder = "Комментарий или контакты";
+        }
+      });
+    });
+  }
+
   bindProofForm("hwid");
   bindProofForm("discord");
   bindSimpleForm("payout");
   bindSimpleForm("lot");
+  bindIdeaBugForm();
 }
 
 function formToJSON(form) {
@@ -865,6 +1029,186 @@ async function bindProofForm(kind) {
   });
 }
 
+async function bindIdeaBugForm() {
+  const form = document.getElementById("form-ideabug");
+  if (!form) return;
+
+  const typeChoice = document.getElementById("feedbackTypeChoice");
+  if (typeChoice) {
+    typeChoice.querySelectorAll(".choice-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        typeChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const val = btn.dataset.value;
+        const input = document.getElementById("feedbackCategoryInput");
+        if (input) input.value = val;
+
+        const titleLabel = document.getElementById("feedbackTitleLabel");
+        const titleInput = document.getElementById("feedbackTitle");
+        const descLabel = document.getElementById("feedbackDescLabel");
+        const descInput = document.getElementById("feedbackDescription");
+
+        if (val === "idea") {
+          if (titleLabel) titleLabel.textContent = "Тема идеи / предложения *";
+          if (titleInput) titleInput.placeholder = "Краткая суть идеи или улучшения";
+          if (descLabel) descLabel.textContent = "Подробное описание *";
+          if (descInput) descInput.placeholder = "Опишите ваше предложение, почему это будет полезно для Delta Client...";
+        } else {
+          if (titleLabel) titleLabel.textContent = "Суть ошибки / бага *";
+          if (titleInput) titleInput.placeholder = "Где и при каких условиях возникает баг";
+          if (descLabel) descLabel.textContent = "Шаги для воспроизведения и описание *";
+          if (descInput) descInput.placeholder = "1. Зайти в... 2. Нажать... Ожидаемый и фактический результат...";
+        }
+      });
+    });
+  }
+
+  const dropzone = document.getElementById("dropzone-ideabug");
+  const filesInput = document.getElementById("proof-ideabug");
+  const filesList = document.getElementById("filesList-ideabug");
+  const progressWrap = document.getElementById("uploadProgress-ideabug");
+  const progressFill = document.getElementById("progressFill-ideabug");
+  const progressLabel = document.getElementById("progressLabel-ideabug");
+
+  let picked = [];
+
+  function renderList() {
+    if (!filesList) return;
+    if (picked.length === 0) {
+      filesList.innerHTML = "";
+      return;
+    }
+    filesList.innerHTML = picked.map((f, i) => {
+      const isVid = f.type.startsWith("video/") || /\.(mp4|webm|mov|avi)$/i.test(f.name);
+      const ico = isVid
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>';
+      return `
+        <div class="proof-file-card">
+          <div class="proof-file-ico">${ico}</div>
+          <div class="proof-file-info">
+            <span class="proof-file-name" title="${esc(f.name)}">${esc(f.name)}</span>
+            <span class="proof-file-size">${formatFileSize(f.size)}</span>
+          </div>
+          <button type="button" class="proof-file-remove" data-del="${i}" title="Удалить файл">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>`;
+    }).join("");
+
+    filesList.querySelectorAll("[data-del]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const idx = +btn.dataset.del;
+        picked.splice(idx, 1);
+        renderList();
+      });
+    });
+  }
+
+  function addFiles(fileList) {
+    if (!fileList) return;
+    for (const f of fileList) {
+      if (!picked.some((p) => p.name === f.name && p.size === f.size)) {
+        picked.push(f);
+      }
+    }
+    renderList();
+  }
+
+  if (filesInput) {
+    filesInput.addEventListener("change", () => {
+      addFiles(filesInput.files);
+      filesInput.value = "";
+    });
+  }
+
+  if (dropzone) {
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("dragend", () => {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer && e.dataTransfer.files) {
+        addFiles(e.dataTransfer.files);
+      }
+    });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const titleVal = (form.querySelector('[name="title"]')?.value || "").trim();
+    const descVal = (form.querySelector('[name="description"]')?.value || "").trim();
+    if (!titleVal || !descVal) {
+      toast("Заполните тему и описание обращения", "err");
+      return;
+    }
+
+    const btn = form.querySelector("button[type=submit]");
+    buttonState(btn, "", "Отправка…");
+    if (progressWrap) progressWrap.style.display = "flex";
+
+    try {
+      const paths = [];
+      for (let i = 0; i < picked.length; i++) {
+        const file = picked[i];
+        if (progressLabel) {
+          progressLabel.textContent = `Загрузка файла ${i + 1} из ${picked.length} (${file.name})…`;
+        }
+        const filePath = await uploadFileBig(file, (currChunk, totalChunks) => {
+          if (progressFill) {
+            const fileBasePct = (i / picked.length) * 100;
+            const chunkPct = (currChunk / totalChunks) * (100 / picked.length);
+            progressFill.style.width = Math.min(100, Math.round(fileBasePct + chunkPct)) + "%";
+          }
+        });
+        if (filePath) paths.push(filePath);
+      }
+
+      if (progressFill) progressFill.style.width = "100%";
+      if (progressLabel) progressLabel.textContent = "Сохранение обращения…";
+
+      const fd = new FormData(form);
+      fd.delete("proof");
+      fd.delete("file");
+      if (paths.length) {
+        fd.append("proof_file_paths", paths.join(","));
+      }
+
+      const resp = await fetch("/api/cabinet/feedback", {
+        method: "POST", body: fd, credentials: "same-origin",
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || "Ошибка сохранения");
+
+      buttonState(btn, "ok", "Обращение отправлено", 3500);
+      toast("Ваше обращение успешно отправлено", "ok");
+      form.reset();
+      picked = [];
+      renderList();
+      if (typeChoice) {
+        typeChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.value === "idea"));
+      }
+      const categoryInput = document.getElementById("feedbackCategoryInput");
+      if (categoryInput) categoryInput.value = "idea";
+      if (progressWrap) progressWrap.style.display = "none";
+      if (progressFill) progressFill.style.width = "0%";
+    } catch (ex) {
+      buttonState(btn, "err", ex.message, 4000);
+      toast(ex.message, "err");
+      if (progressWrap) progressWrap.style.display = "none";
+    }
+  });
+}
+
 async function bindSimpleForm(kind) {
   const form = document.getElementById("form-" + kind);
   if (!form) return;
@@ -873,8 +1217,33 @@ async function bindSimpleForm(kind) {
     e.preventDefault();
     const btn = form.querySelector("button[type=submit]");
     const body = formToJSON(form);
-    if (kind === "payout") body.method = (document.getElementById("payMethod").dataset.value || "").toLowerCase();
-    if (kind === "lot") body.platform = (document.getElementById("lotPlatform").dataset.value || "").toLowerCase();
+    if (kind === "payout") {
+      body.method = (document.getElementById("payMethod")?.dataset.value || "").toLowerCase();
+      if (!body.method) {
+        toast("Выберите способ выплаты", "err");
+        buttonState(btn, "err", "Выберите способ", 3000);
+        return;
+      }
+      if (body.method === "funpay" && (!body.lot_url || !body.lot_url.trim())) {
+        toast("Укажите ссылку на лот FunPay", "err");
+        buttonState(btn, "err", "Укажите лот", 3000);
+        return;
+      }
+    }
+    if (kind === "lot") {
+      const lotType = body.lot_type || "sub";
+      if (lotType === "sub") {
+        body.want = "Выдача сабки" + (body.comment ? ` (Ник: ${body.comment})` : "");
+      } else if (lotType === "cosmetics") {
+        body.want = "Косметика" + (body.comment ? ` (${body.comment})` : "");
+      } else if (lotType === "other") {
+        if (!body.want_custom || !body.want_custom.trim()) {
+          toast("Укажите, что именно вы хотите получить", "err");
+          return;
+        }
+        body.want = body.want_custom.trim();
+      }
+    }
     buttonState(btn, "", "Отправка…");
     try {
       const resp = await POST(endpoint, body);
@@ -882,7 +1251,6 @@ async function bindSimpleForm(kind) {
       toast(`Заявка №${resp.id} успешно принята`, "ok");
       form.reset();
       if (kind === "payout") {
-        document.getElementById("rowAmount")?.classList.add("hidden");
         document.getElementById("rowLot")?.classList.add("hidden");
         const d = document.getElementById("payMethod");
         if (d) {
@@ -893,15 +1261,17 @@ async function bindSimpleForm(kind) {
         }
       }
       if (kind === "lot") {
-        document.getElementById("rowLotLink")?.classList.add("hidden");
-        document.getElementById("rowChannel")?.classList.remove("hidden");
-        const d = document.getElementById("lotPlatform");
-        if (d) {
-          delete d.dataset.value;
-          const valSpan = d.querySelector(".dropdown-value");
-          if (valSpan) valSpan.textContent = "Выберите платформу";
-          d.querySelectorAll(".dropdown-item").forEach((it) => it.classList.remove("picked"));
+        document.getElementById("rowLotCustom")?.classList.add("hidden");
+        const choice = document.getElementById("lotTypeChoice");
+        if (choice) {
+          choice.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.value === "sub"));
         }
+        const lotTypeInput = document.getElementById("lotTypeInput");
+        if (lotTypeInput) lotTypeInput.value = "sub";
+        const commentLabel = document.getElementById("lotCommentLabel");
+        if (commentLabel) commentLabel.textContent = "Никнейм для выдачи сабки (необязательно)";
+        const commentInput = document.getElementById("lotComment");
+        if (commentInput) commentInput.placeholder = "Если для зрителя или на свой аккаунт";
       }
     } catch (ex) {
       buttonState(btn, "err", ex.message, 4000);
