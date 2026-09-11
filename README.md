@@ -1,315 +1,199 @@
-<div align="center">
+# Delta Media Portal
 
-# ⚡ Delta Media Portal (V2 Production)
+Media partnership and staff moderation portal for [Delta Client](https://deltaclient.xyz).
+Production system serving a 300k+ user Minecraft community. Built as a custom order; the codebase is public for reference.
 
-**Высокопроизводительный веб-портал медиа-партнёрства, верификации и модерации сообщества [Delta Client](https://deltaclient.xyz)**
+## Overview
 
-<br/>
+Single Go binary: a Fiber v2 HTTP API serving a dependency-free vanilla JS SPA. Access is key-based with Telegram-confirmed logins. The portal covers the full media-partner lifecycle — applications, dossiers, verdicts, a weekly USDT payout cycle — plus staff tooling: HWID resets, Discord bans, and a multilevel ban engine. SQLite for local development, PostgreSQL in production. UI localized in four languages (RU / UA / UK / EN).
 
-<img src="web/static/img/social-preview.png" alt="Delta Media Portal Banner" width="100%" style="border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+## Features
 
-<br/><br/>
+**Access control**
 
-[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://golang.org)
-[![Fiber Framework](https://img.shields.io/badge/Fiber-v2.52-00ACD7?style=for-the-badge&logo=fiber&logoColor=white)](https://gofiber.io)
-[![Database](https://img.shields.io/badge/Database-SQLite%20%7C%20PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://postgresql.org)
-[![Telegram](https://img.shields.io/badge/Telegram-Bot%20%26%20Business%20API-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white)](https://core.telegram.org)
-[![CryptoBot](https://img.shields.io/badge/CryptoBot-USDT%20Payouts-F7931A?style=for-the-badge&logo=bitcoin&logoColor=white)](https://t.me/CryptoBot)
-[![Tests](https://img.shields.io/badge/Tests-E2E%20Automated-brightgreen?style=for-the-badge&logo=playwright&logoColor=white)](https://github.com/KurumaOfficial/Delta_Client_Media_Portal)
-[![License](https://img.shields.io/badge/License-Proprietary-7928CA?style=for-the-badge)](LICENSE)
+- Personal access codes instead of passwords, with admin-issued rotation and revocation. Roles: `admin`, `moderator`, `media`, `freemedia`.
+- Mandatory Telegram 2FA: each login sends the key owner the IP, user agent, timestamp, and GPS position on a map. No confirmation, no session.
+- Cookie sessions (`httpOnly`, `SameSite=Lax`) with configurable TTL. Rate-limited login and submission endpoints.
 
-<br/>
+**Moderation**
 
-[🌟 Возможности](#-ключевые-возможности) •
-[🏛 Архитектура](#-архитектура-системы) •
-[🌿 Ветки репозитория](#-структура-веток-репозитория) •
-[🚀 Быстрый старт](#-быстрый-старт) •
-[⚙️ Переменные окружения](#️-конфигурация-окружения-env) •
-[📡 REST API](#-спецификация-rest-api) •
-[🧪 Тестирование](#-тестирование-и-верификация)
+- Candidate dossiers (YouTube / TikTok stats, reach, evidence) with one-click verdicts in the web UI and via Telegram bot buttons.
+- HWID reset registry and Discord ban registry with chunked evidence uploads (screenshots, video, up to 2 GB per upload).
+- Multilevel banlist — IP with CIDR support, game UID, Telegram username/ID, channel URLs — backed by an in-memory cache.
 
-</div>
+**Payouts**
 
----
+- Weekly settlement window (Mon 00:00 – Tue 22:00 MSK, `Europe/Moscow`), automatic aggregation and archiving.
+- USDT disbursement through the CryptoBot Pay API on admin approval, with testnet support.
+- FunPay lot templates, promo-code math, custom cosmetic rewards, weekly Telegram reports to owners.
 
-## 🌿 Структура веток репозитория
+**Analytics**
 
-В репозитории принята чёткая семантическая организация веток:
+- Admin metrics with a Bezier application-intake chart and timeframe filters (day / week / month / year / all time).
+- One-click toggles for public applications and maintenance mode.
 
-| Ветка | Статус | Описание | Стек |
-| :--- | :---: | :--- | :--- |
-| **`main`** | **Active (Production)** | **Основная рабочая ветка.** Полный рекод портала V2 на базе Go Fiber v2, модульного SPA, 2FA и автономного бэкенда. | Go 1.22+, Fiber v2, SQLite / PostgreSQL, Vanilla JS SPA |
-| **`Legacy`** | Archived (V1.4) | Историческая версия 1.4 клиентского портала (Supabase + клиентский JS). Сохранена для обратной совместимости и архива. | Supabase, HTML5, Vanilla JS |
+**Telegram integration**
 
----
+- Bot API for 2FA, verdicts, and notifications; Business API secretary with human-like delays and a 24-hour dialog-window countdown.
+- HTML5 desktop push notifications for partners and moderators on status changes.
 
-## 🌟 Ключевые возможности
+**Frontend**
 
-### 🔐 1. Аутентификация и безопасность Enterprise-уровня (Delta 2FA)
-- **Беспарольная ролевая модель (RBAC)**: Вход осуществляется по уникальным криптостойким ключам доступа (`admin`, `moderator`, `media`, `freemedia`). Ключи выпускаются, отзываются и ротируются администратором.
-- **Обязательный Telegram 2FA с геолокацией**: При вводе ключа сервер инициирует сессионный запрос в Telegram владельца ключа с указанием точного IP, юзер-агента, времени и GPS-координат на интерактивной карте. Вход невозможен без явного подтверждения владельцем.
-- **Строгая типизация полей (Numeric UID)**: Поля ввода `UID` игрока и количества роликов защищены на уровне разметки (`inputmode="numeric"`, `pattern="[0-9]*"`), DOM-фильтрации нажатий клавиш и строгой серверной валидации Go.
-- **Многоуровневый банлист (In-Memory CIDR Cache)**: Мгновенная блокировка по IP-адресам (с поддержкой CIDR-подсетей `/24`, `/16`), игровым UID, никнеймам Telegram и URL каналов YouTube/TikTok.
+- No framework: modular vanilla JS (`auth`, `admin`, `cabinet`, `public`, `ui`, `api`, `i18n`), glassmorphic Delta-style CSS, Cloudflare Turnstile on public forms.
 
-### 📊 2. Модуль аналитики и Executive-панель администратора
-- **Векторная аналитика Безье**: Интерактивный динамический график динамики поступления заявок с гладкой интерполяцией кривых Безье, градиентным неоновым свечением и фильтрацией по таймфреймам (*День, Неделя, Месяц, Год, Всё время*).
-- **Сетка метрик 1:1 в эстетике Delta Client**: 4 акцентных моноширинных счётчика в реальном времени:
-  - *Медиа заявки (в очереди)*
-  - *Сумма выплат за текущую неделю (USDT / RUB)*
-  - *Активные Discord-баны*
-  - *Активные аккаунты системы*
-- **Центр управления платформой**: Мгновенное переключение приёма публичных заявок и режима технических работ в один клик.
+## Architecture
 
-### 💸 3. Финансовый модуль и цикл еженедельных выплат
-- **Автоматизация CryptoBot (USDT)**: Генерация и автоматическая выплата инвойсов через официальный API CryptoBot прямо из панели управления при одобрении отчёта медиа.
-- **Интеграция с FunPay**: Формирование готовых шаблонов ответов, ссылок на лоты и автоматический расчёт стоимости промокодов.
-- **Недельный расчетный цикл**: Автоматическое открытие и закрытие расчетного окна выплат (`пн 00:00 — вт 22:00 МСК`), агрегация недельных отчётов и архивация данных.
-- **Кастомные вознаграждения (Косметика)**: Динамическое поле выбора типа награды — при выборе косметики активируется ввод детального описания требуемого предмета с валидацией до 200 символов.
+Request pipeline: `recover → compress → IP ban check → audit log → session → rate limiter → RBAC route groups` (`/api/mod`, `/api/cabinet`, `/api/admin`).
 
-### 🛡️ 4. Кабинет модерации и работа с медиа-партнёрами
-- **Досье кандидата**: Структурированная карточка со статистикой каналов (YouTube, TikTok), охватами, доказательствами и возможностью вынесения вердикта в один клик как в веб-интерфейсе, так и через кнопки бота в Telegram.
-- **Desktop Push Notifications**: Нативная система уведомлений браузера (Desktop Notifications) для медиа-партнёров и модераторов о смене статуса их заявок, тикетов и выплат.
-- **Сброс HWID и Discord-баны**: Выделенные реестры обработки запросов на сброс привязок оборудования и фиксации нарушений.
-- **Потоковая чанковая загрузка (Chunked Uploads)**: Загрузка скриншотов и видео-доказательств любого размера (до нескольких гигабайт) с защитой от разрыва соединения и проверкой MIME-типов.
+Services: `telegram` (bot, 2FA flow, secretary), `payouts` (period math, CryptoBot disbursement), `uploads` (resumable chunked storage), `bans` (in-memory CIDR/entity cache). Storage: SQLite via a pure-Go driver (no CGO) or PostgreSQL.
 
-### 🤖 5. Telegram Business API & Умный секретарь
-- **Интеллектуальный автоответчик**: Эмуляция поведения оператора с настраиваемой задержкой (15–180 сек), отображением статуса набора текста / выбора стикера и предварительным прочтением сообщений.
-- **Контроль 24-часового окна Telegram Business**: Таймер обратного отсчёта до закрытия диалога с заблаговременным напоминанием клиенту за 5 минут.
+## Tech stack
 
----
+| Layer    | Choice                                                        |
+| -------- | ------------------------------------------------------------- |
+| Language | Go 1.25                                                       |
+| HTTP     | Fiber v2.52 (fasthttp)                                        |
+| Database | SQLite (glebarez/go-sqlite) / PostgreSQL (lib/pq)            |
+| Frontend | Vanilla JS ES modules, no framework                           |
+| Auth     | Cookie sessions, Telegram 2FA with GPS                        |
+| Payments | CryptoBot Pay API (USDT)                                      |
+| Anti-bot | Cloudflare Turnstile                                          |
+| Config   | `.env` via godotenv                                           |
 
-## 🏛 Архитектура системы
+## Branches
 
-```mermaid
-flowchart TD
-    subgraph ClientLayer ["Клиентский уровень (Frontend SPA)"]
-        UI["Vanilla JS SPA (Glassmorphism 1:1)"]
-        Push["HTML5 Desktop Notifications"]
-        Turnstile["Cloudflare Turnstile Captcha"]
-    end
+- `main` — production V2, described by this document.
+- `Legacy` — archived V1.4 (Supabase + client-side JS). Read-only history, not maintained.
 
-    subgraph ServerLayer ["Серверный уровень (Go 1.22+ Fiber Core)"]
-        Router["Fiber v2 Router & Rate Limiter"]
-        AuthMiddleware["RBAC & Session Token Validator"]
-        BansEngine["In-Memory CIDR & Entity Ban Engine"]
-        
-        subgraph Handlers ["Модули обработчиков"]
-            H_Public["Public Handlers (Forms, Status)"]
-            H_Cabinet["Media Cabinet (Payouts, Cosmetics)"]
-            H_Mod["Moderator Hub (HWID, Bans)"]
-            H_Admin["Admin Executive (Charts, Accounts)"]
-        end
-    end
-
-    subgraph ServiceLayer ["Сервисы и интеграции"]
-        TGBot["Telegram Bot & 2FA Daemon"]
-        TGBiz["Telegram Business API Secretary"]
-        Crypto["CryptoBot Pay API (USDT)"]
-    end
-
-    subgraph StorageLayer ["Уровень данных"]
-        DB[("SQLite 3 / PostgreSQL (GORM / Pure SQL)")]
-        Storage["Chunked Uploads Storage"]
-    end
-
-    UI -->|"HTTP / REST API + Cookies"| Router
-    Turnstile -->|"Token Verify"| Router
-    Router --> AuthMiddleware
-    AuthMiddleware --> BansEngine
-    BansEngine --> Handlers
-    
-    Handlers --> TGBot
-    Handlers --> TGBiz
-    Handlers --> Crypto
-    Handlers --> DB
-    Handlers --> Storage
-    
-    TGBot -.->|"2FA Webhook / Long Polling"| Router
-    Push <.- UI
-```
-
----
-
-## 📁 Структура кодовой базы
+## Project structure
 
 ```
-.
-├── config/                  # Парсинг и типизация конфигурации окружения (.env)
+├── config/                  env parsing and typed configuration
 ├── internal/
-│   ├── auth/                # Генерация сессий, криптографические ключи, 2FA
-│   ├── bans/                # Высокопроизводительный движок банлиста (IP CIDR, UID, TG)
-│   ├── database/            # Подключение к БД, схемы v2, миграции и сиды
-│   ├── handlers/            # REST-обработчики (public, cabinet, admin, mod, bans)
-│   ├── middleware/          # Security-заголовки, Real IP, Rate Limit, Audit Log
-│   ├── models/              # Доменные структуры и модели базы данных
-│   ├── payouts/             # Расчёт еженедельных периодов, валидация сумм, CryptoBot
-│   ├── telegram/            # Бот, секретарь Business API, GPS-валидация 2FA
-│   ├── uploads/             # Потоковая чанковая загрузка тяжелых медиафайлов
-│   └── validation/          # Строгая серверная валидация входных данных
+│   ├── auth/                sessions, access codes, 2FA flow
+│   ├── bans/                in-memory ban engine (IP/CIDR, UID, TG)
+│   ├── database/            connection, schema, migrations, seeds
+│   ├── handlers/            public, cabinet, mod, admin (+accounts, bans, payouts)
+│   ├── middleware/          real IP, security headers, audit, rate limit
+│   ├── models/              domain structs
+│   ├── payouts/             weekly periods, amount math, CryptoBot
+│   ├── telegram/            bot, Business API secretary, GPS checks
+│   ├── uploads/             chunked upload storage
+│   └── validation/          server-side input validation
 ├── tools/
-│   ├── frontend_test/       # E2E автоматические тесты UI на Puppeteer / Node.js
-│   ├── e2e/                 # Интеграционные Go-тесты API
-│   └── seedlocal/           # Генератор реалистичных демонстрационных данных
+│   ├── e2e/                 Go API end-to-end tests
+│   ├── frontend_test/       Puppeteer browser tests (Node 18+)
+│   ├── generate_banner/     asset tooling
+│   └── seedlocal/           demo data generator
 ├── web/
-│   ├── static/
-│   │   ├── css/style.css    # Фирменная стилизация Glassmorphism 1:1 Delta Client
-│   │   ├── img/             # Фоновые текстуры, логотипы, иконки
-│   │   └── js/              # Модульный SPA движок (auth, admin, cabinet, public, ui)
-│   └── views/index.html     # Единая точка входа SPA
-├── main.go                  # Bootstrap приложения, Dependency Injection, graceful shutdown
-├── go.mod                   # Декларация зависимостей Go
-└── .env.example             # Полный образец конфигурационного файла
+│   ├── static/css|js|img    styles, SPA modules, textures
+│   └── views/index.html     single SPA entry (/, /ru, /ua, /uk, /en)
+├── main.go                  routes, DI, graceful shutdown
+└── .env.example             full sample configuration
 ```
 
----
+## Configuration
 
-## 🚀 Быстрый старт
+All settings come from `.env` (see `.env.example`):
 
-### Требования к окружению
-- **Go**: Версия 1.22 или выше
-- **Node.js**: Версия 18+ (только для запуска E2E тестов)
-- **ОС**: Windows, Linux (Ubuntu/Debian/Alpine), macOS
+| Variable                | Default        | Purpose                                              |
+| ----------------------- | -------------- | ---------------------------------------------------- |
+| `PORT` / `HOST`         | `3000` / `0.0.0.0` | HTTP bind address                                |
+| `DB_DRIVER`             | `sqlite`       | `sqlite` or `postgres`                               |
+| `DB_PATH`               | `./delta_v2.db`| SQLite file path                                     |
+| `SUPABASE_DB_URL`       | —              | PostgreSQL connection string                         |
+| `ADMIN_BOOTSTRAP_CODE`  | `DELTA-ROOT-0001` | First admin code, created on empty DB             |
+| `SESSION_TTL_HOURS`     | `168`          | Cookie session lifetime                              |
+| `GPS_REQUIRED`          | `true`         | Require real GPS coordinates on Telegram login       |
+| `DEV_AUTO_APPROVE_2FA`  | `false`        | Local-dev only: approve 2FA without Telegram. Never with Postgres |
+| `TELEGRAM_BOT_TOKEN`    | —              | Bot token from @BotFather                            |
+| `TELEGRAM_ADMIN_CONTACT` / `TELEGRAM_SECRETARY_CONTACT` | — | Contact usernames shown in the UI           |
+| `TELEGRAM_OWNER_IDS`    | —              | Owner IDs for privileged notifications               |
+| `CRYPTOBOT_API_TOKEN` / `CRYPTOBOT_TESTNET` / `CRYPTOBOT_ASSET` | — / `false` / `USDT` | Payout provider settings |
+| `WEEK_TZ`               | `Europe/Moscow`| Settlement week timezone                             |
+| `UPLOAD_DIR` / `MAX_UPLOAD_GB` | `./uploads` / `2` | Evidence storage                          |
+| `TURNSTILE_SITEKEY` / `TURNSTILE_SECRET` | — | Cloudflare Turnstile keys                          |
 
-### 1. Клонирование репозитория
+## Running locally
+
+Requirements: Go 1.25+. Node 18+ only for browser tests.
+
 ```bash
-git clone https://github.com/KurumaOfficial/Delta_Client_Media_Portal.git
-cd Delta_Client_Media_Portal
-```
-
-### 2. Подготовка конфигурации
-```bash
+git clone https://github.com/KurumaOfficial/Delta-Media.git
+cd Delta-Media
 cp .env.example .env
 ```
-Отредактируйте файл `.env`, указав секретные ключи, токен Telegram-бота и параметры БД. Для быстрого локального тестирования без Telegram GPS включите `DEV_AUTO_APPROVE_2FA=true`.
 
-### 3. Запуск сервера
+Fill in `.env` (bot token, session secret, DB settings). For local work without Telegram, set `DEV_AUTO_APPROVE_2FA=true` with `DB_DRIVER=sqlite`.
 
-#### Вариант А: Быстрый локальный запуск (Windows)
-```cmd
-run-local.bat
-```
-
-#### Вариант Б: Запуск в Linux / macOS
 ```bash
+# Windows
+run-local.bat
+
+# Linux / macOS
 chmod +x run-local.sh
 ./run-local.sh
+
+# or directly
+go run main.go
 ```
 
-#### Вариант В: Сборка и прямой запуск Go
-```bash
-go build -o delta-media-portal .
-./delta-media-portal
+The portal listens on `http://localhost:3000` (or `$PORT`). First login: open the Cabinet page and enter `ADMIN_BOOTSTRAP_CODE`.
+
+## API reference
+
+Auth and session:
+
+```
+POST /api/auth/login                  start login with a personal code (rate-limited)
+GET  /api/auth/attempt/:token         poll Telegram 2FA status
+GET  /api/me                          current session role and profile
+POST /api/session/ping                keep session alive
+POST /api/logout                      invalidate session
 ```
 
-Портал будет запущен и готов к приёму соединений по адресу: **`http://localhost:3999`** *(или на порту, указанном в `.env`)*.
+Public:
 
----
-
-## 🔐 Доступ по умолчанию и первый вход
-
-1. Откройте портал в браузере: `http://localhost:3999`
-2. Нажмите кнопку **«Личный кабинет»** в навигационной панели.
-3. Введите мастер-ключ администратора: `DELTA-ROOT-0001` (или значение `ADMIN_BOOTSTRAP_CODE` из вашей конфигурации).
-4. Если `DEV_AUTO_APPROVE_2FA=true`, вход произойдёт моментально без задержек. В продакшене подтверждение придёт в Telegram-чат администратора.
-
----
-
-## ⚙️ Конфигурация окружения (.env)
-
-| Переменная | По умолчанию | Описание |
-| :--- | :---: | :--- |
-| `PORT` | `3999` | Сетевой порт HTTP-сервера |
-| `HOST` | `0.0.0.0` | Сетевой интерфейс для прослушивания |
-| `DB_DRIVER` | `sqlite` | Драйвер базы данных (`sqlite` или `postgres`) |
-| `DB_PATH` | `./local.db` | Путь к файлу базы данных при использовании SQLite |
-| `DATABASE_URL` | - | Строка подключения PostgreSQL (используется при `DB_DRIVER=postgres`) |
-| `SESSION_SECRET` | `secret-key-32-chars...` | Ключ шифрования сессионных cookie |
-| `TELEGRAM_BOT_TOKEN` | - | Токен Telegram-бота из @BotFather |
-| `TELEGRAM_CHAT_ID` | - | Основной чат для уведомлений администрации |
-| `TELEGRAM_ADMIN_CONTACT` | `notyxs` | Telegram username для обратной связи и восстановления доступа |
-| `TELEGRAM_STAFF_CONTACT` | `notyxs` | Telegram username контактного лица для заявок |
-| `CRYPTOBOT_API_TOKEN` | - | API-токен CryptoBot для автоматических USDT выплат |
-| `ADMIN_BOOTSTRAP_CODE` | `DELTA-ROOT-0001` | Начальный корневой ключ супер-администратора |
-| `DEV_AUTO_APPROVE_2FA` | `false` | Автоподтверждение 2FA для разработки |
-| `GPS_REQUIRED` | `true` | Требовать реальные GPS-координаты при входе через Telegram |
-| `TURNSTILE_SITEKEY` | - | Публичный ключ защиты от ботов Cloudflare Turnstile |
-| `TURNSTILE_SECRET` | - | Секретный ключ Cloudflare Turnstile для валидации на бэкенде |
-
----
-
-## 📡 Спецификация REST API
-
-### Публичный контур
-- `GET  /api/health` — Состояние сервиса, статус технического режима и контакты администраторов.
-- `POST /api/public/apply` — Подача заявки на медиа-партнёрство (с валидацией числового UID).
-- `GET  /api/public/status?ticket=...` — Проверка статуса поданной заявки по номеру тикета.
-
-### Контур авторизации
-- `POST /api/auth/login-start` — Инициализация входа по личному коду, запуск сессии 2FA.
-- `GET  /api/auth/2fa-poll?request_id=...` — Опрос статуса подтверждения 2FA в Telegram.
-- `POST /api/auth/logout` — Инвалидация текущей сессии и очистка cookies.
-- `GET  /api/auth/me` — Получение роли и профиля текущей активной сессии.
-
-### Кабинет медиа-партнёра (`role: media`, `role: freemedia`)
-- `GET  /api/cabinet/profile` — Профиль медиа-партнёра, статистика и баланс.
-- `POST /api/cabinet/payout` — Запрос на выплату (USDT / FunPay / Косметика с кастомным описанием).
-- `GET  /api/cabinet/history` — История заявок на выплаты и начислений.
-
-### Модераторский контур (`role: moderator`, `role: admin`)
-- `GET  /api/mod/applications` — Реестр поданных медиа-заявок с фильтрацией по статусам.
-- `POST /api/mod/applications/:id/verdict` — Вынесение вердикта (`approved`, `rejected`) с комментарием.
-- `GET  /api/mod/hwid-requests` — Запросы на сброс аппаратного HWID.
-- `POST /api/mod/hwid-requests/:id/action` — Обработка сброса HWID.
-- `GET  /api/mod/bans` — Просмотр активного банлиста.
-
-### Панель администратора (`role: admin`)
-- `GET  /api/admin/metrics` — Метрики, аналитические точки Безье, недельный статус окна выплат.
-- `POST /api/admin/toggle-maintenance` — Переключение режима технических работ.
-- `POST /api/admin/toggle-applications` — Включение / выключение приёма публичных заявок.
-- `GET  /api/admin/accounts` — Управление персональными кодами доступа (генерация, блокировка).
-- `POST /api/admin/accounts/create` — Выпуск нового персонального ключа с привязкой Telegram ID.
-- `POST /api/admin/bans/add` — Добавление записи в банлист (IP, CIDR, UID, TG, Канал).
-- `DELETE /api/admin/bans/:id` — Удаление записи из банлиста.
-
----
-
-## 🧪 Тестирование и верификация
-
-Проект снабжён полным набором автоматических тестов, гарантирующих надёжность каждого слоя системы.
-
-### 1. Модульные тесты Go
-```bash
-go test -v ./internal/validation/...
 ```
-Проверяет алгоритмы валидации числовых UID, каналов, формул расчёта выплат и фильтрации запрещённых символов.
-
-### 2. Сквозные E2E тесты (Puppeteer)
-```bash
-# Запуск комплексного E2E тестирования функционала
-node tools/frontend_test/comprehensive_test.js
-
-# Запуск верификации ключевых требований UI/UX
-node tools/frontend_test/verify_user_5_requirements.js
+GET  /api/health                      service status, maintenance flag, admin contacts
+POST /api/media/submit                media partnership application (rate-limited)
+POST /api/check-tg-verified           Telegram verification check
+POST /api/upload/init                 start a chunked upload
+POST /api/upload/chunk                upload a chunk
+POST /api/log-client-error            client error telemetry
 ```
-Тесты моделируют действия реального пользователя в браузере:
-- Блокировка ввода букв в поля UID на уровне DOM-событий `keydown`, `paste` и `input`.
-- Появление и валидация поля «Какая косметика» только при выборе опции косметики.
-- Проверка кликабельности и корректности контактов `@notyxs` в окне восстановления кода.
-- Работоспособность системных Desktop-уведомлений для модераторов и медиа.
 
----
+Cabinet (`media`, `admin`), blocked during maintenance:
 
-## 🛡️ Безопасность
+```
+GET  /api/cabinet/requests            own requests
+POST /api/cabinet/payout              payout request (USDT / FunPay / cosmetic)
+POST /api/cabinet/lot                 FunPay lot submission
+POST /api/cabinet/feedback            ideas and bug reports
+```
 
-- Защита от подделки межсайтовых запросов (CSRF) и строгие `SameSite=Lax` Cookie.
-- Автоматический сбор метрик подозрительной активности и Rate Limiting по IP.
-- Защита от подбора ключей с временной блокировкой IP при превышении лимита неудачных попыток.
-- Экранирование вывода и строгая параметризация всех запросов к БД, исключающая SQL-инъекции.
+Moderation (`moderator`, `admin`):
 
----
+```
+GET  /api/mod/requests                own handled requests
+POST /api/mod/hwid                    HWID reset request
+POST /api/mod/discord                 Discord ban report
+```
 
-<div align="center">
+Admin (`admin`): stats and charts, maintenance/application toggles, logs, settings, media verdicts (`/media`, `/media/:id/decide`), HWID decisions, Discord bans, payouts and week summaries, ideas, accounts (create / toggle / recode / delete), full banlist CRUD, Telegram dialog windows.
 
-**[Delta Client](https://deltaclient.xyz)** &copy; 2024–2026. Разработано с бескомпромиссным вниманием к качеству и производительности.
+## Testing
 
-</div>
+- `go run ./tools/e2e` — API end-to-end suite (needs a running instance).
+- `tools/frontend_test` (`comprehensive_test.js`, `verify_user_5_requirements.js`, `smoke_browser.js`) — Puppeteer browser tests against a local run.
+
+## Security notes
+
+- Sessions are `httpOnly` + `SameSite=Lax` cookies with server-side TTL; login and public submission endpoints are rate-limited per IP.
+- 2FA approval binds IP, user agent, and GPS; `GPS_REQUIRED` rejects logins without real coordinates.
+- The dev 2FA bypass is refused with the Postgres driver — it only works on local SQLite.
+- All user input passes the `validation` package on the server (numeric UID enforcement, channel formats, payout math); uploads are MIME-checked and size-capped.
+
+## Status
+
+Production. Custom order for Delta Client — the code is public, reuse in other projects requires permission. No license file is shipped; all rights reserved by default.
