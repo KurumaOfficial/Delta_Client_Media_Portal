@@ -13,9 +13,9 @@ async function loadSiteConfig() {
     const staffBtn = document.getElementById("staffContactBtn");
     if (staffBtn) staffBtn.href = bot ? ("https://t.me/" + bot + "?start=verify") : ("https://t.me/" + admin);
     const bugBtn = document.getElementById("bugReportBtn");
-    if (bugBtn) bugBtn.href = bot ? ("https://t.me/" + bot) : ("https://t.me/" + admin);
+    if (bugBtn) bugBtn.href = "https://t.me/notyxs";
     const forgotBtn = document.getElementById("authForgot");
-    if (forgotBtn) forgotBtn.href = "https://t.me/" + admin;
+    if (forgotBtn) forgotBtn.href = "https://t.me/notyxs";
     if (!SITE_CONFIG.turnstile_enabled) {
       document.getElementById("captchaField")?.classList.add("hidden");
       document.getElementById("loginCaptcha")?.classList.add("hidden");

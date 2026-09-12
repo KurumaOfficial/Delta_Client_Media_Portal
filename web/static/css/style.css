@@ -2118,8 +2118,33 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
 .mod-notif-actions {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.65rem;
   flex-shrink: 0;
+}
+.mod-notif-actions .btn-primary,
+.mod-notif-actions .btn-ghost {
+  margin: 0 !important;
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 38px !important;
+  padding: 0 1.25rem !important;
+  font-size: 0.84rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.65rem !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+}
+.mod-notif-actions .btn-ghost {
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+.mod-notif-actions .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
 }
 
 .mod-notif-pill-wrap {

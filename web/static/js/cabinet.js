@@ -189,8 +189,8 @@ function renderCabinetNotifBar() {
           </div>
         </div>
         <div class="mod-notif-actions">
-          <button type="button" class="btn-primary btn-sm" id="btnEnableCabinetNotifs">Разрешить</button>
-          <button type="button" class="btn-ghost btn-sm" id="btnDismissCabinetNotifs">Не сейчас</button>
+          <button type="button" class="btn-primary" id="btnEnableCabinetNotifs">Разрешить</button>
+          <button type="button" class="btn-ghost" id="btnDismissCabinetNotifs">Отмена</button>
         </div>
       </div>`;
 
