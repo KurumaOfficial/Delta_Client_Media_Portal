@@ -10,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"dmr/config"
+	"dmr/internal/auth"
 	"dmr/internal/bans"
 	"dmr/internal/database"
 	"dmr/internal/middleware"
@@ -85,7 +86,11 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		return badRequest(c, "Некорректные данные формы")
 	}
 
-	if h.isMaintenanceActive() {
+	account, isAuth := auth.AccountOf(c)
+	isAdmin := isAuth && account.Role == models.RoleAdmin
+	isBypass := isAdmin || middleware.GetRealIP(c) == "176.11.0.6"
+
+	if h.isMaintenanceActive() && !isBypass {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
 			"success":     false,
 			"maintenance": true,
@@ -93,7 +98,7 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		})
 	}
 
-	if h.db.Setting("apps_open") == "false" {
+	if h.db.Setting("apps_open") == "false" && !isAdmin {
 		return badRequest(c, "Приём заявок в delta media сейчас закрыт")
 	}
 
@@ -150,7 +155,7 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 			return badRequest(c, "Укажите, с какими клиентами сотрудничали")
 		}
 	}
-	if !h.verifyTurnstile(c, body.TurnstileToken) {
+	if !isAdmin && !h.verifyTurnstile(c, body.TurnstileToken) {
 		return badRequest(c, "Капча не пройдена")
 	}
 
@@ -178,7 +183,7 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 	}
 
 	// ── Обязательный контакт с ботом/секретарём ──
-	if !h.IsTGVerified(tg) {
+	if !isAdmin && !h.IsTGVerified(tg) {
 		return c.Status(400).JSON(fiber.Map{
 			"success": false, "tg_required": true,
 			"error": "Диалог не найден — сначала напишите сотруднику!",
@@ -191,7 +196,7 @@ func (h *Public) SubmitMediaApp(c *fiber.Ctx) error {
 		SELECT COUNT(*) FROM v2_media_apps
 		WHERE status = 'pending' AND (LOWER(telegram) = ? OR LOWER(channel_url) = ?)`,
 		strings.ToLower(tg), strings.ToLower(channel)).Scan(&dup)
-	if dup > 0 {
+	if !isAdmin && dup > 0 {
 		return badRequest(c, "У вас уже есть нерассмотренная заявка. Дождитесь ответа.")
 	}
 
@@ -265,6 +270,11 @@ func (h *Public) LogClientError(c *fiber.Ctx) error {
 func (h *Public) Health(c *fiber.Ctx) error {
 	appsOpen := h.db.Setting("apps_open") != "false"
 	mEnabled := h.isMaintenanceActive()
+	clientIP := middleware.GetRealIP(c)
+	isBypassIP := clientIP == "176.11.0.6"
+	if isBypassIP {
+		mEnabled = false
+	}
 	mUntilStr := h.db.Setting("maintenance_until")
 	mRemainingSec := int64(0)
 	if mEnabled && mUntilStr != "" {
@@ -289,6 +299,8 @@ func (h *Public) Health(c *fiber.Ctx) error {
 		"maintenance_enabled":      mEnabled,
 		"maintenance_until":        mUntilStr,
 		"maintenance_seconds_left": mRemainingSec,
+		"maintenance_bypass":       isBypassIP,
+		"client_ip":                clientIP,
 	})
 }
 

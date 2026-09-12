@@ -12,7 +12,7 @@ import (
 	"dmr/internal/models"
 )
 
-// Service — недельный цикл выплат: вт 01:00 → пн 22:00 (зона WEEK_TZ).
+// Service — недельный цикл выплат: пн 00:00 → пн 23:00 (зона WEEK_TZ).
 // Каждая неделя — строка v2_weeks с человекочитаемой меткой, заявки
 // привязаны к неделе, поэтому история прошлых недель остаётся в БД.
 type Service struct {
@@ -27,13 +27,13 @@ func NewService(db *database.DB, tz *time.Location) *Service {
 	return &Service{db: db, tz: tz}
 }
 
-// currentWindow: последний понедельник 00:00 <= now; закрытие — вт 22:00.
+// currentWindow: последний понедельник 00:00 <= now; закрытие — пн 23:00.
 func (s *Service) currentWindow(now time.Time) (time.Time, time.Time, bool) {
 	now = now.In(s.tz)
 	candidate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, s.tz)
 	for i := 0; i < 9; i++ {
 		if candidate.Weekday() == time.Monday && !candidate.After(now) {
-			closes := candidate.AddDate(0, 0, 1).Add(22 * time.Hour)
+			closes := candidate.Add(23 * time.Hour)
 			return candidate, closes, now.Before(closes)
 		}
 		candidate = candidate.AddDate(0, 0, -1)
@@ -144,7 +144,7 @@ type Stats struct {
 
 func (s *Service) Stats(weekID int64) Stats {
 	rows, err := s.db.Query(
-		`SELECT status, method, amount FROM v2_requests WHERE week_id = ?`, weekID)
+		`SELECT status, method, amount FROM v2_requests WHERE week_id = ? AND kind = 'payout'`, weekID)
 	if err != nil {
 		return Stats{}
 	}

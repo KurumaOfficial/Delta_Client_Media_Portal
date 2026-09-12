@@ -113,14 +113,15 @@ func (h *Cabinet) SubmitPayout(c *fiber.Ctx) error {
 // SubmitLot — таб 2 медиа: заявка на лот (выдача сабки, косметика или что-то другое).
 func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	var body struct {
-		UID        string `json:"uid"`
-		Platform   string `json:"platform"`
-		Duration   string `json:"duration"`
-		LotType    string `json:"lot_type"` // sub | cosmetics | other
-		Want       string `json:"want"`
-		Comment    string `json:"comment"`
-		ChannelURL string `json:"channel_url"`
-		LotURL     string `json:"lot_url"`
+		UID         string `json:"uid"`
+		Platform    string `json:"platform"`
+		Duration    string `json:"duration"`
+		LotType     string `json:"lot_type"` // sub | giveaway | cosmetics | other
+		Want        string `json:"want"`
+		Comment     string `json:"comment"`
+		ChannelURL  string `json:"channel_url"`
+		LotURL      string `json:"lot_url"`
+		GiveawayURL string `json:"giveaway_url"`
 	}
 	if err := c.BodyParser(&body); err != nil {
 		return badRequest(c, "Некорректные данные")
@@ -134,7 +135,16 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	if b, banned := h.bans.Banned(models.BanUID, uid); banned {
 		return banHit(c, b)
 	}
-	r.Kind = models.KindLot
+	if body.LotType == "giveaway" {
+		r.Kind = models.KindGiveaway
+		if body.GiveawayURL != "" {
+			r.LotURL = validation.Clean(body.GiveawayURL, 300)
+		} else if body.LotURL != "" {
+			r.LotURL = validation.Clean(body.LotURL, 300)
+		}
+	} else {
+		r.Kind = models.KindLot
+	}
 	r.UID = uid
 
 	duration := validation.Clean(body.Duration, 100)
@@ -157,6 +167,11 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 			if body.Comment != "" {
 				want += " (" + strings.TrimSpace(body.Comment) + ")"
 			}
+		case "giveaway":
+			want = "Ключ для розыгрыша"
+			if body.Comment != "" {
+				want += " (" + strings.TrimSpace(body.Comment) + ")"
+			}
 		case "cosmetics":
 			want = "Косметика"
 			if body.Comment != "" {
@@ -170,7 +185,7 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	}
 	r.Want = validation.MultiLine(want, 300)
 	if r.Want == "" {
-		return badRequest(c, "Укажите, что хотите получить (сабка, косметика или своё пожелание)")
+		return badRequest(c, "Укажите, что хотите получить (сабка, ключ для розыгрыша, косметика или своё пожелание)")
 	}
 
 	id, err := h.pays.Create(r)
@@ -179,8 +194,73 @@ func (h *Cabinet) SubmitLot(c *fiber.Ctx) error {
 	}
 	full, _ := h.pays.Get(id)
 	h.tg.NotifyCabinetRequest(full)
-	h.db.RecordAudit("LOT_SUBMIT", "success",
-		"Лот #"+itoa64(id)+" от "+r.Nickname+" ("+r.Want+")", middleware.GetRealIP(c), c.Get("User-Agent"))
+	auditType := "LOT_SUBMIT"
+	auditDesc := "Лот #" + itoa64(id) + " от " + r.Nickname + " (" + r.Want + ")"
+	if r.Kind == models.KindGiveaway {
+		auditType = "GIVEAWAY_SUBMIT"
+		auditDesc = "Заявка на ключ для розыгрыша #" + itoa64(id) + " от " + r.Nickname
+	}
+	h.db.RecordAudit(auditType, "success",
+		auditDesc, middleware.GetRealIP(c), c.Get("User-Agent"))
+	return c.JSON(fiber.Map{"success": true, "id": id, "week": h.pays.WeekLabel()})
+}
+
+// SubmitGiveaway — выделенная заявка медиа на ключ для розыгрыша.
+func (h *Cabinet) SubmitGiveaway(c *fiber.Ctx) error {
+	var body struct {
+		UID         string `json:"uid"`
+		Platform    string `json:"platform"`
+		Duration    string `json:"duration"`
+		GiveawayURL string `json:"giveaway_url"`
+		Comment     string `json:"comment"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return badRequest(c, "Некорректные данные")
+	}
+
+	r, _, _ := h.baseRequest(c)
+	uid, ok := validation.NumericUID(body.UID)
+	if !ok {
+		return badRequest(c, "В поле UID разрешены только цифры")
+	}
+	if b, banned := h.bans.Banned(models.BanUID, uid); banned {
+		return banHit(c, b)
+	}
+	r.Kind = models.KindGiveaway
+	r.UID = uid
+
+	duration := validation.Clean(body.Duration, 100)
+	if duration == "" {
+		return badRequest(c, "Укажите, сколько вы в медиа Delta")
+	}
+	r.Duration = duration
+
+	platform := strings.ToLower(validation.Clean(body.Platform, 20))
+	if platform != "youtube" && platform != "tiktok" {
+		platform = "youtube"
+	}
+	r.Platform = platform
+
+	giveawayURL := strings.TrimSpace(body.GiveawayURL)
+	if giveawayURL == "" {
+		return badRequest(c, "Укажите ссылку на пост, видео или стрим с розыгрышем")
+	}
+	r.LotURL = validation.Clean(giveawayURL, 300)
+
+	want := "Ключ для розыгрыша"
+	if body.Comment != "" {
+		want += " (" + strings.TrimSpace(body.Comment) + ")"
+	}
+	r.Want = validation.MultiLine(want, 300)
+
+	id, err := h.pays.Create(r)
+	if err != nil {
+		return badRequest(c, err.Error())
+	}
+	full, _ := h.pays.Get(id)
+	h.tg.NotifyCabinetRequest(full)
+	h.db.RecordAudit("GIVEAWAY_SUBMIT", "success",
+		"Заявка на ключ для розыгрыша #"+itoa64(id)+" от "+r.Nickname, middleware.GetRealIP(c), c.Get("User-Agent"))
 	return c.JSON(fiber.Map{"success": true, "id": id, "week": h.pays.WeekLabel()})
 }
 

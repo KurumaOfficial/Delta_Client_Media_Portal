@@ -9,6 +9,7 @@ const CABINET_ICONS = {
   discord: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1 1 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9.5 9.5 5 5"/><path d="m14.5 9.5-5 5"/></svg>',
   payout: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
   lot: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>',
+  giveaway: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>',
   ideabug: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
   sub: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
   my: '<svg class="tab-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
@@ -84,6 +85,7 @@ async function switchCabinetTab(tab) {
   else if (tab === "discord") body.innerHTML = buildProofForm("discord", "Discord бан", "ID или @username нарушителя", "offender_id");
   else if (tab === "payout") body.innerHTML = buildPayoutForm();
   else if (tab === "lot") body.innerHTML = buildLotForm();
+  else if (tab === "giveaway") body.innerHTML = buildGiveawayForm();
   else if (tab === "ideabug") body.innerHTML = buildIdeaBugForm();
   else if (tab === "my") await renderMyRequests();
   bindCabinetForms();
@@ -91,7 +93,7 @@ async function switchCabinetTab(tab) {
 
 function cabinetTabsForRole(role) {
   if (role === "moderator") return [["hwid", t("tabHwid")], ["discord", t("tabDiscord")], ["my", t("tabMy")]];
-  if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["ideabug", "Идеи и баги"], ["my", t("tabMy")]];
+  if (role === "media") return [["payout", t("tabPayout")], ["lot", t("tabLot")], ["giveaway", "Ключ на розыгрыш"], ["ideabug", "Идеи и баги"], ["my", t("tabMy")]];
   if (role === "admin") return [["adminpanel", t("tabAdmin")]];
   return [];
 }
@@ -341,7 +343,7 @@ function notifyModRequestVerdict(item) {
   const targetLabel = item.kind === "hwid" ? "UID" : "Нарушитель";
   const targetVal = item.target || "—";
 
-  const title = `Delta Client — Заявка ${isApproved ? "одобрена ✅" : "отклонена ❌"}`;
+  const title = `Delta Client — Заявка ${isApproved ? "одобрена" : "отклонена"}`;
   let body = `${kindTitle} #${item.id} (${targetLabel}: ${targetVal})\nСтатус: ${isApproved ? "Одобрено" : "Отклонено"}`;
   if (item.admin_comment) {
     body += `\nОтвет администратора: ${item.admin_comment}`;
@@ -460,7 +462,7 @@ function notifyMediaRequestVerdict(item) {
     bug: "Баг-репорт"
   }[item.kind] || "Заявка";
 
-  const title = `Delta Client — ${kindTitle} ${isApproved ? "одобрена ✅" : "отклонена ❌"}`;
+  const title = `Delta Client — ${kindTitle} ${isApproved ? "одобрена" : "отклонена"}`;
   let body = `${kindTitle} #${item.id} (${item.want || item.amount || ""})\nСтатус: ${isApproved ? "Одобрено" : "Отклонено"}`;
   const comment = item.decision_comment || item.admin_comment;
   if (comment) {
@@ -573,17 +575,35 @@ function buildProofForm(kind, title, targetLabel, targetName) {
 
 // ── Чанковая загрузка файла → путь на сервере ──
 async function uploadFileBig(file, onProgress) {
-  const init = await POST("/api/upload/init", { file_name: file.name, file_size: file.size });
+  let init;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      init = await POST("/api/upload/init", { file_name: file.name, file_size: file.size });
+      break;
+    } catch (e) {
+      if (attempt === 2) throw e;
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
   const total = init.total_chunks, size = init.chunk_size;
   for (let i = 0; i < total; i++) {
     const chunk = file.slice(i * size, Math.min((i + 1) * size, file.size));
-    const fd = new FormData();
-    fd.append("upload_id", init.upload_id);
-    fd.append("chunk_index", i);
-    fd.append("total_chunks", total);
-    fd.append("file_name", file.name);
-    fd.append("chunk", chunk);
-    const res = await POST("/api/upload/chunk", fd);
+    let res;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const fd = new FormData();
+        fd.append("upload_id", init.upload_id);
+        fd.append("chunk_index", i);
+        fd.append("total_chunks", total);
+        fd.append("file_name", file.name);
+        fd.append("chunk", chunk);
+        res = await POST("/api/upload/chunk", fd);
+        break;
+      } catch (e) {
+        if (attempt === 2) throw e;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+    }
     if (typeof onProgress === "function") {
       onProgress(i + 1, total, file.name);
     }
@@ -597,7 +617,7 @@ function buildPayoutForm() {
   return `
   <form class="card form-card" id="form-payout">
     <h3>${CABINET_ICONS.payout} Заявка на выплату</h3>
-    <p class="hint">Приём заявок: понедельник 00:00 — вторник 22:00 (МСК).</p>
+    <p class="hint">Приём заявок на выплату: понедельник 00:00 — понедельник 23:00 (МСК).</p>
     <div class="field">
       <label>Ваш UID *</label>
       <input type="text" name="uid" id="payoutUid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
@@ -628,6 +648,7 @@ function buildLotForm() {
   return `
   <form class="card form-card" id="form-lot">
     <h3>${CABINET_ICONS.lot} Заявка на лот</h3>
+    <p class="hint" style="color:var(--color-primary-300, #38bdf8);margin-bottom:0.75rem;">Заявки на лоты принимаются круглосуточно без ограничений по времени.</p>
     <div class="field">
       <label>Ваш UID в Delta Client *</label>
       <input type="text" name="uid" id="lotUid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
@@ -669,12 +690,20 @@ function buildLotForm() {
     </div>
     <div class="field">
       <label>Что хотите получить? *</label>
-      <div class="choice-row cols-3" id="lotTypeChoice">
-        <button type="button" class="choice-card active" data-value="sub">Выдача сабки</button>
-        <button type="button" class="choice-card" data-value="cosmetics">Косметика</button>
-        <button type="button" class="choice-card" data-value="other">Что-то другое</button>
+      <div class="choice-row" id="lotTypeChoice" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:0.5rem;">
+        <button type="button" class="choice-card active" data-value="sub">${UI_ICONS.key} Сабка</button>
+        <button type="button" class="choice-card" data-value="giveaway">${UI_ICONS.gift} Розыгрыш</button>
+        <button type="button" class="choice-card" data-value="cosmetics">${UI_ICONS.palette} Косметика</button>
+        <button type="button" class="choice-card" data-value="other">${UI_ICONS.box} Прочее</button>
       </div>
       <input type="hidden" name="lot_type" id="lotTypeInput" value="sub">
+    </div>
+    <div class="field hidden" id="rowLotGiveaway">
+      <label id="lotGiveawayLabel">Ссылка на видео / пост с розыгрышем *</label>
+      <input type="url" name="giveaway_url" id="lotGiveawayUrl" placeholder="https://youtube.com/watch?v=... или https://t.me/..." maxlength="300">
+      <div class="hint" style="font-size:0.75rem;margin-top:0.25rem;color:rgba(255,255,255,0.45);">
+        Укажите ссылку на ролик, стрим или пост, где вы анонсировали или проводите розыгрыш чита
+      </div>
     </div>
     <div class="field hidden" id="rowLotCustom">
       <label id="lotWantCustomLabel">Укажите, что именно вы хотите получить *</label>
@@ -684,18 +713,78 @@ function buildLotForm() {
   </form>`;
 }
 
+// ── Медиа: заявка на ключ для розыгрыша ──
+function buildGiveawayForm() {
+  return `
+  <form class="card form-card" id="form-giveaway">
+    <h3>${CABINET_ICONS.giveaway} Заявка на ключ для розыгрыша</h3>
+    <p class="hint" style="color:var(--color-primary-300, #38bdf8);margin-bottom:0.75rem;">Заявки на ключи для розыгрышей принимаются круглосуточно. Выданный ключ отобразится в «Моих заявках».</p>
+    <div class="field">
+      <label>Ваш UID в Delta Client *</label>
+      <input type="text" name="uid" id="giveawayUid" required maxlength="64" placeholder="Ваш UID" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+      <p class="field-error-text hidden" id="giveawayUidError">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>В поле UID разрешены только цифры</span>
+      </p>
+    </div>
+    <div class="field">
+      <label>Платформа проведения *</label>
+      <div class="choice-row" id="giveawayPlatformChoice">
+        <button type="button" class="choice-card active" data-value="youtube">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;display:inline-block;"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          YouTube
+        </button>
+        <button type="button" class="choice-card" data-value="tiktok">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:6px;display:inline-block;"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+          TikTok
+        </button>
+      </div>
+      <input type="hidden" name="platform" id="giveawayPlatformInput" value="youtube">
+    </div>
+    <div class="field">
+      <label>Сколько вы в медиа Delta *</label>
+      <div class="choice-row" id="giveawayDurationMode" style="margin-bottom:0.6rem;">
+        <button type="button" class="choice-card active" data-mode="auto">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px;display:inline-block;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Автоматически
+        </button>
+        <button type="button" class="choice-card" data-mode="manual">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:5px;display:inline-block;"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+          Ввести вручную
+        </button>
+      </div>
+      <input type="text" name="duration" id="giveawayDurationInput" required maxlength="100" placeholder="Срок в медиа">
+      <div class="hint" id="giveawayDurationHint" style="font-size:0.75rem;margin-top:0.25rem;color:rgba(255,255,255,0.45);">
+        Рассчитано автоматически с даты регистрации аккаунта
+      </div>
+    </div>
+    <div class="field">
+      <label>Ссылка на видео / стрим / пост с розыгрышем *</label>
+      <input type="url" name="giveaway_url" id="giveawayUrlInput" required maxlength="300" placeholder="https://youtube.com/watch?v=... или https://t.me/...">
+      <div class="hint" style="font-size:0.75rem;margin-top:0.25rem;color:rgba(255,255,255,0.45);">
+        Укажите ссылку на ролик, стрим или пост, где вы анонсировали или проводите розыгрыш
+      </div>
+    </div>
+    <div class="field">
+      <label>Комментарий или условия розыгрыша (необязательно)</label>
+      <textarea name="comment" id="giveawayCommentInput" maxlength="300" rows="3" placeholder="Сроки розыгрыша, количество участников или доп. примечания..."></textarea>
+    </div>
+    <button type="submit" class="btn-primary" style="margin-top:0.35rem;">Отправить заявку на ключ</button>
+  </form>`;
+}
+
 // ── Медиа: идеи и баги ──
 function buildIdeaBugForm() {
   return `
   <form class="card form-card" id="form-ideabug">
     <h3>${CABINET_ICONS.ideabug} Идеи и баги</h3>
-    <p class="hint" style="margin-bottom:1.25rem;">Предложите идею по улучшению Delta Client или сообщите о найденной ошибке/баге.</p>
+    <p class="hint" style="margin-bottom:1.25rem;">Предложите идею по улучшению Delta Client или сообщите о найденной ошибке/баге. Принимаются круглосуточно.</p>
     
     <div class="field">
       <label>Тип обращения *</label>
       <div class="choice-row" id="feedbackTypeChoice">
-        <button type="button" class="choice-card active" data-value="idea">💡 Идея / Предложение</button>
-        <button type="button" class="choice-card" data-value="bug">🐛 Баг / Ошибка</button>
+        <button type="button" class="choice-card active" data-value="idea">${UI_ICONS.idea} Идея / Предложение</button>
+        <button type="button" class="choice-card" data-value="bug">${UI_ICONS.bug} Баг / Ошибка</button>
       </div>
       <input type="hidden" name="category" id="feedbackCategoryInput" value="idea">
     </div>
@@ -758,8 +847,8 @@ async function renderMyRequests() {
       const resp = await GET("/api/cabinet/requests");
       requests = resp.data || [];
       windowNote = resp.window_open
-        ? `Текущая неделя: ${esc(resp.week || "")} — приём открыт`
-        : `Приём заявок закрыт. Окно приёма: понедельник 00:00 — вторник 22:00 (МСК)`;
+        ? `Текущая неделя выплат: ${esc(resp.week || "")} — приём выплат открыт`
+        : `Приём заявок на выплату закрыт (окно: пн 00:00 — пн 23:00 МСК). Заявки на лоты и идеи/баги принимаются круглосуточно.`;
     }
   } catch (e) {
     body.innerHTML = `<div class="card">${esc(e.message)}</div>`;
@@ -769,6 +858,7 @@ async function renderMyRequests() {
   const kindTitle = {
     payout: "Выплата",
     lot: "Лот",
+    giveaway: "Ключ для розыгрыша",
     subscription: "Подписка",
     discord: "Discord бан",
     idea: "Идея",
@@ -788,7 +878,7 @@ async function renderMyRequests() {
       }
     } else if (r.kind === "idea" || r.kind === "bug") {
       const isIdea = r.kind === "idea";
-      mainText = `<b>${isIdea ? "💡 Идея" : "🐛 Баг"}</b> — ${esc(r.title || r.want || "")}`;
+      mainText = `<b>${isIdea ? `${UI_ICONS.idea} Идея` : `${UI_ICONS.bug} Баг`}</b> — ${esc(r.title || r.want || "")}`;
       subText = `${formatDate(r.created_at)} · ${esc(r.description || "").slice(0, 90)}${r.description && r.description.length > 90 ? "…" : ""}`;
       const comment = r.decision_comment || r.admin_comment;
       if (comment) {
@@ -798,7 +888,16 @@ async function renderMyRequests() {
       mainText = `<b>${kindTitle[r.kind] || r.kind}</b> — ${esc(r.want || r.amount || "")}`;
       subText = `${esc(r.week || "")} · ${r.source === "telegram" ? "из Telegram" : "с сайта"} · ${formatDate(r.created_at)}`;
       if (r.decision_comment) {
-        replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(r.decision_comment)}</small>`;
+        const wantLower = (r.want || "").toLowerCase();
+        const isGiveawayReq = r.kind === "giveaway" || wantLower.includes("розыгрыш");
+        const isSubReq = r.kind === "subscription" || (r.kind === "lot" && (wantLower.includes("сабк") || wantLower.includes("подписк")));
+        if (isGiveawayReq && r.status === "approved") {
+          replySnippet = `<br><small style="color:#c084fc;font-weight:600;display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.gift} Ключ для розыгрыша: <code>${esc(r.decision_comment)}</code></small>`;
+        } else if (isSubReq && r.status === "approved") {
+          replySnippet = `<br><small style="color:#38bdf8;font-weight:600;display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.key} Ключ сабки: <code>${esc(r.decision_comment)}</code></small>`;
+        } else {
+          replySnippet = `<br><small style="color:var(--color-primary-300);">Ответ администратора: ${esc(r.decision_comment)}</small>`;
+        }
       }
     }
 
@@ -926,7 +1025,7 @@ function openRequestDetailsModal(req, role) {
     fieldsHTML = `
       <div class="req-detail-field">
         <span class="req-detail-label">Тип обращения</span>
-        <span class="req-detail-value">${isIdea ? "💡 Идея / Предложение" : "🐛 Баг / Ошибка"}</span>
+        <span class="req-detail-value" style="display:inline-flex;align-items:center;gap:0.35rem;">${isIdea ? `${UI_ICONS.idea} Идея / Предложение` : `${UI_ICONS.bug} Баг / Ошибка`}</span>
       </div>
       <div class="req-detail-field">
         <span class="req-detail-label">Тема</span>
@@ -998,8 +1097,35 @@ function openRequestDetailsModal(req, role) {
     `;
   }
 
+  const wantLower = (req.want || "").toLowerCase();
+  const isGiveawayReq = req.kind === "giveaway" || wantLower.includes("розыгрыш");
+  const isSubReq = req.kind === "subscription" || (req.kind === "lot" && (wantLower.includes("сабк") || wantLower.includes("подписк")));
+
   let adminReplyBlock = "";
-  if (adminComment) {
+  if ((isGiveawayReq || isSubReq) && req.status === "approved" && adminComment) {
+    const keyTitle = isGiveawayReq ? "Ключ для розыгрыша:" : "Ключ подписки (сабки):";
+    const keyHint = isGiveawayReq ? "Этот ключ предназначен для выдачи победителю вашего розыгрыша." : "Активируйте ключ в лаунчере Delta Client.";
+    const keyColor = isGiveawayReq ? "#c084fc" : "#38bdf8";
+    adminReplyBlock = `
+      <div class="req-admin-reply approved" style="margin-top:1.15rem;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:0.75rem;padding:1rem;">
+        <div class="req-admin-reply-header" style="color:var(--color-success, #22c55e);font-weight:600;display:flex;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 2l-2 2m-1.5 1.5L16 7l-1.5-1.5M7 16l-4 4 4-4zm0 0l-3-3m3 3l3 3m-3-3l6.5-6.5a4.95 4.95 0 0 1 7-7 4.95 4.95 0 0 1-7 7L7 16z"/>
+          </svg>
+          ${keyTitle}
+        </div>
+        <div style="display:flex;align-items:center;gap:0.6rem;background:rgba(0,0,0,0.35);padding:0.6rem 0.85rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.08);margin-bottom:0.6rem;">
+          <code class="mono" style="font-size:1.05rem;letter-spacing:0.04em;color:${keyColor};font-weight:600;flex:1;word-break:break-all;" id="subKeyVal">${esc(adminComment)}</code>
+          <button type="button" class="btn-ghost" id="copySubKeyBtn" style="padding:0.35rem 0.65rem;font-size:0.8rem;white-space:nowrap;display:flex;align-items:center;gap:0.35rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            Скопировать
+          </button>
+        </div>
+        <p class="hint" style="margin:0;font-size:0.8rem;color:rgba(255,255,255,0.6);">
+          ${keyHint}
+        </p>
+      </div>`;
+  } else if (adminComment) {
     adminReplyBlock = `
       <div class="req-admin-reply ${req.status || ''}">
         <div class="req-admin-reply-header">
@@ -1038,6 +1164,21 @@ function openRequestDetailsModal(req, role) {
 
   void modalWrap.offsetWidth;
   modalWrap.classList.add("open");
+
+  const copySubBtn = modalWrap.querySelector("#copySubKeyBtn");
+  if (copySubBtn) {
+    copySubBtn.addEventListener("click", () => {
+      const txt = adminComment;
+      navigator.clipboard?.writeText(txt).then(() => {
+        copySubBtn.innerHTML = `${UI_ICONS.check} Скопировано!`;
+        setTimeout(() => {
+          copySubBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg> Скопировать`;
+        }, 2000);
+      }).catch(() => {
+        toast("Скопировано: " + txt, "ok");
+      });
+    });
+  }
 
   const close = () => modalWrap.classList.remove("open");
   document.getElementById("reqDetailsCloseBtn")?.addEventListener("click", close);
@@ -1123,9 +1264,55 @@ function bindCabinetForms() {
     const lotUid = document.getElementById("lotUid");
     const lotUidErr = document.getElementById("lotUidError");
     if (lotUid) attachNumericUIDValidation(lotUid, lotUidErr);
+
+    const giveawayUid = document.getElementById("giveawayUid");
+    const giveawayUidErr = document.getElementById("giveawayUidError");
+    if (giveawayUid) attachNumericUIDValidation(giveawayUid, giveawayUidErr);
   }
 
-  // Переключение типа лота (выдача сабки / косметика / что-то другое)
+  // Переключение платформы для заявки на розыгрыш
+  const gwPlatChoice = document.getElementById("giveawayPlatformChoice");
+  if (gwPlatChoice) {
+    gwPlatChoice.querySelectorAll(".choice-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        gwPlatChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const platInput = document.getElementById("giveawayPlatformInput");
+        if (platInput) platInput.value = btn.dataset.value;
+      });
+    });
+  }
+
+  // Переключение режима «Сколько вы в медиа» для заявки на розыгрыш
+  const gwDurMode = document.getElementById("giveawayDurationMode");
+  const gwDurInput = document.getElementById("giveawayDurationInput");
+  const gwDurHint = document.getElementById("giveawayDurationHint");
+  if (gwDurMode && gwDurInput) {
+    const autoVal = formatDurationSince(CURRENT_ACCOUNT ? CURRENT_ACCOUNT.created_at : null);
+    gwDurInput.value = autoVal;
+    gwDurInput.readOnly = true;
+    if (gwDurHint) gwDurHint.textContent = `Рассчитано автоматически с даты регистрации аккаунта (${autoVal})`;
+
+    gwDurMode.querySelectorAll(".choice-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        gwDurMode.querySelectorAll(".choice-card").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        if (btn.dataset.mode === "auto") {
+          gwDurInput.value = autoVal;
+          gwDurInput.readOnly = true;
+          if (gwDurHint) gwDurHint.textContent = `Рассчитано автоматически с даты регистрации аккаунта (${autoVal})`;
+        } else {
+          gwDurInput.readOnly = false;
+          gwDurInput.value = "";
+          gwDurInput.placeholder = "Например: 6 месяцев";
+          gwDurInput.focus();
+          if (gwDurHint) gwDurHint.textContent = "Укажите ваш реальный срок участия в медиа Delta Client";
+        }
+      });
+    });
+  }
+
+  // Переключение типа лота (сабка / розыгрыш / косметика / что-то другое)
   const lotChoice = document.getElementById("lotTypeChoice");
   if (lotChoice) {
     lotChoice.querySelectorAll(".choice-card").forEach((btn) => {
@@ -1136,11 +1323,20 @@ function bindCabinetForms() {
         const input = document.getElementById("lotTypeInput");
         if (input) input.value = val;
 
+        const rowGiveaway = document.getElementById("rowLotGiveaway");
+        const giveawayInput = document.getElementById("lotGiveawayUrl");
         const rowCustom = document.getElementById("rowLotCustom");
         const customInput = document.getElementById("lotWantCustom");
         const customLabel = document.getElementById("lotWantCustomLabel");
 
-        if (val === "cosmetics") {
+        if (val === "giveaway") {
+          rowGiveaway?.classList.remove("hidden");
+          if (giveawayInput) giveawayInput.required = true;
+          rowCustom?.classList.add("hidden");
+          if (customInput) customInput.required = false;
+        } else if (val === "cosmetics") {
+          rowGiveaway?.classList.add("hidden");
+          if (giveawayInput) giveawayInput.required = false;
           rowCustom?.classList.remove("hidden");
           if (customLabel) customLabel.textContent = "Какая косметика вам необходима? *";
           if (customInput) {
@@ -1148,6 +1344,8 @@ function bindCabinetForms() {
             customInput.placeholder = "Укажите желаемую косметику (например: плащ, крылья, маска)...";
           }
         } else if (val === "other") {
+          rowGiveaway?.classList.add("hidden");
+          if (giveawayInput) giveawayInput.required = false;
           rowCustom?.classList.remove("hidden");
           if (customLabel) customLabel.textContent = "Укажите, что именно вы хотите получить *";
           if (customInput) {
@@ -1155,6 +1353,8 @@ function bindCabinetForms() {
             customInput.placeholder = "Подробно опишите, что вам необходимо...";
           }
         } else {
+          rowGiveaway?.classList.add("hidden");
+          if (giveawayInput) giveawayInput.required = false;
           rowCustom?.classList.add("hidden");
           if (customInput) {
             customInput.required = false;
@@ -1169,6 +1369,7 @@ function bindCabinetForms() {
   bindProofForm("discord");
   bindSimpleForm("payout");
   bindSimpleForm("lot");
+  bindSimpleForm("giveaway");
   bindIdeaBugForm();
 }
 
@@ -1311,8 +1512,9 @@ async function bindProofForm(kind) {
       const resp = await fetch("/api/mod/" + (kind === "hwid" ? "hwid" : "discord"), {
         method: "POST", body: fd, credentials: "same-origin",
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || "Ошибка");
+      let data = {};
+      try { data = await resp.json(); } catch {}
+      if (!resp.ok) throw new Error(data.error || "Ошибка сервера (" + resp.status + ")");
       if (data.id) {
         const cache = getModRequestsCache();
         cache[`${kind}:${data.id}`] = { status: "pending", comment: "" };
@@ -1490,8 +1692,9 @@ async function bindIdeaBugForm() {
       const resp = await fetch("/api/cabinet/feedback", {
         method: "POST", body: fd, credentials: "same-origin",
       });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || "Ошибка сохранения");
+      let data = {};
+      try { data = await resp.json(); } catch {}
+      if (!resp.ok) throw new Error(data.error || "Ошибка сервера (" + resp.status + ")");
 
       buttonState(btn, "ok", "Обращение отправлено", 3500);
       toast("Ваше обращение успешно отправлено", "ok");
@@ -1516,7 +1719,7 @@ async function bindIdeaBugForm() {
 async function bindSimpleForm(kind) {
   const form = document.getElementById("form-" + kind);
   if (!form) return;
-  const endpoint = { payout: "/api/cabinet/payout", lot: "/api/cabinet/lot", sub: "/api/cabinet/subscription" }[kind];
+  const endpoint = { payout: "/api/cabinet/payout", lot: "/api/cabinet/lot", giveaway: "/api/cabinet/giveaway", sub: "/api/cabinet/subscription" }[kind];
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = form.querySelector("button[type=submit]");
@@ -1560,6 +1763,15 @@ async function bindSimpleForm(kind) {
       const lotType = body.lot_type || "sub";
       if (lotType === "sub") {
         body.want = "Выдача сабки";
+      } else if (lotType === "giveaway") {
+        const giveawayUrl = (body.giveaway_url || "").trim();
+        if (!giveawayUrl) {
+          toast("Укажите ссылку на видео, пост или стрим с розыгрышем", "err");
+          buttonState(btn, "err", "Укажите ссылку", 3000);
+          return;
+        }
+        body.want = "Ключ для розыгрыша";
+        body.giveaway_url = giveawayUrl;
       } else if (lotType === "cosmetics") {
         const cosmeticDetails = (body.want_custom || "").trim();
         if (!cosmeticDetails) {
@@ -1588,6 +1800,31 @@ async function bindSimpleForm(kind) {
         return;
       }
     }
+    if (kind === "giveaway") {
+      const uidVal = (body.uid || "").trim();
+      if (/\D/.test(uidVal)) {
+        toast("В поле UID разрешены только цифры", "err");
+        const uidEl = form.querySelector('[name="uid"]');
+        if (uidEl) uidEl.classList.add("uid-error");
+        buttonState(btn, "err", "Только цифры в UID", 3000);
+        return;
+      }
+      const giveawayUrl = (body.giveaway_url || "").trim();
+      if (!giveawayUrl) {
+        toast("Укажите ссылку на видео, пост или стрим с розыгрышем", "err");
+        buttonState(btn, "err", "Укажите ссылку на розыгрыш", 3000);
+        return;
+      }
+      body.platform = (body.platform || "youtube").toLowerCase();
+      if (body.platform !== "youtube" && body.platform !== "tiktok") {
+        body.platform = "youtube";
+      }
+      body.duration = (body.duration || "").trim();
+      if (!body.duration) {
+        toast("Укажите, сколько вы в медиа Delta", "err");
+        return;
+      }
+    }
     buttonState(btn, "", "Отправка…");
     try {
       const resp = await POST(endpoint, body);
@@ -1605,6 +1842,9 @@ async function bindSimpleForm(kind) {
         }
       }
       if (kind === "lot") {
+        document.getElementById("rowLotGiveaway")?.classList.add("hidden");
+        const gwInput = document.getElementById("lotGiveawayUrl");
+        if (gwInput) { gwInput.value = ""; gwInput.required = false; }
         document.getElementById("rowLotCustom")?.classList.add("hidden");
         const customLabel = document.getElementById("lotWantCustomLabel");
         if (customLabel) customLabel.textContent = "Укажите, что именно вы хотите получить *";
@@ -1640,6 +1880,27 @@ async function bindSimpleForm(kind) {
           if (lotDurHint) {
             lotDurHint.textContent = `Рассчитано автоматически с даты регистрации аккаунта (${autoVal})`;
           }
+        }
+      }
+      if (kind === "giveaway") {
+        const platChoice = document.getElementById("giveawayPlatformChoice");
+        if (platChoice) {
+          platChoice.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.value === "youtube"));
+        }
+        const platInput = document.getElementById("giveawayPlatformInput");
+        if (platInput) platInput.value = "youtube";
+
+        const durMode = document.getElementById("giveawayDurationMode");
+        if (durMode) {
+          durMode.querySelectorAll(".choice-card").forEach((b) => b.classList.toggle("active", b.dataset.mode === "auto"));
+        }
+        const durInput = document.getElementById("giveawayDurationInput");
+        const durHint = document.getElementById("giveawayDurationHint");
+        if (durInput) {
+          const autoVal = formatDurationSince(CURRENT_ACCOUNT ? CURRENT_ACCOUNT.created_at : null);
+          durInput.value = autoVal;
+          durInput.readOnly = true;
+          if (durHint) durHint.textContent = `Рассчитано автоматически с даты регистрации аккаунта (${autoVal})`;
         }
       }
     } catch (ex) {

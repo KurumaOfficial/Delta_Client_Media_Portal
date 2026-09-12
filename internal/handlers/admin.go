@@ -68,6 +68,8 @@ func (h *Admin) Stats(c *fiber.Ctx) error {
 		"accounts_total":           count("v2_accounts", "WHERE is_active = 1"),
 		"payouts_pending":          st.Pending,
 		"payouts_total":            st.Total,
+		"subkeys_available":        func() int { a, _, _ := h.db.SubscriptionKeysStats(); return a }(),
+		"giveaway_keys_available":  func() int { a, _, _ := h.db.GiveawayKeysStats(); return a }(),
 		"week_label":               week.Label,
 		"week_open":                h.pays.WindowOpen(),
 		"apps_open":                h.db.Setting("apps_open") != "false",
@@ -264,14 +266,14 @@ func (h *Admin) StatsChart(c *fiber.Ctx) error {
 	})
 }
 
-// ── Заявки: списки (новые внизу — ASC) ──────────────────────
+// ── Заявки: списки (новые вверху — DESC) ─────────────────────
 
 func (h *Admin) MediaApps(c *fiber.Ctx) error {
 	rows, err := h.db.Query(`
 		SELECT id, lang, uid, criteria_agreed, platform, channel_url, servers,
 		       videos_per_week, collaborations, why_join, exclusive, telegram,
 		       status, admin_comment, created_at, updated_at
-		FROM v2_media_apps ORDER BY id ASC`)
+		FROM v2_media_apps ORDER BY id DESC`)
 	if err != nil {
 		return serverError(c, "Ошибка загрузки")
 	}
@@ -294,7 +296,7 @@ func (h *Admin) HWIDRequests(c *fiber.Ctx) error {
 	rows, err := h.db.Query(`
 		SELECT id, mod_nickname, uuid, proof_type, proof_file, proof_link, reason,
 		       status, admin_comment, created_at
-		FROM v2_hwid_requests ORDER BY id ASC`)
+		FROM v2_hwid_requests ORDER BY id DESC`)
 	if err != nil {
 		return serverError(c, "Ошибка загрузки")
 	}
@@ -314,7 +316,7 @@ func (h *Admin) DiscordBans(c *fiber.Ctx) error {
 	rows, err := h.db.Query(`
 		SELECT id, mod_nickname, offender_id, proof_type, proof_file, proof_link, reason,
 		       status, admin_comment, created_at
-		FROM v2_discord_bans ORDER BY id ASC`)
+		FROM v2_discord_bans ORDER BY id DESC`)
 	if err != nil {
 		return serverError(c, "Ошибка загрузки")
 	}
@@ -461,7 +463,8 @@ func (h *Admin) DecideFromTelegram(kind string, id int64, approve bool) error {
 	case "discord":
 		return h.decideDiscord(id, approve, "", "telegram")
 	case "pay":
-		return h.DecidePayoutInternal(id, approve, "", "telegram")
+		_, err := h.DecidePayoutInternal(id, approve, "", "telegram")
+		return err
 	case "idea", "bug":
 		return h.decideIdeaBug(id, approve, "", "telegram")
 	}
@@ -661,6 +664,8 @@ func isEditableSetting(key string) bool {
 	switch key {
 	case "payout_paste_template", "payout_funpay_text", "payout_reject_text",
 		"payout_usdt_text", "week_summary_template", "apps_open", "maintenance_enabled", "maintenance_until",
+		"two_factor_enabled", "user_notifications_enabled",
+		"lot_sub_approve_text", "lot_approve_text", "lot_reject_text",
 		"media_approve_text", "media_reject_text",
 		"hwid_approve_text", "hwid_reject_text",
 		"discord_approve_text", "discord_reject_text",

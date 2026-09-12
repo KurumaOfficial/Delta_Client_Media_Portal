@@ -188,11 +188,46 @@ func (db *DB) Migrate() error {
 			value TEXT NOT NULL DEFAULT '',
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+
+		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS v2_sub_keys (
+			id %s,
+			category TEXT NOT NULL DEFAULT 'sub',
+			key_code TEXT NOT NULL UNIQUE,
+			is_used INTEGER NOT NULL DEFAULT 0,
+			used_at TIMESTAMP,
+			assigned_request_id BIGINT NOT NULL DEFAULT 0,
+			assigned_account_id BIGINT NOT NULL DEFAULT 0,
+			assigned_to TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`, pk),
 	}
 
 	for _, s := range stmts {
 		if _, err := db.SQL.Exec(s); err != nil {
 			return fmt.Errorf("create table: %w\nQuery: %s", err, s)
+		}
+	}
+
+	// Миграция колонки category в v2_sub_keys при её отсутствии
+	if db.IsPostgres() {
+		_, _ = db.SQL.Exec(`ALTER TABLE v2_sub_keys ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'sub';`)
+		_, _ = db.SQL.Exec(`CREATE INDEX IF NOT EXISTS idx_sub_keys_cat_used ON v2_sub_keys(category, is_used);`)
+	} else {
+		var hasCategory bool
+		if rows, err := db.SQL.Query(`PRAGMA table_info(v2_sub_keys)`); err == nil {
+			for rows.Next() {
+				var cid int
+				var name, ctype string
+				var notnull, pkCol int
+				var dflt interface{}
+				if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pkCol); err == nil && name == "category" {
+					hasCategory = true
+				}
+			}
+			rows.Close()
+		}
+		if !hasCategory {
+			_, _ = db.SQL.Exec(`ALTER TABLE v2_sub_keys ADD COLUMN category TEXT NOT NULL DEFAULT 'sub';`)
 		}
 	}
 
@@ -308,6 +343,17 @@ func (db *DB) Migrate() error {
 	// Сброс всех 24-часовых блокировок входа (попытки очищаются)
 	_, _ = db.SQL.Exec(`UPDATE v2_audit_logs SET status = 'failed_cleared' WHERE event_type = 'LOGIN' AND status = 'failed'`)
 
+	// Включение Row Level Security (RLS) для защиты всех таблиц от прямого доступа через Supabase API
+	if db.IsPostgres() {
+		for _, tbl := range []string{
+			"v2_accounts", "v2_sessions", "v2_login_attempts", "v2_tg_users",
+			"v2_media_apps", "v2_weeks", "v2_requests", "v2_hwid_requests",
+			"v2_discord_bans", "v2_ideas_bugs", "v2_audit_logs", "v2_settings", "v2_bans", "v2_sub_keys",
+		} {
+			_, _ = db.SQL.Exec(fmt.Sprintf(`ALTER TABLE %s ENABLE ROW LEVEL SECURITY;`, tbl))
+		}
+	}
+
 	if err := db.seedDefaults(); err != nil {
 		return err
 	}
@@ -318,18 +364,22 @@ func (db *DB) Migrate() error {
 // defaultSettings — редактируемые в админке тексты (пасты, шаблоны, вердикты).
 func defaultSettings() map[string]string {
 	return map[string]string{
-		"apps_open":             "true",
-		"media_approve_text":    "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и одобрил её!\n\nСсылка на конфу медиа - {comment}\nОбязательно прочитай все каналы чтобы понять всю суть.",
-		"media_reject_text":     "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и вынужден её отклонить.\n\nПричина: {reason}\nПопробуй больше активничать и чаще выкладывать видео — тогда у тебя всё обязательно получится. Когда улучшишь статистику аккаунта, подавай новую заявку.",
-		"payout_paste_template": "📋 Заявка на выплату Delta Media\nUID: {uid}\nВ медиа: {duration}\nЧто хочу получить: {want}\nСумма (USDT): {amount}\nСпособ выплаты: {method}\nСсылка на лот (FunPay): {lot_url}",
-		"payout_funpay_text":    "✅ Твоя заявка на выплату №{id} одобрена!\nОплата через FunPay: {lot_url}\nЕсли появились вопросы — пиши администратору.",
-		"payout_reject_text":    "❌ Выплата была отклонена.\nПричина: {reason}",
-		"payout_usdt_text":      "💸 Выплата №{id} одобрена: {amount} USDT отправлены через CryptoBot (@crypto_bot).\nПроверь чек в боте. Если что-то не так — пиши администратору.",
+		"apps_open":                  "true",
+		"two_factor_enabled":         "false",
+		"user_notifications_enabled": "false",
+		"media_approve_text":         "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и одобрил её!\n\nСсылка на конфу медиа - {comment}\nОбязательно прочитай все каналы чтобы понять всю суть.",
+		"media_reject_text":          "Привет! Я notyx — куратор Delta Client. Ты недавно оставлял медиа-заявку на сайте deltamedia.fun. Я рассмотрел твою заявку № {id} и вынужден её отклонить.\n\nПричина: {reason}\nПопробуй больше активничать и чаще выкладывать видео — тогда у тебя всё обязательно получится. Когда улучшишь статистику аккаунта, подавай новую заявку.",
+		"payout_paste_template":      "📋 Заявка на выплату Delta Media\nUID: {uid}\nВ медиа: {duration}\nЧто хочу получить: {want}\nСумма (USDT): {amount}\nСпособ выплаты: {method}\nСсылка на лот (FunPay): {lot_url}",
+		"payout_funpay_text":         "✅ Твоя заявка на выплату №{id} одобрена!\nОплата через FunPay: {lot_url}\nЕсли появились вопросы — пиши администратору.",
+		"payout_reject_text":         "❌ Выплата была отклонена.\nПричина: {reason}",
+		"payout_usdt_text":           "💸 Выплата №{id} одобрена: {amount} USDT отправлены через CryptoBot (@crypto_bot).\nПроверь чек в боте. Если что-то не так — пиши администратору.",
+		"lot_approve_text":           "✅ <b>Ваша заявка на лот #{id} одобрена!</b>\n\n{comment}",
+		"lot_reject_text":            "❌ <b>Ваша заявка на лот #{id} отклонена.</b>\n\nПричина: {reason}",
 		"week_summary_template": "📊 Итоги недели {week}:\nЗаявок подано: {total}\nОдобрено: {approved} | Отклонено: {rejected} | В ожидании: {pending}\nВыплачено USDT: {usdt_total}\nFunPay-выплат: {funpay_count}",
 		"discord_approve_text":  "Аккаунт в дискорде {comment} успешно заблокирован.",
 		"discord_reject_text":   "Блокировка аккаунта {comment} была отклонена.\n\nПричина — {reason}",
 		"tg_window_nudge_text":  "⏳ Напоминание: окно для ответов скоро закроется. Напиши любое сообщение, чтобы продлить его на 24 часа.",
-		"tg_bot_start_text":     "🤖 <b>Delta Media Bot</b>\n\nПривет, {name}!\nЧерез меня приходит подтверждение входа на сайт и статусы заявок.\n\n📋 Шаблон заявки на выплату: /template",
+		"tg_bot_start_text":     "🤖 <b>Delta Media Bot</b>\n\nПривет, {name}!\nЧерез меня приходит подтверждение входа на сайт и статусы заявок.",
 	}
 }
 

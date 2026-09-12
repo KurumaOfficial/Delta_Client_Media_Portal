@@ -160,8 +160,3 @@ func (h *Admin) RemoveBan(c *fiber.Ctx) error {
 		middleware.GetRealIP(c), c.Get("User-Agent"))
 	return c.JSON(fiber.Map{"success": true})
 }
-
-// TGWindows — состояния 24h-окон ответов (админка подстраивается под таймеры).
-func (h *Admin) TGWindows(c *fiber.Ctx) error {
-	return c.JSON(fiber.Map{"success": true, "data": h.tg.WindowStates()})
-}

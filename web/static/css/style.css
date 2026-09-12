@@ -1260,8 +1260,32 @@ select option:checked {
   background: rgba(11, 13, 22, 0.9);
 }
 .modal-box > * { position: relative; z-index: 1; }
-.modal-box > * { padding: 1.25rem 1.5rem; }
-.modal-box h3 { font-family: var(--font-title); font-size: 1.25rem; font-weight: 700; color: #fff; padding-right: 3.5rem; }
+.modal-box {
+  padding: 1.75rem 1.75rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.modal-box h3 { font-family: var(--font-title); font-size: 1.25rem; font-weight: 700; color: #fff; padding-right: 2.5rem; margin: 0; }
+.modal-box .hint { margin: 0; }
+.modal-box textarea,
+.modal-box input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]) {
+  box-sizing: border-box !important;
+  width: 100% !important;
+  margin: 0.25rem 0 !important;
+  padding: 0.85rem 1rem !important;
+  border-radius: 0.75rem !important;
+  font-family: var(--font-display) !important;
+  font-size: 0.9rem !important;
+  line-height: 1.45 !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #fff !important;
+}
+.modal-box textarea {
+  resize: vertical !important;
+}
 .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 0.9rem; }
 
 /* крестик как в диалогах deltaclient: absolute top-4 right-4,
@@ -1290,7 +1314,57 @@ select option:checked {
   background: rgba(255, 255, 255, 0.1);
   transform: rotate(90deg);
 }
-.modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+.modal-actions {
+  display: flex !important;
+  align-items: stretch !important;
+  gap: 0.65rem !important;
+  margin-top: 0.75rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+.modal-actions button,
+.modal-actions .btn-primary,
+.modal-actions .btn-ghost {
+  margin: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: var(--font-display) !important;
+  font-size: 0.88rem !important;
+  font-weight: 600 !important;
+  border-radius: 0.75rem !important;
+  box-sizing: border-box !important;
+  padding: 0 1.25rem !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+  text-decoration: none !important;
+  flex: 1 1 0 !important;
+  white-space: nowrap !important;
+  width: auto !important;
+}
+.modal-actions .btn-primary {
+  color: #fff !important;
+  border: none !important;
+  background: var(--color-primary-500);
+}
+.modal-actions .btn-primary:hover {
+  filter: brightness(1.08) !important;
+  box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.35) !important;
+}
+.modal-actions .btn-ghost {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+.modal-actions .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
 
 /* ═══ Delta Client Auth Modal (1:1 живой deltaclient.xyz) ═══ */
 :root {
@@ -1821,8 +1895,13 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
 .delta-auth-btn:hover:not(:disabled) .delta-auth-btn-arrow {
   transform: translateX(2px);
 }
+.animate-spin {
+  animation: spin 1s linear infinite;
+  transform-origin: center;
+}
 .delta-auth-btn-spinner {
   animation: spin 1s linear infinite;
+  transform-origin: center;
 }
 @keyframes spin {
   from { transform: rotate(0deg); }
@@ -1873,6 +1952,8 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
 }
 .delta-auth-2fa-badge svg {
   color: #859bff;
+  animation: spin 1s linear infinite;
+  transform-origin: center;
 }
 
 .btn-cta {
@@ -2270,9 +2351,49 @@ input[type="text"].delta-auth-input:-webkit-autofill:focus,
 .side-btn.active { background: rgba(var(--primary-rgb), 0.15); color: var(--color-primary-300); font-weight: 600; }
 .side-btn.active svg { color: var(--color-primary-400); opacity: 1; }
 
+.side-badge {
+  display: none !important;
+}
+.side-badge.pending {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+.side-badge.ok {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+.side-badge.alert {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
 /* иконки в заголовках админки */
 .h-ico { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.8; }
 h3 .h-ico { color: var(--color-primary-400); }
+
+/* SVG-иконки для кнопок, бейджей и карточек вместо эмодзи */
+.ui-ico {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+.btn-primary .ui-ico,
+.btn-ghost .ui-ico,
+.act .ui-ico,
+.choice-card .ui-ico,
+.lots-filter-tab .ui-ico,
+.chart-tab .ui-ico {
+  margin-right: 0.35rem;
+}
+.badge .ui-ico {
+  margin-right: 0.25rem;
+  vertical-align: -0.12em;
+}
 
 .admin-content { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
 
@@ -2402,17 +2523,47 @@ td a { color: var(--color-primary-400); }
   gap: 1.15rem;
 }
 .summary-editor textarea { min-height: 140px; font-family: var(--font-mono); font-size: 0.85rem; }
+.summary-editor .row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+.summary-editor .row-actions .btn-primary,
+.summary-editor .row-actions .btn-ghost {
+  margin: 0 !important;
+  width: auto !important;
+  height: 38px !important;
+  padding: 0 1.35rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 0.65rem !important;
+  font-size: 0.88rem !important;
+}
 
 .copy-chip {
-  font-family: var(--font-mono); font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
   color: var(--color-primary-300);
   background: rgba(var(--primary-rgb), 0.1);
-  border: 1px solid rgba(var(--primary-rgb), 0.22);
-  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(var(--primary-rgb), 0.25);
+  padding: 0.35rem 0.7rem;
   border-radius: 0.5rem;
-  cursor: pointer; white-space: nowrap;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  vertical-align: middle;
+  line-height: 1.25;
+  transition: all 0.18s ease;
 }
-.copy-chip:hover { background: rgba(var(--primary-rgb), 0.2); }
+.copy-chip:hover {
+  background: rgba(var(--primary-rgb), 0.22);
+  border-color: rgba(var(--primary-rgb), 0.45);
+}
 
 /* ═══ Тосты ═══ */
 .toast-wrap { position: fixed; bottom: 1.25rem; right: 1.25rem; z-index: 99999999; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -3195,8 +3346,47 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 #settingsContentWrap .card textarea {
   width: 100%;
 }
+#settingsContentWrap .card .btn-primary,
 #settingsContentWrap .card button {
-  align-self: flex-start;
+  margin: 0 !important;
+  width: auto !important;
+  height: 38px !important;
+  padding: 0 1.35rem !important;
+  border-radius: 0.65rem !important;
+  font-size: 0.88rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  align-self: flex-start !important;
+  flex-shrink: 0 !important;
+}
+.settings-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+.settings-select {
+  flex: 1 1 320px;
+  max-width: 440px;
+  height: 38px;
+  background: var(--glass-bg-solid, #18191f);
+  color: #fff;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.65rem;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+.settings-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 /* ═══ Компактная форма создания аккаунта ═══ */
@@ -3230,7 +3420,6 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   width: 210px;
   flex: 1 1 190px;
   max-width: 240px;
-  text-transform: uppercase;
 }
 .acc-create-form select {
   height: 40px;
@@ -3258,12 +3447,12 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 .overview-3blocks-row,
 .overview-work-row {
   display: grid;
-  grid-template-columns: 250px 220px 1fr;
+  grid-template-columns: 260px 290px 1fr;
   gap: 1.15rem;
   margin-top: 1.15rem;
   align-items: stretch;
 }
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .overview-3blocks-row,
   .overview-work-row {
     grid-template-columns: 1fr 1fr;
@@ -3289,6 +3478,11 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   min-height: 190px;
   box-sizing: border-box;
   animation: rowFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.block-controls {
+  padding: 1.25rem 1.25rem;
+  overflow: hidden;
 }
 
 .block-head {
@@ -3493,20 +3687,44 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   font-size: 0.76rem;
   font-weight: 600;
 }
+.ctrl-btn-block-wrap {
+  display: flex;
+  gap: 0.45rem;
+  width: 100%;
+  align-items: center;
+}
+.ctrl-btn-block-wrap .ctrl-btn-block {
+  flex: 1;
+  min-width: 0;
+}
+.ctrl-btn-preview {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  padding: 0.45rem 0.6rem !important;
+  font-size: 0.74rem !important;
+}
 .ctrl-btn-block {
   width: 100%;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   padding: 0.45rem 0.65rem;
   font-size: 0.76rem;
   font-weight: 600;
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.85);
   text-align: center;
-  justify-content: center;
   border-radius: 0.6rem;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
   background: transparent;
+  box-sizing: border-box;
+}
+.ctrl-btn-block .ui-ico {
+  flex-shrink: 0;
 }
 .ctrl-btn-block:hover {
   background: rgba(255, 255, 255, 0.08);
@@ -3613,7 +3831,7 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 .chart-header-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 .chart-title-wrap {
@@ -3624,13 +3842,15 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
 .chart-badge-title {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 .chart-icon {
   width: 18px;
   height: 18px;
   color: var(--color-primary-400);
   filter: drop-shadow(0 0 6px rgba(133, 155, 255, 0.5));
+  flex-shrink: 0;
 }
 .chart-title {
   font-family: var(--font-title);
@@ -3638,6 +3858,7 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   font-weight: 700;
   color: #fff;
   letter-spacing: -0.01em;
+  line-height: 1.2;
 }
 .chart-period-desc {
   font-family: var(--font-display);
@@ -3648,23 +3869,30 @@ body.maintenance-active.user-is-staff .island-header .nav-btn[data-view="public"
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.6rem;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.2rem 0.65rem;
+  background: rgba(var(--primary-rgb), 0.1);
+  border: 1px solid rgba(var(--primary-rgb), 0.24);
   border-radius: 9999px;
-  backdrop-filter: blur(8px);
+  line-height: 1;
+  vertical-align: middle;
 }
 .chart-total-label {
   font-family: var(--font-display);
   font-size: 0.72rem;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 .chart-total-count {
   font-family: var(--font-mono);
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-primary-300);
+  color: var(--color-primary-300, #a5b4fc);
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 .chart-period-tabs {
   display: inline-flex;
@@ -3978,6 +4206,184 @@ body.admin-overview-page {
   border-color: rgba(133, 155, 255, 0.45);
   color: #fff;
   transform: translateY(-1px);
+}
+
+/* ═══ Вкладка «Медиа лоты» в админке: исправление визуальных наложений ═══ */
+.lots-table {
+  min-width: 1080px;
+  width: 100%;
+}
+.lots-table th,
+.lots-table td {
+  padding: 0.85rem 1.1rem !important;
+  vertical-align: middle;
+}
+.lots-table tbody tr td {
+  line-height: 1.35;
+}
+.lot-user-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+.lot-user-cell b {
+  font-size: 0.88rem;
+  color: #fff;
+  white-space: nowrap;
+}
+.duration-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+}
+.platform-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.5rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1;
+}
+.platform-pill.youtube {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.platform-pill.tiktok {
+  background: rgba(34, 211, 238, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+}
+.lot-request-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-start;
+  min-width: 170px;
+  max-width: 300px;
+}
+.lot-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.lot-request-text {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--color-text, #f1f5f9);
+  word-break: break-word;
+  line-height: 1.35;
+}
+.lot-link-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  background: rgba(133, 155, 255, 0.1);
+  border: 1px solid rgba(133, 155, 255, 0.25);
+  border-radius: 0.45rem;
+  font-size: 0.74rem;
+  color: var(--color-primary-300, #a5b4fc);
+  text-decoration: none;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.lot-link-chip:hover {
+  background: rgba(133, 155, 255, 0.22);
+  border-color: rgba(133, 155, 255, 0.45);
+  color: #fff;
+}
+.lot-status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: flex-start;
+  min-width: 170px;
+}
+.lot-key-chip {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem !important;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  line-height: 1.25;
+}
+.lot-key-chip.sub-key {
+  color: var(--color-primary-300, #a5b4fc);
+  background: rgba(133, 155, 255, 0.12);
+  border: 1px solid rgba(133, 155, 255, 0.28);
+}
+.lot-key-chip.sub-key:hover {
+  background: rgba(133, 155, 255, 0.25);
+  border-color: rgba(133, 155, 255, 0.5);
+  color: #fff;
+}
+.lot-key-chip.giveaway-key {
+  color: #c084fc;
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+.lot-key-chip.giveaway-key:hover {
+  background: rgba(168, 85, 247, 0.28);
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #fff;
+}
+.lot-dec-comment {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.3;
+  word-break: break-word;
+  max-width: 210px;
+}
+.lots-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  flex-wrap: wrap;
+}
+.lots-filter-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.lots-filter-tab:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+.lots-filter-tab.active {
+  background: rgba(133, 155, 255, 0.18);
+  border-color: rgba(133, 155, 255, 0.38);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(133, 155, 255, 0.2);
 }
 
 

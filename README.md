@@ -23,7 +23,7 @@ Single Go binary: a Fiber v2 HTTP API serving a dependency-free vanilla JS SPA. 
 
 **Payouts**
 
-- Weekly settlement window (Mon 00:00 – Tue 22:00 MSK, `Europe/Moscow`), automatic aggregation and archiving.
+- Weekly settlement window (Mon 00:00 – Mon 23:00 MSK, `Europe/Moscow`), automatic aggregation and archiving.
 - USDT disbursement through the CryptoBot Pay API on admin approval, with testnet support.
 - FunPay lot templates, promo-code math, custom cosmetic rewards, weekly Telegram reports to owners.
 

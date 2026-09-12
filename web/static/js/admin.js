@@ -18,13 +18,18 @@ function formatDate(iso) {
 // lucide-иконки (та же библиотека, что на deltaclient.xyz)
 const ICONS = {
   payouts: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/></svg>',
+  lots: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect width="20" height="5" x="2" y="7"/><line x1="12" x2="12" y1="22" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>',
+  giveawaykeys: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>',
   accounts: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>',
   bans: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>',
-  windows: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" x2="14" y1="2" y2="2"/><line x1="12" x2="15" y1="14" y2="11"/><circle cx="12" cy="14" r="8"/></svg>',
   logs: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>',
   edit: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>',
   ideas: '<svg class="h-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
 };
+
+function updateAdminSideBadges() {
+  document.querySelectorAll(".side-btn .side-badge").forEach((el) => el.remove());
+}
 
 function initAdminNav() {
   document.querySelectorAll(".side-btn").forEach((b) =>
@@ -37,9 +42,11 @@ function initAdminNav() {
       ADMIN_FILTER.search = ""; ADMIN_FILTER.statuses = new Set(); ADMIN_FILTER.page = {};
       renderAdminCategory();
     }));
+  updateAdminSideBadges();
 }
 
 async function renderAdminCategory() {
+  updateAdminSideBadges();
   const isOverview = (adminCat === "overview");
   document.documentElement.classList.toggle("admin-overview-page", isOverview);
   document.body.classList.toggle("admin-overview-page", isOverview);
@@ -57,9 +64,11 @@ async function renderAdminCategory() {
     else if (adminCat === "discord") await renderAppsTable("discord");
     else if (adminCat === "ideas") await renderAppsTable("ideas");
     else if (adminCat === "payouts") await renderPayouts();
+    else if (adminCat === "lots") await renderLots();
+    else if (adminCat === "subkeys") await renderSubKeys();
+    else if (adminCat === "giveawaykeys") await renderGiveawayKeys();
     else if (adminCat === "accounts") await renderAccounts();
     else if (adminCat === "bans") await renderBans();
-    else if (adminCat === "windows") { settingsSubTab = "windows"; adminCat = "settings"; await renderSettings(); }
     else if (adminCat === "logs") { settingsSubTab = "logs"; adminCat = "settings"; await renderSettings(); }
     else if (adminCat === "settings") await renderSettings();
   } catch (e) {
@@ -156,6 +165,15 @@ function formatWeekRangeHTML(label) {
   if (!label) return '<b class="week-dates-val">—</b>';
   const m = String(label).match(/с\s+([^\s]+)\s+(?:до|по)\s+([^\s]+)/i);
   if (m) {
+    if (m[1] === m[2]) {
+      return `
+        <div class="week-range-list">
+          <div class="week-range-item">
+            <span class="week-range-prep">за</span>
+            <b class="week-range-date">${esc(m[1])}</b>
+          </div>
+        </div>`;
+    }
     return `
       <div class="week-range-list">
         <div class="week-range-item">
@@ -165,6 +183,16 @@ function formatWeekRangeHTML(label) {
         <div class="week-range-item">
           <span class="week-range-prep">до</span>
           <b class="week-range-date">${esc(m[2])}</b>
+        </div>
+      </div>`;
+  }
+  const mSingle = String(label).match(/за\s+([^\s]+)/i);
+  if (mSingle) {
+    return `
+      <div class="week-range-list">
+        <div class="week-range-item">
+          <span class="week-range-prep">за</span>
+          <b class="week-range-date">${esc(mSingle[1])}</b>
         </div>
       </div>`;
   }
@@ -192,12 +220,12 @@ async function renderOverview() {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
               </svg>
               <span class="chart-title">Динамика подачи заявок</span>
+              <span class="chart-total-pill">
+                <span class="chart-total-label">Подано:</span>
+                <b class="chart-total-count" id="chartTotalCount">—</b>
+              </span>
             </div>
             <div class="chart-period-desc" id="chartPeriodSubtitle">Загрузка...</div>
-          </div>
-          <div class="chart-total-pill">
-            <span class="chart-total-label">Подано:</span>
-            <b class="chart-total-count" id="chartTotalCount">—</b>
           </div>
         </div>
         <div class="chart-period-tabs" id="chartPeriodTabs">
@@ -240,7 +268,7 @@ async function renderOverview() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
               </svg>
-              <span>окно: пн 00:00 — вт 22:00 МСК</span>
+              <span>окно: пн 00:00 — пн 23:00 МСК</span>
             </div>
           </div>
         </div>
@@ -267,7 +295,7 @@ async function renderOverview() {
               <span class="badge ${appsOpen ? 'approved' : 'rejected'}">${appsOpen ? 'ОТКРЫТ' : 'ЗАКРЫТ'}</span>
             </div>
             <button type="button" class="btn-ghost ctrl-btn-block" id="toggleAppsBtn">
-              ${appsOpen ? '✕ Закрыть набор' : '✓ Открыть набор'}
+              ${appsOpen ? `${UI_ICONS.close} Закрыть набор` : `${UI_ICONS.check} Открыть набор`}
             </button>
           </div>
 
@@ -282,10 +310,10 @@ async function renderOverview() {
               </div>
               ${maintActive ? '<span style="color:#fbbf24;font-family:var(--font-mono);font-size:0.76rem;font-weight:600;">АКТИВНЫ</span>' : '<span class="ctrl-off-lbl">ВЫКЛЮЧЕНЫ</span>'}
             </div>
-            <div class="ctrl-btn-block-wrap" style="display:flex;gap:0.4rem;">
-              ${maintActive ? `<button type="button" id="previewMaintBtn" class="btn-ghost ctrl-btn-block" style="padding:0.45rem 0.5rem;font-size:11px;flex:1;">👁 Страница</button>` : ''}
-              <button type="button" class="btn-ghost ctrl-btn-block ${maintActive ? 'btn-maint-off' : 'btn-maint'}" id="toggleMaintenanceBtn" style="${maintActive ? 'flex:1;' : ''}">
-                ${maintActive ? '✕ Отключить' : '⚙ Включить техработы'}
+            <div class="ctrl-btn-block-wrap">
+              ${maintActive ? `<button type="button" id="previewMaintBtn" class="btn-ghost ctrl-btn-block ctrl-btn-preview" title="Перейти на страницу техработ">${UI_ICONS.eye} Страница</button>` : ''}
+              <button type="button" class="btn-ghost ctrl-btn-block ${maintActive ? 'btn-maint-off' : 'btn-maint'}" id="toggleMaintenanceBtn" title="${maintActive ? 'Отключить технические работы' : 'Включить технические работы'}">
+                ${maintActive ? `${UI_ICONS.close} Отключить` : `${UI_ICONS.gear} Включить техработы`}
               </button>
             </div>
           </div>
@@ -813,8 +841,8 @@ function drawAppsTable(kind, cfg) {
           <td>${tgLink}</td>
           <td>${statusBadge(r.status)}</td>
           <td>${r.status === "pending" ? `<div class="row-actions" onclick="event.stopPropagation()">
-            <button class="act" data-decide="approved" data-id="${r.id}">✓ Одобрить</button>
-            <button class="act reject" data-decide="rejected" data-id="${r.id}">✕ Отклонить</button></div>` : "—"}</td>
+            <button class="act" data-decide="approved" data-id="${r.id}">${UI_ICONS.check} Одобрить</button>
+            <button class="act reject" data-decide="rejected" data-id="${r.id}">${UI_ICONS.close} Отклонить</button></div>` : "—"}</td>
         </tr>`;
     }
     if (kind === "hwid") return `
@@ -823,8 +851,8 @@ function drawAppsTable(kind, cfg) {
     if (kind === "ideas") {
       const isIdea = r.category === "idea";
       const catBadge = isIdea
-        ? '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-size:0.75rem;padding:0.2rem 0.55rem;">💡 Идея</span>'
-        : '<span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:0.75rem;padding:0.2rem 0.55rem;">🐛 Баг</span>';
+        ? '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-size:0.75rem;padding:0.2rem 0.55rem;display:inline-flex;align-items:center;gap:0.3rem;">' + UI_ICONS.idea + ' Идея</span>'
+        : '<span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:0.75rem;padding:0.2rem 0.55rem;display:inline-flex;align-items:center;gap:0.3rem;">' + UI_ICONS.bug + ' Баг</span>';
       return `
         <tr class="clickable-row" data-idea-id="${r.id}" style="cursor:pointer;" title="Нажмите, чтобы просмотреть обращение">
           <td class="mono">#${r.id}</td>
@@ -849,11 +877,23 @@ function drawAppsTable(kind, cfg) {
     : kind === "ideas"
     ? "<th>ID</th><th>Тип</th><th>Автор</th><th>Тема</th><th>Доказательства</th><th>Дата</th>"
     : "<th>ID</th><th>Модератор</th><th>Нарушитель</th><th>Доказательства</th><th>Причина</th><th>Статус</th><th>Действия</th>";
-  const colSpan = kind === "media" ? 8 : (kind === "hwid" ? 5 : (kind === "ideas" ? 6 : 7));
-  const badgeCls = withStatuses ? "badge pending" : "badge";
+  const colSpan = kind === "media" ? 8 : kind === "hwid" ? 5 : kind === "ideas" ? 6 : 7;
+  const allItems = adminCache[kind] || [];
+  const pendingCount = allItems.filter((r) => r.status === "pending").length;
+  let badgeCls = "badge";
+  let badgeText = `${filtered.length}`;
+  if (withStatuses) {
+    if (pendingCount > 0) {
+      badgeCls = "badge pending";
+      badgeText = `${pendingCount} в ожидании`;
+    } else {
+      badgeCls = "badge approved";
+      badgeText = allItems.length > 0 ? `${UI_ICONS.check} Все рассмотрены` : "0";
+    }
+  }
 
   const tableBoxHTML = `
-    <div class="table-box"><h3>${cfg.title} <span class="${badgeCls}">${filtered.length}</span></h3>
+    <div class="table-box"><h3>${cfg.title} <span class="${badgeCls}">${badgeText}</span></h3>
       <div class="table-scroll"><table>
         <thead><tr>${theadCols}</tr></thead>
         <tbody>${rows || `<tr><td colspan="${colSpan}" class="hint">Нет обращений</td></tr>`}</tbody>
@@ -929,8 +969,8 @@ function openIdeaBugAdminModal(r) {
 
   const isIdea = r.category === "idea";
   const catBadge = isIdea
-    ? '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-size:0.8rem;padding:0.25rem 0.6rem;">💡 Идея / Предложение</span>'
-    : '<span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:0.8rem;padding:0.25rem 0.6rem;">🐛 Баг / Ошибка</span>';
+    ? '<span class="badge" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);font-size:0.8rem;padding:0.25rem 0.6rem;display:inline-flex;align-items:center;gap:0.35rem;">' + UI_ICONS.idea + ' Идея / Предложение</span>'
+    : '<span class="badge" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:0.8rem;padding:0.25rem 0.6rem;display:inline-flex;align-items:center;gap:0.35rem;">' + UI_ICONS.bug + ' Баг / Ошибка</span>';
 
   const proofHtml = proofLinks(r.proof_files, r.proof_link);
 
@@ -1067,7 +1107,7 @@ function openMediaAppModal(r) {
         </div>
         <div class="media-info-item">
           <div class="media-info-label">Согласие с критериями</div>
-          <div class="media-info-value" style="color:var(--emerald);">✓ Да, согласен</div>
+          <div class="media-info-value" style="color:var(--emerald);display:inline-flex;align-items:center;gap:0.35rem;">${UI_ICONS.check} Да, согласен</div>
         </div>
         <div class="media-info-item">
           <div class="media-info-label">Дата подачи</div>
@@ -1098,8 +1138,8 @@ function openMediaAppModal(r) {
             <input type="text" id="modalMediaComment" placeholder="Причина отказа или приветствие..." style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:0.75rem;padding:0.65rem 0.95rem;color:#fff;outline:none;">
           </div>
           <div class="modal-btn-row">
-            <button type="button" id="modalApproveBtn" class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);">✓ Принять заявку</button>
-            <button type="button" id="modalRejectBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.35);">✕ Отклонить заявку</button>
+            <button type="button" id="modalApproveBtn" class="btn-primary" style="background:linear-gradient(135deg,#10b981,#059669);">${UI_ICONS.check} Принять заявку</button>
+            <button type="button" id="modalRejectBtn" class="btn-ghost" style="color:var(--rose);border:1px solid rgba(248,113,113,0.35);">${UI_ICONS.close} Отклонить заявку</button>
           </div>
         </div>
       ` : ""}
@@ -1153,8 +1193,8 @@ function openMediaAppModal(r) {
 
 function decideButtons(id) {
   return `<div class="row-actions">
-    <button class="act" data-decide="approved" data-id="${id}">✓ Одобрить</button>
-    <button class="act reject" data-decide="rejected" data-id="${id}">✕ Отклонить</button></div>`;
+    <button class="act" data-decide="approved" data-id="${id}">${UI_ICONS.check} Одобрить</button>
+    <button class="act reject" data-decide="rejected" data-id="${id}">${UI_ICONS.close} Отклонить</button></div>`;
 }
 
 function proofLinks(files, link) {
@@ -1183,51 +1223,66 @@ async function renderPayouts(keepWeek) {
   payoutsWeekID = data.week ? data.week.id : null;
   const week = data.week || {};
   const stats = data.stats || {};
-  const rows = (data.data || []).filter((r) =>
-    applyGlobalFilter(JSON.stringify(r).toLowerCase(), r.status)).map((r) => {
-    const kindT = { payout: "Выплата", lot: "Лот", subscription: "Подписка" }[r.kind] || r.kind;
+  const payoutsList = (data.data || []).filter((r) => (r.kind || "payout") === "payout");
+  const filtered = payoutsList.filter((r) =>
+    applyGlobalFilter(JSON.stringify(r).toLowerCase(), r.status));
+
+  const rows = filtered.map((r) => {
     const method = r.method === "usdt" ? `USDT (ставка: ${esc(r.amount || "—")})` :
-                   r.method === "funpay" ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener">FunPay лот</a><br><small>ставка: ${esc(r.amount || "—")}</small>` : (r.amount ? `ставка: ${esc(r.amount)}` : (r.platform ? `платформа: ${esc(r.platform)}` : "—"));
+                   r.method === "funpay" ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener">FunPay лот</a><br><small>ставка: ${esc(r.amount || "—")}</small>` : (r.amount ? `ставка: ${esc(r.amount)}` : "—");
     const durationOrPromo = r.promo_code
-      ? `<span class="mono" style="font-weight:600;color:var(--color-primary-400, #38bdf8);">🏷️ ${esc(r.promo_code)}</span>${r.duration ? `<br><small class="hint">${esc(r.duration)}</small>` : ""}`
+      ? `<span class="mono" style="font-weight:600;color:var(--color-primary-400, #38bdf8);display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.tag} ${esc(r.promo_code)}</span>${r.duration ? `<br><small class="hint">${esc(r.duration)}</small>` : ""}`
       : esc(r.duration || "—");
+
+    let decInfo = "";
+    if (r.decision_comment) {
+      decInfo = `<br><small class="hint" style="display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.comment} ${esc(r.decision_comment)}</small>`;
+    }
+    if (r.tx_ref && r.method === "usdt") {
+      decInfo += `<br><small class="hint mono">Чек: ${esc(r.tx_ref)}</small>`;
+    }
 
     return `<tr>
       <td class="mono">#${r.id}</td>
       <td><b>${esc(r.nickname)}</b><br><small>${esc(r.telegram)} ${r.source === "telegram" ? "· из TG" : ""}</small></td>
       <td class="mono">${esc(r.uid)}</td>
       <td>${durationOrPromo}</td>
-      <td>${esc(r.want || "—")}</td>
-      <td>${kindT}<br><small>${method}</small></td>
-      <td>${statusBadge(r.status)}${r.decision_comment ? `<br><small>💬 ${esc(r.decision_comment)}</small>` : ""}</td>
+      <td><b>${esc(r.want || "—")}</b></td>
+      <td>${method}</td>
+      <td>${statusBadge(r.status)}${decInfo}</td>
       <td>${r.status === "pending" ? `<div class="row-actions">
-        <button class="act" data-pay="approve" data-id="${r.id}">✓ Принять</button>
-        <button class="act reject" data-pay="reject" data-id="${r.id}">✕ Отклонить</button></div>` : "—"}</td>
+        <button class="act" data-pay="approve" data-id="${r.id}">${UI_ICONS.check} Принять</button>
+        <button class="act reject" data-pay="reject" data-id="${r.id}">${UI_ICONS.close} Отклонить</button></div>` : "—"}</td>
     </tr>`;
   }).join("");
 
   const weeks = (data.history || []).map((w) =>
     `<option value="${w.id}" ${w.id === payoutsWeekID ? "selected" : ""}>${esc(w.label)}${w.is_current ? " (текущая)" : ""}</option>`).join("");
 
+  const pendingCount = stats.pending || 0;
+  const badgeCls = pendingCount > 0 ? "badge pending" : "badge approved";
+  const badgeText = pendingCount > 0 ? `${pendingCount} в ожидании` : `${UI_ICONS.check} Все рассмотрены`;
+
   const payoutsBoxHTML = `
     <div class="table-box">
       <h3>${ICONS.payouts} Медиа выплаты
+        <span class="${badgeCls}">${badgeText}</span>
         <span class="badge ${week.is_current ? "approved" : "frozen"}">${week.is_current ? "приём открыт" : "архив"}</span>
         <div class="week-bar">
           <select id="weekSelect">${weeks}</select>
-          <span class="hint">Всего: ${stats.total || 0} · В ожидании: ${stats.pending || 0} · Одобрено: ${stats.approved || 0} · USDT: ${stats.usdt_total || 0} · FunPay: ${stats.funpay_count || 0}</span>
+          <span class="hint">Всего выплат: ${stats.total || 0} · В ожидании: ${stats.pending || 0} · Одобрено: ${stats.approved || 0} · USDT: ${stats.usdt_total || 0} · FunPay: ${stats.funpay_count || 0}</span>
         </div>
       </h3>
       <div class="table-scroll"><table>
-        <thead><tr><th>ID</th><th>Заявитель</th><th>UID</th><th>Промокод / Срок</th><th>Хочет</th><th>Тип/способ</th><th>Статус</th><th>Действия</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="8" class="hint">Заявок на этой неделе нет</td></tr>'}</tbody>
+        <thead><tr><th>ID</th><th>Заявитель</th><th>UID</th><th>Промокод / В медиа</th><th>Что запрошено</th><th>Способ выплаты</th><th>Статус</th><th>Действия</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8" class="hint">Заявок на выплату на этой неделе нет</td></tr>'}</tbody>
       </table></div>
     </div>
     <div class="card summary-editor">
       <h3>${ICONS.edit} Итоговый текст недели <span class="hint">(редактируется как черновик; сохраняется в БД по неделям)</span></h3>
       <textarea id="weekSummary">${esc(week.summary_text || "")}</textarea>
       <div class="row-actions">
-        <button class="btn-primary" id="saveSummary">Сохранить</button>
+        <button class="btn-primary" id="saveSummary">${UI_ICONS.check} Сохранить</button>
         <button class="btn-ghost" id="genSummary">Сгенерировать черновик</button>
       </div>
     </div>`;
@@ -1251,18 +1306,48 @@ async function renderPayouts(keepWeek) {
   document.querySelectorAll("[data-pay]").forEach((b) =>
     b.addEventListener("click", async () => {
       const id = b.dataset.id, action = b.dataset.pay;
+      const reqItem = payoutsList.find((it) => String(it.id) === String(id));
+
       if (action === "reject") {
-        const reason = await askComment("Отклонение выплаты #" + id, true);
+        const reason = await askComment(
+          "Отклонение выплаты #" + id,
+          true,
+          "Укажите причину отклонения для заявителя:",
+          "Причина отклонения..."
+        );
         if (reason === null) return;
         try {
           await POST(`/api/admin/payouts/${id}/decide`, { action: "reject", reason });
-          toast("Выплата отклонена, причина отправлена заявителю", "ok");
+          toast("Выплата отклонена", "ok");
+          updateAdminSideBadges();
           renderPayouts(true);
         } catch (e) { toast(e.message, "err"); }
       } else {
+        let keyOrComment = "";
+        if (reqItem?.method === "usdt") {
+          keyOrComment = await askComment(
+            `Выплата USDT — Заявка #${id}`,
+            true,
+            `Заявитель: <b>${esc(reqItem?.nickname || "—")}</b> (ставка: <b>${esc(reqItem?.amount || "—")}</b>, UID: <code>${esc(reqItem?.uid || "—")}</code>)<br>Создайте чек или перевод в <a href="https://t.me/CryptoBot" target="_blank" rel="noopener" style="color:var(--color-primary-400,#38bdf8);text-decoration:underline;">@CryptoBot ↗</a> и вставьте ссылку на чек или хэш перевода:`,
+            "https://t.me/CryptoBot?start=CQ... или хэш перевода",
+            "Подтвердить выплату"
+          );
+          if (keyOrComment === null) return;
+        } else {
+          keyOrComment = await askComment(
+            `Одобрение выплаты #${id}`,
+            false,
+            `Одобрить выплату для <b>${esc(reqItem?.nickname || "медиа")}</b>? Комментарий (опционально):`,
+            "Комментарий...",
+            "Одобрить"
+          );
+          if (keyOrComment === null) return;
+        }
+
         try {
-          await POST(`/api/admin/payouts/${id}/decide`, { action: "approve" });
-          toast("Выплата принята — средства/текст отправлены заявителю", "ok");
+          await POST(`/api/admin/payouts/${id}/decide`, { action: "approve", key: keyOrComment, reason: keyOrComment });
+          toast("Выплата успешно одобрена", "ok");
+          updateAdminSideBadges();
           renderPayouts(true);
         } catch (e) { toast(e.message, "err"); }
       }
@@ -1287,6 +1372,635 @@ async function renderPayouts(keepWeek) {
       .replaceAll("{funpay_count}", stats.funpay_count ?? 0);
     document.getElementById("weekSummary").value = text;
     toast("Черновик сгенерирован — отредактируйте и сохраните");
+  });
+}
+
+// ═══ Категория «Медиа лоты» ═══
+
+let lotsSubTab = "all"; // all | sub | giveaway | cosmetics | other
+
+async function renderLots() {
+  const data = await GET("/api/admin/lots");
+  const allLots = data.data || [];
+
+  const totalAll = allLots.length;
+  const totalSubs = allLots.filter((r) => {
+    const w = (r.want || "").toLowerCase();
+    return (r.kind === "subscription" || w.includes("сабк") || w.includes("подписк")) && r.kind !== "giveaway" && !w.includes("розыгрыш");
+  }).length;
+  const totalGiveaways = allLots.filter((r) => r.kind === "giveaway" || (r.want || "").toLowerCase().includes("розыгрыш")).length;
+  const totalCosmetics = allLots.filter((r) => (r.want || "").toLowerCase().includes("космет")).length;
+  const totalOther = allLots.filter((r) => {
+    const w = (r.want || "").toLowerCase();
+    return r.kind !== "subscription" && r.kind !== "giveaway" && !w.includes("сабк") && !w.includes("подписк") && !w.includes("розыгрыш") && !w.includes("космет");
+  }).length;
+
+  const tabFiltered = allLots.filter((r) => {
+    const w = (r.want || "").toLowerCase();
+    const isGiveaway = r.kind === "giveaway" || w.includes("розыгрыш");
+    const isSub = !isGiveaway && (r.kind === "subscription" || w.includes("сабк") || w.includes("подписк"));
+    const isCosmetics = !isGiveaway && !isSub && w.includes("космет");
+    if (lotsSubTab === "sub") return isSub;
+    if (lotsSubTab === "giveaway") return isGiveaway;
+    if (lotsSubTab === "cosmetics") return isCosmetics;
+    if (lotsSubTab === "other") return !isSub && !isGiveaway && !isCosmetics;
+    return true;
+  });
+
+  const filtered = tabFiltered.filter((r) =>
+    applyGlobalFilter(JSON.stringify(r).toLowerCase(), r.status));
+
+  const pendingCount = allLots.filter((r) => r.status === "pending").length;
+  const badgeCls = pendingCount > 0 ? "badge pending" : "badge approved";
+  const badgeText = pendingCount > 0 ? `${pendingCount} в ожидании` : `${UI_ICONS.check} Все рассмотрены`;
+
+  const rows = filtered.map((r) => {
+    const wantLower = (r.want || "").toLowerCase();
+    const isGiveaway = r.kind === "giveaway" || wantLower.includes("розыгрыш");
+    const isSub = !isGiveaway && (r.kind === "subscription" || wantLower.includes("сабк") || wantLower.includes("подписк"));
+    const isCosmetics = !isGiveaway && !isSub && wantLower.includes("космет");
+
+    const typeBadge = isGiveaway
+      ? `<span class="badge" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);font-size:0.75rem;display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.gift} Розыгрыш</span>`
+      : isSub
+      ? `<span class="badge" style="background:rgba(133,155,255,0.15);color:var(--color-primary-300);border:1px solid rgba(133,155,255,0.3);font-size:0.75rem;display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.key} Сабка</span>`
+      : isCosmetics
+      ? `<span class="badge" style="background:rgba(236,72,153,0.15);color:#f472b6;border:1px solid rgba(236,72,153,0.3);font-size:0.75rem;display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.palette} Косметика</span>`
+      : `<span class="badge" style="background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);font-size:0.75rem;display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.box} Прочее</span>`;
+
+    const pLow = (r.platform || "youtube").toLowerCase();
+    const isTiktok = pLow === "tiktok";
+    const platformBadge = isTiktok
+      ? `<span class="platform-pill tiktok"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg> TikTok</span>`
+      : `<span class="platform-pill youtube"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg> YouTube</span>`;
+
+    const tgClean = (r.telegram || "").replace(/^@/, "");
+    const tgLink = tgClean
+      ? `<a href="https://t.me/${esc(tgClean)}" target="_blank" rel="noopener" class="link-chip" onclick="event.stopPropagation()">@${esc(tgClean)}</a>`
+      : `<span class="hint">—</span>`;
+
+    const lotLinkHtml = r.lot_url
+      ? `<a href="${esc(r.lot_url)}" target="_blank" rel="noopener" class="lot-link-chip" title="Открыть ссылку">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span>${isGiveaway ? "Ссылка на розыгрыш" : "Ссылка на лот"}</span>
+        </a>`
+      : "";
+
+    let decInfo = "";
+    if (r.decision_comment) {
+      if ((isSub || isGiveaway) && r.status === "approved") {
+        decInfo = `
+          <span class="copy-chip lot-key-chip ${isGiveaway ? 'giveaway-key' : 'sub-key'}" data-code="${esc(r.decision_comment)}" title="Нажмите, чтобы скопировать ключ">
+            <span>${isGiveaway ? UI_ICONS.gift : UI_ICONS.key}</span>
+            <span class="mono">${esc(r.decision_comment)}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.75;flex-shrink:0;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </span>`;
+      } else {
+        decInfo = `<div class="lot-dec-comment" title="${esc(r.decision_comment)}" style="display:inline-flex;align-items:center;gap:0.3rem;">${UI_ICONS.comment} <small class="hint">${esc(r.decision_comment)}</small></div>`;
+      }
+    }
+
+    return `<tr>
+      <td class="mono" style="font-weight:600;">#${r.id}</td>
+      <td>
+        <div class="lot-user-cell">
+          <b>${esc(r.nickname)}</b>
+          ${tgLink}
+        </div>
+      </td>
+      <td class="mono">${esc(r.uid)}</td>
+      <td><span class="duration-pill">${esc(r.duration || "—")}</span></td>
+      <td>${platformBadge}</td>
+      <td>
+        <div class="lot-request-cell">
+          <div class="lot-badge-row">${typeBadge}</div>
+          <div class="lot-request-text">${esc(r.want || "—")}</div>
+          ${lotLinkHtml}
+        </div>
+      </td>
+      <td><small class="hint" style="white-space:nowrap;">${formatDate(r.created_at)}</small></td>
+      <td>
+        <div class="lot-status-cell">
+          ${statusBadge(r.status)}
+          ${decInfo}
+        </div>
+      </td>
+      <td>
+        ${r.status === "pending" ? `<div class="row-actions" style="flex-wrap:nowrap;min-width:160px;">
+          <button class="act" data-lot-action="approve" data-id="${r.id}" title="Одобрить заявку">${UI_ICONS.check} Принять</button>
+          <button class="act reject" data-lot-action="reject" data-id="${r.id}" title="Отклонить заявку">${UI_ICONS.close} Отклонить</button>
+        </div>` : `<span class="hint">—</span>`}
+      </td>
+    </tr>`;
+  }).join("");
+
+  const lotsBoxHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+      <div class="lots-filter-tabs" id="lotsTabs">
+        <button type="button" class="lots-filter-tab ${lotsSubTab === 'all' ? 'active' : ''}" data-lot-tab="all">Все (${totalAll})</button>
+        <button type="button" class="lots-filter-tab ${lotsSubTab === 'sub' ? 'active' : ''}" data-lot-tab="sub">${UI_ICONS.key} Сабки (${totalSubs})</button>
+        <button type="button" class="lots-filter-tab ${lotsSubTab === 'giveaway' ? 'active' : ''}" data-lot-tab="giveaway">${UI_ICONS.gift} Розыгрыши (${totalGiveaways})</button>
+        <button type="button" class="lots-filter-tab ${lotsSubTab === 'cosmetics' ? 'active' : ''}" data-lot-tab="cosmetics">${UI_ICONS.palette} Косметика (${totalCosmetics})</button>
+        <button type="button" class="lots-filter-tab ${lotsSubTab === 'other' ? 'active' : ''}" data-lot-tab="other">${UI_ICONS.box} Прочее (${totalOther})</button>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <h3>
+        ${ICONS.lots} Медиа лоты
+        <span class="${badgeCls}">${badgeText}</span>
+      </h3>
+      <div class="table-scroll"><table class="lots-table">
+        <thead>
+          <tr>
+            <th style="width:60px;">ID</th>
+            <th style="min-width:140px;">Заявитель</th>
+            <th style="width:90px;">UID</th>
+            <th style="width:110px;">В медиа</th>
+            <th style="width:105px;">Платформа</th>
+            <th style="min-width:210px;">Запрос / Лот</th>
+            <th style="width:130px;">Дата подачи</th>
+            <th style="min-width:230px;">Статус / Ключ</th>
+            <th style="width:170px;">Действия</th>
+          </tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="9" class="hint" style="text-align:center;padding:2.5rem 1rem;">Заявок на лоты нет</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap || !document.getElementById("fStatus")) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(true)}</div>
+      <div id="adminTableWrap">${lotsBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(() => renderLots());
+  } else {
+    tableWrap.innerHTML = lotsBoxHTML;
+  }
+
+  // Переключение вкладок лотов (Все, Сабки, Розыгрыши, Косметика, Прочее)
+  document.querySelectorAll("#lotsTabs .lots-filter-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      lotsSubTab = tab.dataset.lotTab;
+      renderLots();
+    });
+  });
+
+  // Копирование ключей по клику на chip
+  document.querySelectorAll("#adminTableWrap .copy-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const code = chip.dataset.code;
+      if (code) {
+        navigator.clipboard.writeText(code).then(() => toast("Ключ скопирован", "ok")).catch(() => {});
+      }
+    });
+  });
+
+  // Обработка действий (Принять / Отклонить)
+  document.querySelectorAll("[data-lot-action]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const id = b.dataset.id, action = b.dataset.lotAction;
+      const reqItem = allLots.find((it) => String(it.id) === String(id));
+      const wantLower = (reqItem?.want || "").toLowerCase();
+      const isGiveaway = reqItem && (
+        reqItem.kind === "giveaway" || wantLower.includes("розыгрыш")
+      );
+      const isSub = reqItem && !isGiveaway && (
+        reqItem.kind === "subscription" ||
+        wantLower.includes("сабк") || wantLower.includes("подписк")
+      );
+
+      if (action === "reject") {
+        const title = (isGiveaway ? "Отклонение розыгрыша #" : isSub ? "Отклонение сабки #" : "Отклонение лота #") + id;
+        const reason = await askComment(
+          title,
+          true,
+          "Укажите причину отклонения для заявителя:",
+          "Причина отклонения..."
+        );
+        if (reason === null) return;
+        try {
+          await POST(`/api/admin/lots/${id}/decide`, { action: "reject", reason });
+          toast("Заявка отклонена", "ok");
+          updateAdminSideBadges();
+          renderLots();
+        } catch (e) { toast(e.message, "err"); }
+      } else {
+        let keyOrComment = "";
+        if (isGiveaway) {
+          let poolAvail = 0;
+          try {
+            const poolData = await GET("/api/admin/giveaway-keys");
+            poolAvail = poolData.available ?? 0;
+          } catch (_) {}
+
+          if (poolAvail > 0) {
+            keyOrComment = await askComment(
+              `Ключ для розыгрыша — Заявка #${id}`,
+              false,
+              `В пуле ключей для розыгрышей <b>${poolAvail} доступных ключей</b>.<br>Оставьте поле пустым для автоматической выдачи 1 ключа из пула розыгрышей, либо введите ключ вручную для ${esc(reqItem?.nickname || "медиа")}:`,
+              "Оставьте пустым для автовыдачи из пула или введите ключ вручную...",
+              "Выдать ключ для розыгрыша"
+            );
+          } else {
+            keyOrComment = await askComment(
+              `Ключ для розыгрыша — Заявка #${id}`,
+              true,
+              `<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;color:#fbbf24;">${UI_ICONS.alert} <b>В пуле ключей для розыгрышей закончились ключи!</b></div>Пополните пул во вкладке «Ключи розыгрышей» или введите ключ для ${esc(reqItem?.nickname || "медиа")} вручную:`,
+              "Введите ключ вручную...",
+              "Выдать ключ для розыгрыша"
+            );
+          }
+          if (keyOrComment === null) return;
+        } else if (isSub) {
+          let poolAvail = 0;
+          try {
+            const poolData = await GET("/api/admin/sub-keys");
+            poolAvail = poolData.available ?? 0;
+          } catch (_) {}
+
+          if (poolAvail > 0) {
+            keyOrComment = await askComment(
+              `Выдача сабки — Заявка #${id}`,
+              false,
+              `В пуле <b>${poolAvail} доступных ключей</b>.<br>Оставьте поле пустым для автоматической выдачи 1 ключа из пула, либо введите ключ вручную для ${esc(reqItem?.nickname || "медиа")}:`,
+              "Оставьте пустым для автовыдачи из пула или введите DELTA-SUB-...",
+              "Выдать сабку"
+            );
+          } else {
+            keyOrComment = await askComment(
+              `Выдача сабки — Заявка #${id}`,
+              true,
+              `<div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;color:#fbbf24;">${UI_ICONS.alert} <b>В пуле закончились ключи!</b></div>Пополните пул во вкладке «Ключи сабок» или введите ключ для ${esc(reqItem?.nickname || "медиа")} вручную:`,
+              "DELTA-SUB-XXXX-XXXX-XXXX...",
+              "Выдать сабку"
+            );
+          }
+          if (keyOrComment === null) return;
+        } else {
+          keyOrComment = await askComment(
+            `Одобрение лота #${id}`,
+            false,
+            `Одобрить заявку на «${esc(reqItem?.want || "лот")}» для ${esc(reqItem?.nickname || "медиа")}? Комментарий (опционально):`,
+            "Выдано / ссылка / примечание...",
+            "Одобрить лот"
+          );
+          if (keyOrComment === null) return;
+        }
+
+        try {
+          const resp = await POST(`/api/admin/lots/${id}/decide`, { action: "approve", reason: keyOrComment, key: keyOrComment });
+          if (resp.assigned_key) {
+            const label = isGiveaway ? "Ключ для розыгрыша выдан из пула: " : "Сабка выдана из пула! Ключ: ";
+            toast(`${label}${resp.assigned_key}`, "ok");
+          } else {
+            toast("Заявка на лот успешно одобрена", "ok");
+          }
+          updateAdminSideBadges();
+          renderLots();
+        } catch (e) { toast(e.message, "err"); }
+      }
+    }));
+}
+
+// ═══ Категория «Ключи сабок» ═══
+
+async function renderSubKeys() {
+  const data = await GET("/api/admin/sub-keys");
+  const avail = data.available ?? 0;
+  const used = data.used ?? 0;
+  const keys = data.keys || [];
+
+  const filtered = keys.filter((k) => {
+    if (!ADMIN_FILTER.search) return true;
+    const q = ADMIN_FILTER.search.toLowerCase();
+    return (
+      (k.key_code || "").toLowerCase().includes(q) ||
+      (k.assigned_to || "").toLowerCase().includes(q) ||
+      String(k.id).includes(q)
+    );
+  });
+
+  const rows = filtered.map((k) => {
+    const isUsed = k.is_used;
+    const statusPill = isUsed
+      ? `<span class="badge" style="background:rgba(255,255,255,0.06);color:var(--color-text-muted,#94a3b8);">Использован</span>`
+      : `<span class="badge approved">Доступен</span>`;
+    
+    const assignedInfo = isUsed
+      ? `<b>${esc(k.assigned_to || "—")}</b>${k.assigned_request_id ? `<br><small class="hint">Заявка #${k.assigned_request_id}</small>` : ""}${k.used_at ? `<br><small class="hint">${formatDate(k.used_at)}</small>` : ""}`
+      : `<span class="hint">—</span>`;
+
+    const deleteBtn = !isUsed
+      ? `<button class="act reject" data-del-subkey="${k.id}" title="Удалить ключ из пула">${UI_ICONS.close} Удалить</button>`
+      : `<span class="hint">—</span>`;
+
+    return `<tr>
+      <td class="mono">#${k.id}</td>
+      <td><span class="copy-chip" data-code="${esc(k.key_code)}" title="Нажмите, чтобы скопировать">${esc(k.key_code)}</span></td>
+      <td>${statusPill}</td>
+      <td>${assignedInfo}</td>
+      <td><small class="hint">${formatDate(k.created_at)}</small></td>
+      <td><div class="row-actions">${deleteBtn}</div></td>
+    </tr>`;
+  }).join("");
+
+  const subkeysBoxHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+      <div class="chart-period-tabs" id="keysSwitcherTabs">
+        <button type="button" class="chart-tab active" data-keys-cat="subkeys">${UI_ICONS.key} Ключи сабок</button>
+        <button type="button" class="chart-tab" data-keys-cat="giveawaykeys">${UI_ICONS.gift} Ключи розыгрышей</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+      <div class="card" style="padding:1.25rem;">
+        <div class="hint" style="font-size:12px;margin-bottom:0.25rem;">Доступно для выдачи</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#4ade80;">${avail}</div>
+      </div>
+      <div class="card" style="padding:1.25rem;">
+        <div class="hint" style="font-size:12px;margin-bottom:0.25rem;">Выдано медиа</div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--color-text-muted,#94a3b8);">${used}</div>
+      </div>
+      <div class="card" style="padding:1.25rem;">
+        <div class="hint" style="font-size:12px;margin-bottom:0.25rem;">Всего в базе</div>
+        <div style="font-size:1.8rem;font-weight:700;">${avail + used}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h3 style="display:flex;align-items:center;gap:0.5rem;font-size:1.15rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-1.5 1.5L14 9m-4.5 4.5L7 16m-4.5 4.5L2 21m13-17 6 6-10 10H7v-4z"/></svg>
+        Пополнение пула ключей подписок
+      </h3>
+      <p class="hint" style="margin:0.5rem 0 0.8rem;">
+        Введите ключи сабок — <b>по одному ключу на строку</b>. Дубликаты будут автоматически отфильтрованы.
+        При одобрении заявки на сабку система автоматически выдаёт заявителю ровно 1 ключ из пула.
+      </p>
+      <div class="field">
+        <textarea id="subKeysBulkText" rows="4" placeholder="DELTA-SUB-XXXX-XXXX-XXXX&#10;DELTA-SUB-YYYY-YYYY-YYYY&#10;DELTA-SUB-ZZZZ-ZZZZ-ZZZZ" style="font-family:var(--font-mono);font-size:13px;"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;">
+        <button class="btn-primary" id="addSubKeysBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Добавить ключи в пул
+        </button>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <h3>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        Список ключей подписок
+        <span class="badge ${avail > 0 ? 'approved' : 'rejected'}">${avail > 0 ? `${avail} доступно` : 'пул пуст'}</span>
+      </h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>ID</th><th>Ключ подписки</th><th>Статус</th><th>Выдан заявителю</th><th>Добавлен</th><th>Действия</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" class="hint">Ключей пока нет в базе</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap || document.getElementById("fStatus")) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(false)}</div>
+      <div id="adminTableWrap">${subkeysBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(() => renderSubKeys());
+  } else {
+    tableWrap.innerHTML = subkeysBoxHTML;
+  }
+
+  // Переключение Сабки / Розыгрыши
+  document.querySelectorAll("#keysSwitcherTabs .chart-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const targetCat = tab.dataset.keysCat;
+      if (targetCat && targetCat !== adminCat) {
+        adminCat = targetCat;
+        document.querySelectorAll(".side-btn").forEach((x) => {
+          const isMatch = x.dataset.cat === targetCat || (x.dataset.cat === "subkeys" && (targetCat === "subkeys" || targetCat === "giveawaykeys"));
+          x.classList.toggle("active", isMatch);
+        });
+        renderAdminCategory();
+      }
+    });
+  });
+
+  document.querySelectorAll("#adminTableWrap .copy-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const code = chip.dataset.code;
+      if (code) {
+        navigator.clipboard.writeText(code).then(() => toast("Ключ скопирован", "ok")).catch(() => {});
+      }
+    });
+  });
+
+  const addBtn = document.getElementById("addSubKeysBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", async () => {
+      const text = (document.getElementById("subKeysBulkText")?.value || "").trim();
+      if (!text) {
+        toast("Введите хотя бы один ключ", "err");
+        return;
+      }
+      addBtn.disabled = true;
+      try {
+        const resp = await POST("/api/admin/sub-keys", { keys: text });
+        toast(`Добавлено ключей: ${resp.added} (дубликатов: ${resp.duplicates})`, "ok");
+        updateAdminSideBadges();
+        await renderSubKeys();
+      } catch (e) {
+        toast(e.message, "err");
+      } finally {
+        addBtn.disabled = false;
+      }
+    });
+  }
+
+  document.querySelectorAll("[data-del-subkey]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.delSubkey;
+      if (!confirm(`Удалить ключ #${id} из пула?`)) return;
+      try {
+        await DELETE(`/api/admin/sub-keys/${id}`);
+        toast("Ключ удалён", "ok");
+        updateAdminSideBadges();
+        await renderSubKeys();
+      } catch (e) {
+        toast(e.message, "err");
+      }
+    });
+  });
+}
+
+// ═══ Категория «Ключи розыгрышей» ═══
+
+async function renderGiveawayKeys() {
+  const data = await GET("/api/admin/giveaway-keys");
+  const avail = data.available ?? 0;
+  const used = data.used ?? 0;
+  const keys = data.keys || [];
+
+  const filtered = keys.filter((k) => {
+    if (!ADMIN_FILTER.search) return true;
+    const q = ADMIN_FILTER.search.toLowerCase();
+    return (
+      (k.key_code || "").toLowerCase().includes(q) ||
+      (k.assigned_to || "").toLowerCase().includes(q) ||
+      String(k.id).includes(q)
+    );
+  });
+
+  const rows = filtered.map((k) => {
+    const isUsed = k.is_used;
+    const statusPill = isUsed
+      ? `<span class="badge" style="background:rgba(255,255,255,0.06);color:var(--color-text-muted,#94a3b8);">Выдан</span>`
+      : `<span class="badge approved" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);">Доступен</span>`;
+    
+    const assignedInfo = isUsed
+      ? `<b>${esc(k.assigned_to || "—")}</b>${k.assigned_request_id ? `<br><small class="hint">Заявка #${k.assigned_request_id}</small>` : ""}${k.used_at ? `<br><small class="hint">${formatDate(k.used_at)}</small>` : ""}`
+      : `<span class="hint">—</span>`;
+
+    const deleteBtn = !isUsed
+      ? `<button class="act reject" data-del-giveawaykey="${k.id}" title="Удалить ключ из пула">${UI_ICONS.close} Удалить</button>`
+      : `<span class="hint">—</span>`;
+
+    return `<tr>
+      <td class="mono">#${k.id}</td>
+      <td><span class="copy-chip" data-code="${esc(k.key_code)}" title="Нажмите, чтобы скопировать">${esc(k.key_code)}</span></td>
+      <td>${statusPill}</td>
+      <td>${assignedInfo}</td>
+      <td><small class="hint">${formatDate(k.created_at)}</small></td>
+      <td><div class="row-actions">${deleteBtn}</div></td>
+    </tr>`;
+  }).join("");
+
+  const giveawayKeysBoxHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;">
+      <div class="chart-period-tabs" id="keysSwitcherTabs">
+        <button type="button" class="chart-tab" data-keys-cat="subkeys">${UI_ICONS.key} Ключи сабок</button>
+        <button type="button" class="chart-tab active" data-keys-cat="giveawaykeys">${UI_ICONS.gift} Ключи розыгрышей</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+      <div class="card" style="padding:1.25rem;">
+        <div class="hint" style="font-size:12px;margin-bottom:0.25rem;">Доступно для розыгрышей</div>
+        <div style="font-size:1.8rem;font-weight:700;color:#c084fc;">${avail}</div>
+      </div>
+      <div class="card" style="padding:1.25rem;">
+        <div class="hint" style="font-size:12px;margin-bottom:0.25rem;">Выдано медиа</div>
+        <div style="font-size:1.8rem;font-weight:700;color:var(--color-text-muted,#94a3b8);">${used}</div>
+      </div>
+      <div class="card" style="padding:1.25rem;">
+        <div class="hint" style="font-size:12px;margin-bottom:0.25rem;">Всего в пуле розыгрышей</div>
+        <div style="font-size:1.8rem;font-weight:700;">${avail + used}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h3 style="display:flex;align-items:center;gap:0.5rem;font-size:1.15rem;">
+        ${ICONS.giveawaykeys}
+        Пополнение пула ключей для розыгрышей
+      </h3>
+      <p class="hint" style="margin:0.5rem 0 0.8rem;">
+        Введите ключи для розыгрышей — <b>по одному ключу на строку</b>. Дубликаты будут автоматически отфильтрованы.
+        При одобрении заявки на ключ для розыгрыша система автоматически выдаёт медиа ровно 1 ключ из этого пула.
+      </p>
+      <div class="field">
+        <textarea id="giveawayKeysBulkText" rows="4" placeholder="GIVEAWAY-KEY-XXXX-XXXX-XXXX&#10;GIVEAWAY-KEY-YYYY-YYYY-YYYY&#10;GIVEAWAY-KEY-ZZZZ-ZZZZ-ZZZZ" style="font-family:var(--font-mono);font-size:13px;"></textarea>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;">
+        <button class="btn-primary" id="addGiveawayKeysBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Добавить ключи розыгрышей
+        </button>
+      </div>
+    </div>
+
+    <div class="table-box">
+      <h3>
+        ${ICONS.giveawaykeys}
+        Список ключей для розыгрышей
+        <span class="badge ${avail > 0 ? 'approved' : 'rejected'}" style="${avail > 0 ? 'background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);' : ''}">${avail > 0 ? `${avail} доступно` : 'пул пуст'}</span>
+      </h3>
+      <div class="table-scroll"><table>
+        <thead><tr><th>ID</th><th>Ключ розыгрыша</th><th>Статус</th><th>Выдан медиа</th><th>Добавлен</th><th>Действия</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="6" class="hint">Ключей для розыгрышей пока нет в базе</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+
+  let tableWrap = document.getElementById("adminTableWrap");
+  if (!tableWrap || document.getElementById("fStatus")) {
+    document.getElementById("adminBody").innerHTML = `
+      <div id="adminFilterWrap">${filterBarHTML(false)}</div>
+      <div id="adminTableWrap">${giveawayKeysBoxHTML}</div>`;
+    tableWrap = document.getElementById("adminTableWrap");
+    bindFilterBar(() => renderGiveawayKeys());
+  } else {
+    tableWrap.innerHTML = giveawayKeysBoxHTML;
+  }
+
+  // Переключение Сабки / Розыгрыши
+  document.querySelectorAll("#keysSwitcherTabs .chart-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const targetCat = tab.dataset.keysCat;
+      if (targetCat && targetCat !== adminCat) {
+        adminCat = targetCat;
+        document.querySelectorAll(".side-btn").forEach((x) => {
+          const isMatch = x.dataset.cat === targetCat || (x.dataset.cat === "subkeys" && (targetCat === "subkeys" || targetCat === "giveawaykeys"));
+          x.classList.toggle("active", isMatch);
+        });
+        renderAdminCategory();
+      }
+    });
+  });
+
+  document.querySelectorAll("#adminTableWrap .copy-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const code = chip.dataset.code;
+      if (code) {
+        navigator.clipboard.writeText(code).then(() => toast("Ключ скопирован", "ok")).catch(() => {});
+      }
+    });
+  });
+
+  const addBtn = document.getElementById("addGiveawayKeysBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", async () => {
+      const text = (document.getElementById("giveawayKeysBulkText")?.value || "").trim();
+      if (!text) {
+        toast("Введите хотя бы один ключ", "err");
+        return;
+      }
+      addBtn.disabled = true;
+      try {
+        const resp = await POST("/api/admin/giveaway-keys", { keys: text });
+        toast(`Добавлено ключей: ${resp.added} (дубликатов: ${resp.duplicates})`, "ok");
+        updateAdminSideBadges();
+        await renderGiveawayKeys();
+      } catch (e) {
+        toast(e.message, "err");
+      } finally {
+        addBtn.disabled = false;
+      }
+    });
+  }
+
+  document.querySelectorAll("[data-del-giveawaykey]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.delGiveawaykey;
+      if (!confirm(`Удалить ключ для розыгрыша #${id} из пула?`)) return;
+      try {
+        await DELETE(`/api/admin/giveaway-keys/${id}`);
+        toast("Ключ удалён", "ok");
+        updateAdminSideBadges();
+        await renderGiveawayKeys();
+      } catch (e) {
+        toast(e.message, "err");
+      }
+    });
   });
 }
 
@@ -1319,7 +2033,7 @@ async function renderAccounts() {
         <form class="acc-create-form" id="accForm">
           <input type="text" name="nickname" placeholder="Никнейм *" required minlength="2">
           <input type="text" name="telegram" placeholder="@telegram *" required>
-          <input type="text" name="code" placeholder="Свой ключ (опционально)" class="mono" style="text-transform:uppercase;">
+          <input type="text" name="code" placeholder="Свой ключ (опционально)" class="mono">
           <select name="role">
             <option value="media">Медиа</option>
             <option value="moderator">Модератор</option>
@@ -1418,7 +2132,7 @@ async function renderBans() {
     <div class="table-box">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem 0.5rem;flex-wrap:wrap;gap:0.75rem;">
         <div>
-          <h3 style="padding:0;margin:0;">${ICONS.bans} Заблокированные пользователи <span class="badge pending">${filtered.length}</span></h3>
+          <h3 style="padding:0;margin:0;">${ICONS.bans} Заблокированные пользователи <span class="badge">${filtered.length}</span></h3>
         </div>
         <button class="btn-primary" id="openAddBanBtn" type="button" style="background:linear-gradient(135deg,#ef4444,#dc2626);padding:0.6rem 1.25rem;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;border:none;cursor:pointer;">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1641,7 +2355,7 @@ function openBanModal(ban) {
 
 // ═══ Категория «Настройки» (Тексты, Журнал, TG-окна) ═══
 
-let settingsSubTab = "texts"; // "texts" | "logs" | "windows"
+let settingsSubTab = "texts"; // "texts" | "logs"
 
 async function renderSettings() {
   clearInterval(logsPollTimer);
@@ -1655,9 +2369,6 @@ async function renderSettings() {
       </button>
       <button type="button" class="settings-subtab ${settingsSubTab === "logs" ? "active" : ""}" data-settings-tab="logs">
         ${ICONS.logs} Журнал
-      </button>
-      <button type="button" class="settings-subtab ${settingsSubTab === "windows" ? "active" : ""}" data-settings-tab="windows">
-        ${ICONS.windows} TG-окна
       </button>
     </div>
     <div id="settingsContentWrap"></div>
@@ -1690,8 +2401,6 @@ async function renderSettingsSubTab() {
     await renderSettingsTexts(wrap);
   } else if (settingsSubTab === "logs") {
     await renderSettingsLogs(wrap);
-  } else if (settingsSubTab === "windows") {
-    await renderSettingsWindows(wrap);
   }
 }
 
@@ -1706,13 +2415,15 @@ const SETTING_GROUPS = [
     ]
   },
   {
-    title: "Выплаты и отчёты",
-    desc: "Шаблоны паст подачи заявок и тексты уведомлений о переводах средств",
+    title: "Выплаты, лоты и отчёты",
+    desc: "Шаблоны паст подачи заявок и тексты уведомлений о переводах средств и выдаче лотов",
     items: [
       ["payout_paste_template", "Паста подачи выплаты (Telegram)", "Плейсхолдеры: {uid} {duration} {want} {amount} {method} {lot_url}. Парсер бота сопоставляет строки вида «Префикс: значение»."],
       ["payout_usdt_text", "Текст при одобрении USDT-выплаты", "Плейсхолдеры: {id} — номер, {amount} — сумма USDT, {nickname} — ник, {tx} — хэш или ссылка на перевод."],
       ["payout_funpay_text", "Текст при одобрении FunPay-выплаты", "Плейсхолдеры: {id} — номер, {lot_url} — ссылка на лот, {nickname} — ник."],
       ["payout_reject_text", "Текст при отклонении выплаты", "Плейсхолдеры: {reason} — причина отказа, {id} — номер, {nickname} — ник."],
+      ["lot_approve_text", "Текст при одобрении лотов", "Отправляется ботом в Telegram при одобрении лота (косметика и др.). Поддерживает HTML. Плейсхолдеры: {comment} — комментарий/ссылка, {id} — номер, {want} — что запрошено, {nickname} — ник, {uid} — UID."],
+      ["lot_reject_text", "Текст при отклонении лота", "Отправляется ботом в Telegram при отклонении заявки на лот. Поддерживает HTML. Плейсхолдеры: {reason} — причина отказа, {id} — номер, {nickname} — ник, {uid} — UID."],
       ["week_summary_template", "Шаблон недельного отчёта", "Плейсхолдеры: {week} {total} {pending} {approved} {rejected} {usdt_total} {funpay_count}."],
     ]
   },
@@ -1725,11 +2436,18 @@ const SETTING_GROUPS = [
     ]
   },
   {
-    title: "Telegram-бот и Business",
-    desc: "Общие сообщения от имени бота и Telegram Business",
+    title: "Telegram-бот",
+    desc: "Общие сообщения и режим отправки уведомлений от имени Telegram-бота",
     items: [
-      ["tg_window_nudge_text", "Напоминание о 24-часовом окне Telegram", "Отправляется ботом за 5 минут до закрытия 24-часового окна Telegram Business для продления возможности переписки."],
+      ["user_notifications_enabled", "Уведомления пользователям (вердикты по заявкам)", "Когда отключено, бот отправляет только административные уведомления владельцам и 2FA."],
       ["tg_bot_start_text", "Приветствие бота (/start)", "Отправляется в ЛС боту при команде /start. Плейсхолдеры: {name} — имя пользователя."],
+    ]
+  },
+  {
+    title: "Безопасность и авторизация",
+    desc: "Настройки проверки входа и двухфакторной аутентификации (2FA)",
+    items: [
+      ["two_factor_enabled", "Двухфакторная аутентификация через Telegram (2FA)", "Управление обязательным подтверждением входа через Telegram бота."],
     ]
   }
 ];
@@ -1745,14 +2463,50 @@ async function renderSettingsTexts(wrap) {
         <p class="settings-group-desc">${group.desc}</p>
       </div>
       <div class="settings-group-cards">
-        ${group.items.map(([key, title, hint]) => `
-          <div class="card">
-            <h3>${title}</h3>
-            <p class="hint">${hint}</p>
-            <textarea id="set-${key}" rows="5" class="mono" style="min-height:100px">${esc(s[key] || "")}</textarea>
-            <button class="btn-primary" data-set="${key}" style="margin-top:0.35rem;height:40px;padding:0 1.5rem;width:auto;">Сохранить</button>
-          </div>
-        `).join("")}
+        ${group.items.map(([key, title, hint]) => {
+          if (key === "user_notifications_enabled") {
+            const isUserNotif = s[key] === "true";
+            return `
+              <div class="card">
+                <h3>${title}</h3>
+                <p class="hint">${hint}</p>
+                <div class="settings-select-row">
+                  <select id="set-${key}" class="settings-select">
+                    <option value="false" ${!isUserNotif ? 'selected' : ''}>Отключены (только админам и 2FA)</option>
+                    <option value="true" ${isUserNotif ? 'selected' : ''}>Включены (бот пишет заявителям)</option>
+                  </select>
+                  <button class="btn-primary" data-set="${key}">${UI_ICONS.check} Сохранить</button>
+                </div>
+              </div>
+            `;
+          }
+          if (key === "two_factor_enabled") {
+            const is2fa = s[key] === "true";
+            return `
+              <div class="card">
+                <h3>${title}</h3>
+                <p class="hint">${hint}</p>
+                <div class="settings-select-row">
+                  <select id="set-${key}" class="settings-select">
+                    <option value="false" ${!is2fa ? 'selected' : ''}>Отключена (прямой вход по коду)</option>
+                    <option value="true" ${is2fa ? 'selected' : ''}>Включена (подтверждение в TG)</option>
+                  </select>
+                  <button class="btn-primary" data-set="${key}">${UI_ICONS.check} Сохранить</button>
+                </div>
+              </div>
+            `;
+          }
+          return `
+            <div class="card">
+              <h3>${title}</h3>
+              <p class="hint">${hint}</p>
+              <textarea id="set-${key}" rows="5" class="mono" style="min-height:100px">${esc(s[key] || "")}</textarea>
+              <div class="settings-card-actions">
+                <button class="btn-primary" data-set="${key}">${UI_ICONS.check} Сохранить</button>
+              </div>
+            </div>
+          `;
+        }).join("")}
       </div>
     </div>
   `).join("");
@@ -1811,57 +2565,7 @@ function drawSettingsLogs(wrap, list) {
   bindFilterBar(() => renderSettingsLogs(wrap));
 }
 
-// ── Подвкладка «TG-окна» ──
-async function renderSettingsWindows(wrap) {
-  const data = await GET("/api/admin/tg-windows");
-  const rows = (data.data || []).map((w) => {
-    const rem = w.remaining_sec;
-    const state = rem > 3600 ? `<span class="badge approved">активно ${Math.floor(rem / 3600)} ч</span>`
-      : rem > 0 ? `<span class="badge warning">истекает через ${Math.floor(rem / 60)} мин</span>`
-      : '<span class="badge rejected">истекло</span>';
-    return `<tr><td>@${esc(w.username || "—")}</td><td class="mono">${w.tg_user_id}</td>
-      <td>${new Date(w.last_incoming_at).toLocaleString("ru-RU")}</td><td>${state}</td></tr>`;
-  }).join("");
-
-  wrap.innerHTML = `
-    <div class="table-box"><h3>${ICONS.windows} Telegram-окна ответов (24 ч после сообщения пользователя)
-      <span class="badge success">Live</span></h3>
-      <p class="hint" style="padding:0 18px">Бот напоминает продлить окно за 5 минут до истечения. Список обновляется автоматически каждые 30 секунд.</p>
-      <div class="table-scroll"><table>
-        <thead><tr><th>Пользователь</th><th>TG ID</th><th>Последнее сообщение</th><th>Окно</th></tr></thead>
-        <tbody id="winBody">${rows || '<tr><td colspan="4" class="hint">Нет переписок</td></tr>'}</tbody>
-      </table></div>
-    </div>`;
-
-  clearInterval(logsPollTimer);
-  logsPollTimer = setInterval(async () => {
-    if (adminCat !== "settings" || settingsSubTab !== "windows") {
-      clearInterval(logsPollTimer);
-      return;
-    }
-    try {
-      const resp = await GET("/api/admin/tg-windows");
-      const body = document.getElementById("winBody");
-      if (!body) return;
-      body.innerHTML = (resp.data || []).map((w) => {
-        const rem = w.remaining_sec;
-        const state = rem > 3600 ? `<span class="badge approved">активно ${Math.floor(rem / 3600)} ч</span>`
-          : rem > 0 ? `<span class="badge warning">истекает через ${Math.floor(rem / 60)} мин</span>`
-          : '<span class="badge rejected">истекло</span>';
-        return `<tr><td>@${esc(w.username || "—")}</td><td class="mono">${w.tg_user_id}</td>
-          <td>${new Date(w.last_incoming_at).toLocaleString("ru-RU")}</td><td>${state}</td></tr>`;
-      }).join("");
-    } catch { /* тихо */ }
-  }, 30000);
-}
-
 // Алиасы на случай прямого вызова
-async function renderWindows() {
-  settingsSubTab = "windows";
-  adminCat = "settings";
-  await renderSettings();
-}
-
 async function renderLogs() {
   settingsSubTab = "logs";
   adminCat = "settings";

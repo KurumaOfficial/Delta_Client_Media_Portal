@@ -13,27 +13,49 @@ import (
 
 // Create — новая заявка (из кабинета или Telegram-пасты).
 func (s *Service) Create(r models.Request) (int64, error) {
-	week, err := s.EnsureCurrentWeek()
-	if err != nil {
-		if r.Kind == models.KindLot {
-			row := s.db.QueryRow(`SELECT id, label, opens_at, closes_at, is_current FROM v2_weeks ORDER BY id DESC LIMIT 1`)
-			if sWeek, sErr := s.scanWeek(row); sErr == nil {
-				week = sWeek
-				err = nil
-			}
-		}
+	if r.Kind == models.KindPayout {
+		// Ограничение по времени применяется ТОЛЬКО к заявкам на выплату:
+		week, err := s.EnsureCurrentWeek()
 		if err != nil {
-			return 0, fmt.Errorf("приём заявок закрыт (окно: пн 00:00 — вт 22:00)")
+			return 0, fmt.Errorf("приём заявок на выплату закрыт (окно: пн 00:00 — пн 23:00 МСК)")
 		}
+
+		// максимум 2 незакрытые заявки на выплату на аккаунт за неделю
+		var dup int
+		_ = s.db.QueryRow(
+			`SELECT COUNT(*) FROM v2_requests WHERE week_id = ? AND account_id = ? AND kind = ? AND status = 'pending'`,
+			week.ID, r.AccountID, r.Kind).Scan(&dup)
+		if dup >= 2 {
+			return 0, fmt.Errorf("у вас уже есть 2 нерассмотренные заявки на выплату на текущей неделе")
+		}
+
+		return s.db.InsertReturningID(`
+			INSERT INTO v2_requests
+			(week_id, kind, source, account_id, nickname, telegram, tg_user_id, uid, duration,
+			 want, amount, method, platform, channel_url, lot_url, promo_code, status)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+			week.ID, r.Kind, r.Source, r.AccountID, r.Nickname, r.Telegram, r.TGUserID,
+			r.UID, r.Duration, r.Want, r.Amount, r.Method, r.Platform, r.ChannelURL, r.LotURL, r.PromoCode)
 	}
 
-	// одна незакрытая заявка этого вида на аккаунт за неделю
+	// Для лотов (KindLot) и любых других заявок — разрешено ВСЕГДА 24/7 без ограничений по времени!
+	week, _ := s.GetOrCreateWeek()
+	var weekID int64
+	if week.ID != 0 {
+		weekID = week.ID
+	}
+
+	// Проверка на наличие незакрытой заявки того же типа у аккаунта
 	var dup int
 	_ = s.db.QueryRow(
-		`SELECT COUNT(*) FROM v2_requests WHERE week_id = ? AND account_id = ? AND kind = ? AND status = 'pending'`,
-		week.ID, r.AccountID, r.Kind).Scan(&dup)
+		`SELECT COUNT(*) FROM v2_requests WHERE account_id = ? AND kind = ? AND status = 'pending'`,
+		r.AccountID, r.Kind).Scan(&dup)
 	if dup > 0 {
-		return 0, fmt.Errorf("у вас уже есть нерассмотренная заявка этого типа на текущей неделе")
+		typeName := "лот"
+		if r.Kind == models.KindGiveaway {
+			typeName = "ключ для розыгрыша"
+		}
+		return 0, fmt.Errorf("у вас уже есть нерассмотренная заявка на %s. Дождитесь ответа администратора.", typeName)
 	}
 
 	return s.db.InsertReturningID(`
@@ -41,7 +63,7 @@ func (s *Service) Create(r models.Request) (int64, error) {
 		(week_id, kind, source, account_id, nickname, telegram, tg_user_id, uid, duration,
 		 want, amount, method, platform, channel_url, lot_url, promo_code, status)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-		week.ID, r.Kind, r.Source, r.AccountID, r.Nickname, r.Telegram, r.TGUserID,
+		weekID, r.Kind, r.Source, r.AccountID, r.Nickname, r.Telegram, r.TGUserID,
 		r.UID, r.Duration, r.Want, r.Amount, r.Method, r.Platform, r.ChannelURL, r.LotURL, r.PromoCode)
 }
 
@@ -146,13 +168,35 @@ func (s *Service) HandlePaste(nickname, telegram string, tgUserID int64, text st
 	return id, "", err
 }
 
-// ListByWeek — заявки недели для админ-таблицы (новые внизу = ASC).
+// ListByWeek — заявки недели для админ-таблицы (новые вверху = DESC).
 func (s *Service) ListByWeek(weekID int64) ([]models.Request, error) {
+	return s.ListPayoutsByWeek(weekID)
+}
+
+// ListPayoutsByWeek — только заявки на выплату за неделю.
+func (s *Service) ListPayoutsByWeek(weekID int64) ([]models.Request, error) {
 	rows, err := s.db.Query(`
 		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
 		       uid, duration, want, amount, method, platform, channel_url, lot_url,
 		       promo_code, status, decision_comment, tx_ref, created_at, decided_at
-		FROM v2_requests WHERE week_id = ? ORDER BY id ASC`, weekID)
+		FROM v2_requests WHERE week_id = ? AND kind = 'payout' ORDER BY id DESC`, weekID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanRequests(rows)
+}
+
+// ListLots — все заявки на лоты и подписки (24/7).
+func (s *Service) ListLots(limit, offset int) ([]models.Request, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	rows, err := s.db.Query(`
+		SELECT id, week_id, kind, source, account_id, nickname, telegram, tg_user_id,
+		       uid, duration, want, amount, method, platform, channel_url, lot_url,
+		       promo_code, status, decision_comment, tx_ref, created_at, decided_at
+		FROM v2_requests WHERE kind IN ('lot', 'subscription', 'giveaway') ORDER BY id DESC LIMIT ? OFFSET ?`, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +282,35 @@ func (s *Service) CurrentWeek() (models.Week, bool) {
 		return models.Week{}, false
 	}
 	return last, true
+}
+
+// GetOrCreateWeek возвращает текущую или последнюю неделю, либо создаёт её (для лотов и админки вне окна выплат).
+func (s *Service) GetOrCreateWeek() (models.Week, error) {
+	if w, ok := s.CurrentWeek(); ok {
+		return w, nil
+	}
+	now := time.Now().In(s.tz)
+	monday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, s.tz)
+	for monday.Weekday() != time.Monday {
+		monday = monday.AddDate(0, 0, -1)
+	}
+	closes := monday.Add(23 * time.Hour)
+	label := weekLabel(monday, closes)
+
+	var w models.Week
+	err := s.db.QueryRow(`SELECT id, label, opens_at, closes_at, is_current, summary_text FROM v2_weeks WHERE opens_at = ?`, monday).
+		Scan(&w.ID, &w.Label, &w.OpensAt, &w.ClosesAt, &w.IsCurrent, &w.SummaryText)
+	if err == nil {
+		return w, nil
+	}
+
+	id, err := s.db.InsertReturningID(
+		`INSERT INTO v2_weeks (label, opens_at, closes_at, is_current) VALUES (?, ?, ?, 0)`,
+		label, monday, closes)
+	if err != nil {
+		return models.Week{}, err
+	}
+	return models.Week{ID: id, Label: label, OpensAt: monday, ClosesAt: closes, IsCurrent: false}, nil
 }
 
 func (s *Service) WeekByID(id int64) (models.Week, error) {

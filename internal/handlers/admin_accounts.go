@@ -50,13 +50,13 @@ func (h *Admin) CreateAccount(c *fiber.Ctx) error {
 		return badRequest(c, "Укажите Telegram @username владельца (нужен для 2FA)")
 	}
 
-	customCode := strings.ToUpper(strings.TrimSpace(body.Code))
+	customCode := strings.TrimSpace(body.Code)
 	if customCode != "" {
 		if len(customCode) < 4 || len(customCode) > 64 {
 			return badRequest(c, "Код должен содержать от 4 до 64 символов")
 		}
 		var exists int
-		_ = h.db.QueryRow(`SELECT COUNT(*) FROM v2_accounts WHERE UPPER(code) = ?`, customCode).Scan(&exists)
+		_ = h.db.QueryRow(`SELECT COUNT(*) FROM v2_accounts WHERE UPPER(code) = UPPER(?)`, customCode).Scan(&exists)
 		if exists > 0 {
 			return badRequest(c, "Аккаунт с таким кодом уже существует")
 		}

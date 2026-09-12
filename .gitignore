@@ -19,6 +19,7 @@ tgGIF/*
 # Binaries
 *.exe
 *.exe~
+delta-portal
 delta-portal.exe
 delta-media-recode.exe
 dmr.exe

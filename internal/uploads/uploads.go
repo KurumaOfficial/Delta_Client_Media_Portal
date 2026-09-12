@@ -141,7 +141,7 @@ func UploadChunk(c *fiber.Ctx) error {
 		if len(ext) > 0 && len(baseName) > len(ext) {
 			baseName = baseName[:len(baseName)-len(ext)]
 		}
-		finalFileName := fmt.Sprintf("%d_%s%s", time.Now().Unix(), baseName, ext)
+		finalFileName := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), baseName, ext)
 		finalPath := filepath.Join(proofsDir, finalFileName)
 
 		finalFile, err := os.Create(finalPath)

@@ -9,30 +9,48 @@ import (
 	"dmr/internal/models"
 )
 
-// SendLoginConfirmation — 2FA: IP + GPS + кнопки подтверждения владельцу.
+// SendLoginConfirmation — 2FA: IP + GPS (только для админов и модераторов) + кнопки подтверждения владельцу.
 func (s *Service) SendLoginConfirmation(account models.Account, attempt models.LoginAttempt) error {
 	chatID := s.auth.ResolveTGChatID(account)
 	if chatID == 0 {
 		return fmt.Errorf("у аккаунта нет привязанного Telegram")
 	}
 
-	gpsLine := "не передана"
-	if attempt.GPS != "" {
-		coords := strings.Fields(attempt.GPS)
-		if len(coords) >= 2 {
-			gpsLine = fmt.Sprintf("%s, %s (<a href=\"https://maps.google.com/?q=%s,%s\">карта</a>)",
-				coords[0], coords[1], coords[0], coords[1])
+	var text string
+	if account.Role == models.RoleAdmin || account.Role == models.RoleModerator {
+		gpsLine := "не передана"
+		if attempt.GPS != "" {
+			coords := strings.FieldsFunc(attempt.GPS, func(r rune) bool {
+				return r == ',' || r == ' ' || r == ';'
+			})
+			if len(coords) >= 2 {
+				lat := strings.TrimSpace(coords[0])
+				lng := strings.TrimSpace(coords[1])
+				gpsLine = fmt.Sprintf("%s, %s (<a href=\"https://maps.google.com/?q=%s,%s\">карта</a>)",
+					lat, lng, lat, lng)
+			} else {
+				gpsLine = escapeHTML(attempt.GPS)
+			}
 		}
-	}
 
-	text := fmt.Sprintf(
-		"🔐 <b>Подтверждение входа — Delta Media</b>\n\n"+
-			"Аккаунт: <b>%s</b> (%s)\n"+
-			"IP-адрес: <code>%s</code>\n"+
-			"📍 Геолокация: %s\n\n"+
-			"⚠️ Если это не вы — <b>срочно обратитесь к администратору: @%s</b>",
-		escapeHTML(account.Nickname), models.RoleTitle(account.Role),
-		escapeHTML(attempt.IP), gpsLine, s.cfg.TGAdminContact)
+		text = fmt.Sprintf(
+			"🔐 <b>Подтверждение входа — Delta Media</b>\n\n"+
+				"Аккаунт: <b>%s</b> (%s)\n"+
+				"IP-адрес: <code>%s</code>\n"+
+				"📍 Геолокация: %s\n\n"+
+				"⚠️ Если это не вы — <b>срочно обратитесь к администратору: @%s</b>",
+			escapeHTML(account.Nickname), models.RoleTitle(account.Role),
+			escapeHTML(attempt.IP), gpsLine, s.cfg.TGAdminContact)
+	} else {
+		// Для медиа (и других не-staff ролей): только IP, БЕЗ геолокации
+		text = fmt.Sprintf(
+			"🔐 <b>Подтверждение входа — Delta Media</b>\n\n"+
+				"Аккаунт: <b>%s</b> (%s)\n"+
+				"IP-адрес: <code>%s</code>\n\n"+
+				"⚠️ Если это не вы — <b>срочно обратитесь к администратору: @%s</b>",
+			escapeHTML(account.Nickname), models.RoleTitle(account.Role),
+			escapeHTML(attempt.IP), s.cfg.TGAdminContact)
+	}
 
 	return s.cl.SendMessage(chatID, text,
 		[][2]string{{"✅ Подтвердить", fmt.Sprintf("2fa:%d:approve", attempt.ID)}},
@@ -108,6 +126,7 @@ func (s *Service) NotifyCabinetRequest(r models.Request) {
 	kindTitle := map[string]string{
 		models.KindPayout: "💸 Заявка на выплату", models.KindLot: "🏷️ Заявка на лот",
 		models.KindSubscription: "📺 Запрос подписки",
+		models.KindGiveaway:     "🎁 Заявка на ключ для розыгрыша",
 	}[r.Kind]
 	body := fmt.Sprintf("Заявитель: <b>%s</b> @%s\nUID: <code>%s</code>", escapeHTML(r.Nickname), escapeHTML(strings.TrimPrefix(r.Telegram, "@")), escapeHTML(r.UID))
 	if r.PromoCode != "" {
@@ -132,7 +151,11 @@ func (s *Service) NotifyCabinetRequest(r models.Request) {
 		body += fmt.Sprintf("\nКанал: %s", escapeHTML(r.ChannelURL))
 	}
 	if r.LotURL != "" {
-		body += fmt.Sprintf("\nЛот FunPay: %s", escapeHTML(r.LotURL))
+		urlLabel := "Лот FunPay"
+		if r.Kind == models.KindGiveaway {
+			urlLabel = "Ссылка на розыгрыш"
+		}
+		body += fmt.Sprintf("\n%s: %s", urlLabel, escapeHTML(r.LotURL))
 	}
 	s.notifyAdminsFull(fmt.Sprintf("%s #%d (%s)", kindTitle, r.ID, r.Source), body,
 		[][2]string{{"✅ Принять", fmt.Sprintf("pay:%d:approve", r.ID)},
@@ -162,6 +185,11 @@ func renderTemplate(tpl string, vars map[string]string) string {
 
 // SendVerdict — вердикт по заявке (тексты настраиваются через админ-панель).
 func (s *Service) SendVerdict(telegram, kind string, id int64, approve bool, comment string) {
+	// Временно отключено по требованию: бот не отправляет вердикты пользователям (кроме административных)
+	if s.db.Setting("user_notifications_enabled") != "true" {
+		return
+	}
+
 	chatID := s.chatIDByUsername(telegram)
 	if chatID == 0 {
 		return

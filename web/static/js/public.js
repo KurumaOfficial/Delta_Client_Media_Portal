@@ -8,12 +8,12 @@ let loginTurnstileWidgetId = null;
 async function loadSiteConfig() {
   try {
     SITE_CONFIG = await GET("/api/health");
-    const staff = SITE_CONFIG.staff_contact || "notyxs";
+    const bot = SITE_CONFIG.bot_username || "";
     const admin = SITE_CONFIG.admin_contact || "notyxs";
     const staffBtn = document.getElementById("staffContactBtn");
-    if (staffBtn) staffBtn.href = "https://t.me/" + staff;
+    if (staffBtn) staffBtn.href = bot ? ("https://t.me/" + bot + "?start=verify") : ("https://t.me/" + admin);
     const bugBtn = document.getElementById("bugReportBtn");
-    if (bugBtn) bugBtn.href = "https://t.me/" + staff;
+    if (bugBtn) bugBtn.href = bot ? ("https://t.me/" + bot) : ("https://t.me/" + admin);
     const forgotBtn = document.getElementById("authForgot");
     if (forgotBtn) forgotBtn.href = "https://t.me/" + admin;
     if (!SITE_CONFIG.turnstile_enabled) {
@@ -692,7 +692,7 @@ async function submitMediaApp(e) {
   buttonState(btn, "", "Отправляем…");
   try {
     await POST("/api/media/submit", body);
-    buttonState(btn, "ok", "Заявка отправлена! ✅", 3500);
+    buttonState(btn, "ok", `${UI_ICONS.check} Заявка отправлена!`, 3500);
     e.target.reset();
     ["platformDrop", "serversDrop", "exclusiveDrop"].forEach((id) => {
       const d = document.getElementById(id);

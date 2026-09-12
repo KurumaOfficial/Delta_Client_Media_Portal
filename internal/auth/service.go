@@ -49,7 +49,7 @@ func GenerateCode() string {
 }
 
 func (s *Service) CreateAccount(role, nickname, telegram, customCode string) (models.Account, error) {
-	code := strings.ToUpper(strings.TrimSpace(customCode))
+	code := strings.TrimSpace(customCode)
 	if code == "" {
 		code = GenerateCode()
 	}
@@ -83,7 +83,7 @@ func (s *Service) scanAccount(row *sql.Row) (models.Account, error) {
 func (s *Service) ListAccounts() ([]models.Account, error) {
 	rows, err := s.db.Query(
 		`SELECT id, code, role, nickname, telegram, tg_user_id, is_active, created_at
-		 FROM v2_accounts ORDER BY id ASC`)
+		 FROM v2_accounts ORDER BY id DESC`)
 	if err != nil {
 		return nil, err
 	}

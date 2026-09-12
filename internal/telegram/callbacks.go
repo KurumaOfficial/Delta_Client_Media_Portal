@@ -72,6 +72,14 @@ func (s *Service) callback2FA(cb *CallbackQuery, attemptID int64, verb string) {
 	} else {
 		s.cl.AnswerCallback(cb.ID, "🚫 Вход отклонён")
 	}
+	if cb.Message != nil {
+		status := "Вход подтверждён ✅"
+		if !approve {
+			status = "Вход отклонён 🚫"
+		}
+		s.cl.EditMessageText(cb.Message.Chat.ID, cb.Message.MessageID,
+			fmt.Sprintf("Статус авторизации: <b>%s</b>", status))
+	}
 	s.db.RecordAudit("LOGIN_2FA", "success",
 		fmt.Sprintf("Попытка #%d (%s): решение %s через TG", attemptID, account.Nickname, verb), "", "")
 }

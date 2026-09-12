@@ -11,6 +11,7 @@ const (
 	KindPayout       = "payout"       // заявка на выплату за снятые видео (медиа)
 	KindLot          = "lot"          // заявка на лот (медиа)
 	KindSubscription = "subscription" // запрос подписки (фримедиа)
+	KindGiveaway     = "giveaway"     // заявка на ключ для розыгрыша (медиа)
 	KindIdea         = "idea"         // идея / предложение
 	KindBug          = "bug"          // сообщение о баге / ошибке
 )
@@ -20,7 +21,7 @@ const (
 	MethodFunPay = "funpay"
 )
 
-// Week — недельный цикл приёма выплат (вт 01:00 → пн 22:00).
+// Week — недельный цикл приёма выплат (пн 00:00 → пн 23:00).
 type Week struct {
 	ID          int64     `json:"id"`
 	Label       string    `json:"label"` // «неделя с 17.08.26 до 24.08.26»
@@ -82,3 +83,17 @@ func mapToPairs(m map[string]string) []string {
 	}
 	return pairs
 }
+
+// SubscriptionKey — ключ подписки или розыгрыша в пуле выдачи.
+type SubscriptionKey struct {
+	ID                int64      `json:"id"`
+	Category          string     `json:"category"` // "sub" или "giveaway"
+	KeyCode           string     `json:"key_code"`
+	IsUsed            bool       `json:"is_used"`
+	UsedAt            *time.Time `json:"used_at,omitempty"`
+	AssignedRequestID int64      `json:"assigned_request_id"`
+	AssignedAccountID int64      `json:"assigned_account_id"`
+	AssignedTo        string     `json:"assigned_to"`
+	CreatedAt         time.Time  `json:"created_at"`
+}
+
